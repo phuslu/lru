@@ -3,6 +3,7 @@ package lru
 import (
 	"math/rand"
 	"testing"
+	"time"
 )
 
 func TestCacheDefaultkey(t *testing.T) {
@@ -161,11 +162,13 @@ func BenchmarkCacheTTL(b *testing.B) {
 		}
 	}
 
+	EnableFastTimeUnixNano()
+
 	b.ReportAllocs()
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		l.Set(trace[i], trace[i])
+		l.SetWithTTL(trace[i], trace[i], 60*time.Second)
 	}
 	var hit, miss int
 	for i := 0; i < b.N; i++ {
