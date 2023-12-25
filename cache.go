@@ -9,14 +9,9 @@ import (
 
 // Cache implements LRU Cache with least recent used eviction policy.
 type Cache[K comparable, V any] struct {
-	shards  []shardpad[K, V]
+	shards  []shard[K, V]
 	mask    uint64
 	keysize int
-}
-
-type shardpad[K comparable, V any] struct {
-	*shard[K, V]
-	_ [56]byte
 }
 
 // New creates lru cache with size capacity.
@@ -31,11 +26,11 @@ func New[K comparable, V any](size int) *Cache[K, V] {
 	}
 
 	c := &Cache[K, V]{
-		shards: make([]shardpad[K, V], shardcount),
+		shards: make([]shard[K, V], shardcount),
 		mask:   uint64(shardcount) - 1,
 	}
 	for i := range c.shards {
-		c.shards[i].shard = newshard[K, V](shardsize)
+		c.shards[i] = *newshard[K, V](shardsize)
 	}
 
 	var k K

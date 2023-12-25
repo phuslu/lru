@@ -21,14 +21,12 @@ type element[T any] struct {
 // The zero value for List is an empty list ready to use.
 type list[T any] struct {
 	root element[T] // sentinel list element, only &root, root.prev, and root.next are used
-	len  int        // current list length excluding (this) sentinel element
 }
 
 // Init initializes or clears list l.
 func (l *list[T]) init() *list[T] {
 	l.root.next = &l.root
 	l.root.prev = &l.root
-	l.len = 0
 	return l
 }
 
@@ -38,7 +36,6 @@ func (l *list[T]) insert(e, at *element[T]) *element[T] {
 	e.next = at.next
 	e.prev.next = e
 	e.next.prev = e
-	l.len++
 	return e
 }
 
@@ -58,9 +55,6 @@ func (l *list[T]) move(e, at *element[T]) {
 
 // Back returns the last element of list l or nil if the list is empty.
 func (l *list[T]) Back() *element[T] {
-	if l.len == 0 {
-		return nil
-	}
 	return l.root.prev
 }
 
