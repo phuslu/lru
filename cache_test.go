@@ -64,11 +64,11 @@ func TestCacheEviction(t *testing.T) {
 	// 	}
 	// }
 
-	// for i := 128; i < 256; i++ {
-	// 	if e := l.Get(i); e == nil {
-	// 		t.Fatalf("should not be evicted")
-	// 	}
-	// }
+	for i := 128; i < 256; i++ {
+		if _, ok := l.Get(i); ok {
+			t.Fatalf("should not be evicted")
+		}
+	}
 
 	for i := 128; i < 192; i++ {
 		l.Delete(i)

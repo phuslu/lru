@@ -8,7 +8,7 @@ import (
 type shard[K comparable, V any] struct {
 	mu    sync.Mutex
 	list  *list[*entry[K, V]]
-	table rhhmap[K, *element[*entry[K, V]]]
+	table rhhmap[K, uint32]
 	_     [24]byte
 }
 
@@ -21,7 +21,8 @@ type entry[K comparable, V any] struct {
 func (s *shard[K, V]) Get(hash uint64, key K) (value V, ok bool) {
 	s.mu.Lock()
 
-	if e, exists := s.table.Get(hash, key); exists {
+	if i, exists := s.table.Get(hash, key); exists {
+		e := s.list.Index(i)
 		if ts := e.Value.expires; ts > 0 && timeUnixNano() > ts {
 			s.list.MoveToBack(e)
 			e.Value.value = value
@@ -41,8 +42,8 @@ func (s *shard[K, V]) Get(hash uint64, key K) (value V, ok bool) {
 func (s *shard[K, V]) Peek(hash uint64, key K) (value V, ok bool) {
 	s.mu.Lock()
 
-	if e, exists := s.table.Get(hash, key); exists {
-		value = e.Value.value
+	if i, exists := s.table.Get(hash, key); exists {
+		value = s.list.Index(i).Value.value
 		ok = true
 	}
 
@@ -55,7 +56,8 @@ func (s *shard[K, V]) Set(hash uint64, hashfun func(K) uint64, key K, value V, t
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if e, exists := s.table.Get(hash, key); exists {
+	if i, exists := s.table.Get(hash, key); exists {
+		e := s.list.Index(i)
 		previousValue := e.Value.value
 		s.list.MoveToFront(e)
 		e.Value.value = value
@@ -77,7 +79,7 @@ func (s *shard[K, V]) Set(hash uint64, hashfun func(K) uint64, key K, value V, t
 	if ttl > 0 {
 		i.expires = timeUnixNano() + int64(ttl)
 	}
-	s.table.Set(hash, key, e)
+	s.table.Set(hash, key, e.index)
 	s.list.MoveToFront(e)
 	prev = evictedValue
 	return
@@ -87,7 +89,8 @@ func (s *shard[K, V]) Delete(hash uint64, key K) (v V) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if e, exists := s.table.Get(hash, key); exists {
+	if i, exists := s.table.Get(hash, key); exists {
+		e := s.list.Index(i)
 		value := e.Value.value
 		s.list.MoveToBack(e)
 		e.Value.value = v
@@ -110,11 +113,7 @@ func newshard[K comparable, V any](size int) *shard[K, V] {
 	s := &shard[K, V]{}
 
 	s.list = new(list[*entry[K, V]])
-	s.list.init()
-	for i := 0; i < size; i++ {
-		s.list.PushBack(&entry[K, V]{})
-	}
-
+	s.list.Init(uint32(size), func(_ uint32) *entry[K, V] { return new(entry[K, V]) })
 	s.table.init(size)
 
 	return s

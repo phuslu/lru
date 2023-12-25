@@ -1,4 +1,4 @@
-# lru - a thread-safe LRU cache with ttl support
+# lru - a thread-safe and gc-friendly LRU cache
 
 [![godoc][godoc-img]][godoc] [![release][release-img]][release] [![goreport][goreport-img]][goreport]
 
@@ -30,128 +30,19 @@ func main() {
 
 ### Benchmarks
 
-<details>
-<summary>The most common benchmarks(Parallel Get) against with cloudflare/elastic/hashicorp implementation:</summary>
-
-```go
-// go test -v -cpu=8 -run=none -bench=. -benchtime=5s -benchmem bench_test.go
-package bench
-
-import (
-	"fmt"
-	"testing"
-	"time"
-	_ "unsafe"
-
-	"github.com/cespare/xxhash/v2"
-	cloudflare "github.com/cloudflare/golibs/lrucache"
-	elastic "github.com/elastic/go-freelru"
-	hashicorp "github.com/hashicorp/golang-lru/v2"
-	phuslu "github.com/phuslu/lru"
-)
-
-const (
-	keysize     = 16
-	cachesize   = 16384
-	parallelism = 1000
-)
-
-var keymap = func() (x [cachesize]string) {
-	for i := 0; i < cachesize; i++ {
-		x[i] = fmt.Sprintf(fmt.Sprintf("%%0%dd", keysize), i)
-	}
-	return
-}()
-
-//go:noescape
-//go:linkname fastrandn runtime.fastrandn
-func fastrandn(x uint32) uint32
-
-func BenchmarkCloudflareGet(b *testing.B) {
-	cache := cloudflare.NewMultiLRUCache(1024, cachesize/1024)
-	for i := 0; i < cachesize/2; i++ {
-		cache.Set(keymap[i], i, time.Time{})
-	}
-
-	b.SetParallelism(parallelism)
-	b.ResetTimer()
-
-	b.RunParallel(func(pb *testing.PB) {
-		for pb.Next() {
-			_, _ = cache.Get(keymap[fastrandn(cachesize)])
-		}
-	})
-}
-
-func elasticHashString(s string) uint32 {
-	return uint32(xxhash.Sum64String(s))
-}
-
-func BenchmarkElasticGet(b *testing.B) {
-	cache, _ := elastic.NewSynced[string, int](cachesize, elasticHashString)
-	for i := 0; i < cachesize/2; i++ {
-		cache.Add(keymap[i], i)
-	}
-
-	b.SetParallelism(parallelism)
-	b.ResetTimer()
-
-	b.RunParallel(func(pb *testing.PB) {
-		for pb.Next() {
-			_, _ = cache.Get(keymap[fastrandn(cachesize)])
-		}
-	})
-}
-
-func BenchmarkHashicorpGet(b *testing.B) {
-	cache, _ := hashicorp.New[string, int](cachesize)
-	for i := 0; i < cachesize/2; i++ {
-		cache.Add(keymap[i], i)
-	}
-
-	b.SetParallelism(parallelism)
-	b.ResetTimer()
-
-	b.RunParallel(func(pb *testing.PB) {
-		for pb.Next() {
-			_, _ = cache.Get(keymap[fastrandn(cachesize)])
-		}
-	})
-}
-
-func BenchmarkPhusluGet(b *testing.B) {
-	cache := phuslu.New[string, int](cachesize)
-	for i := 0; i < cachesize/2; i++ {
-		cache.Set(keymap[i], i)
-	}
-
-	b.SetParallelism(parallelism)
-	b.ResetTimer()
-
-	b.RunParallel(func(pb *testing.PB) {
-		for pb.Next() {
-			_, _ = cache.Get(keymap[fastrandn(cachesize)])
-		}
-	})
-}
-```
-</details>
-
 A Performance result as below
 ```
 goos: linux
 goarch: amd64
 cpu: Intel(R) Xeon(R) Silver 4216 CPU @ 2.10GHz
 BenchmarkCloudflareGet
-BenchmarkCloudflareGet-8   	100000000	        60.48 ns/op	      16 B/op	       1 allocs/op
-BenchmarkElasticGet
-BenchmarkElasticGet-8      	15093165	       424.4 ns/op	       0 B/op	       0 allocs/op
-BenchmarkHashicorpGet
-BenchmarkHashicorpGet-8    	27390493	       349.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkCloudflareGet-8   	100000000	        65.92 ns/op	      16 B/op	       1 allocs/op
+BenchmarkOtterGet
+BenchmarkOtterGet-8        	348283814	        17.22 ns/op	       0 B/op	       0 allocs/op
 BenchmarkPhusluGet
-BenchmarkPhusluGet-8       	199958748	        30.45 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPhusluGet-8       	176982829	        34.42 ns/op	       0 B/op	       0 allocs/op
 PASS
-ok  	command-line-arguments	32.350s
+ok  	command-line-arguments	24.378s
 ```
 
 [godoc-img]: http://img.shields.io/badge/godoc-reference-blue.svg
