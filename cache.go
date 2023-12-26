@@ -45,16 +45,19 @@ func New[K comparable, V any](size int) *Cache[K, V] {
 }
 
 func (c *Cache[K, V]) hash(key K) uint64 {
-	var hash uint64
 	if c.keysize == 0 {
-		hash = wyhash_HashString(*(*string)(unsafe.Pointer(&key)), 0)
-	} else {
-		hash = wyhash_HashString(*(*string)(unsafe.Pointer(&struct {
-			data unsafe.Pointer
-			len  int
-		}{unsafe.Pointer(&key), c.keysize})), 0)
+		data := *(*string)(unsafe.Pointer(&key))
+		if len(data) == 0 {
+			return 0
+		}
+
+		return wyhash_hash(data, 0)
 	}
-	return hash
+
+	return wyhash_hash(*(*string)(unsafe.Pointer(&struct {
+		data unsafe.Pointer
+		len  int
+	}{unsafe.Pointer(&key), c.keysize})), 0)
 }
 
 // Get returns value for key.
