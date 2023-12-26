@@ -1,5 +1,5 @@
 // go test -v -cpu=8 -run=none -bench=. -benchtime=5s -benchmem bench_test.go
-package main
+package bench
 
 import (
 	"fmt"
@@ -8,6 +8,7 @@ import (
 	_ "unsafe"
 
 	cloudflare "github.com/cloudflare/golibs/lrucache"
+	ristretto "github.com/dgraph-io/ristretto"
 	otter "github.com/maypok86/otter"
 	phuslu "github.com/phuslu/lru"
 )
@@ -33,6 +34,26 @@ func BenchmarkCloudflareGet(b *testing.B) {
 	cache := cloudflare.NewMultiLRUCache(1024, cachesize/1024)
 	for i := 0; i < cachesize/2; i++ {
 		cache.Set(keymap[i], i, time.Now().Add(time.Hour))
+	}
+
+	b.SetParallelism(parallelism)
+	b.ResetTimer()
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			_, _ = cache.Get(keymap[fastrandn(cachesize)])
+		}
+	})
+}
+
+func BenchmarkRistrettoGet(b *testing.B) {
+	cache, _ := ristretto.NewCache(&ristretto.Config{
+		NumCounters: cachesize, // number of keys to track frequency of (10M).
+		MaxCost:     1 << 30,   // maximum cost of cache (1GB).
+		BufferItems: 64,        // number of keys per Get buffer.
+	})
+	for i := 0; i < cachesize/2; i++ {
+		cache.SetWithTTL(keymap[i], i, 1, time.Hour)
 	}
 
 	b.SetParallelism(parallelism)
