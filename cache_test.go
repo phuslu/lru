@@ -162,8 +162,6 @@ func BenchmarkCacheTTL(b *testing.B) {
 		}
 	}
 
-	EnableFastTimeUnixNano()
-
 	b.ReportAllocs()
 	b.ResetTimer()
 

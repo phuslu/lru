@@ -2,6 +2,7 @@ package lru
 
 import (
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -23,7 +24,7 @@ func (s *shard[K, V]) Get(hash uint64, key K) (value V, ok bool) {
 
 	if i, exists := s.table.Get(hash, key); exists {
 		e := s.list.Index(i)
-		if ts := e.Value.expires; ts > 0 && timeUnixNano() > ts {
+		if ts := e.Value.expires; ts > 0 && atomic.LoadInt64(&now) > ts {
 			s.list.MoveToBack(e)
 			e.Value.value = value
 			s.table.Delete(hash, key)
@@ -62,7 +63,7 @@ func (s *shard[K, V]) Set(hash uint64, hashfun func(K) uint64, key K, value V, t
 		s.list.MoveToFront(e)
 		e.Value.value = value
 		if ttl > 0 {
-			e.Value.expires = timeUnixNano() + int64(ttl)
+			e.Value.expires = atomic.LoadInt64(&now) + int64(ttl)
 		}
 		prev = previousValue
 		replaced = true
@@ -77,7 +78,7 @@ func (s *shard[K, V]) Set(hash uint64, hashfun func(K) uint64, key K, value V, t
 	i.key = key
 	i.value = value
 	if ttl > 0 {
-		i.expires = timeUnixNano() + int64(ttl)
+		i.expires = atomic.LoadInt64(&now) + int64(ttl)
 	}
 	s.table.Set(hash, key, e.index)
 	s.list.MoveToFront(e)
@@ -117,4 +118,16 @@ func newshard[K comparable, V any](size int) *shard[K, V] {
 	s.table.init(size)
 
 	return s
+}
+
+var now int64
+
+func init() {
+	atomic.StoreInt64(&now, time.Now().UnixNano())
+	go func() {
+		for {
+			time.Sleep(time.Second)
+			atomic.StoreInt64(&now, time.Now().UnixNano())
+		}
+	}()
 }
