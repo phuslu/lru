@@ -1,5 +1,5 @@
 // go test -v -cpu=8 -run=none -bench=. -benchtime=5s -benchmem bench_test.go
-package bench
+package main
 
 import (
 	"fmt"
