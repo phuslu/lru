@@ -37,10 +37,6 @@ func (l *list[T]) move(e, at *listitem[T]) {
 	l.items[e.next].prev = e.index
 }
 
-func (l *list[T]) Index(i uint32) *listitem[T] {
-	return &l.items[i]
-}
-
 func (l *list[T]) Back() *listitem[T] {
 	return &l.items[l.items[0].prev]
 }

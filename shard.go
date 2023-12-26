@@ -23,7 +23,7 @@ func (s *shard[K, V]) Get(hash uint64, key K) (value V, ok bool) {
 	s.mu.Lock()
 
 	if i, exists := s.table.Get(hash, key); exists {
-		e := s.list.Index(i)
+		e := &s.list.items[i]
 		if ts := e.Value.expires; ts > 0 && atomic.LoadInt64(&now) > ts {
 			s.list.MoveToBack(e)
 			e.Value.value = value
@@ -44,7 +44,7 @@ func (s *shard[K, V]) Peek(hash uint64, key K) (value V, ok bool) {
 	s.mu.Lock()
 
 	if i, exists := s.table.Get(hash, key); exists {
-		value = s.list.Index(i).Value.value
+		value = s.list.items[i].Value.value
 		ok = true
 	}
 
@@ -58,7 +58,7 @@ func (s *shard[K, V]) Set(hash uint64, hashfun func(K) uint64, key K, value V, t
 	defer s.mu.Unlock()
 
 	if i, exists := s.table.Get(hash, key); exists {
-		e := s.list.Index(i)
+		e := &s.list.items[i]
 		previousValue := e.Value.value
 		s.list.MoveToFront(e)
 		e.Value.value = value
@@ -91,7 +91,7 @@ func (s *shard[K, V]) Delete(hash uint64, key K) (v V) {
 	defer s.mu.Unlock()
 
 	if i, exists := s.table.Get(hash, key); exists {
-		e := s.list.Index(i)
+		e := &s.list.items[i]
 		value := e.Value.value
 		s.list.MoveToBack(e)
 		e.Value.value = v

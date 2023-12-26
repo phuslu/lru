@@ -50,7 +50,7 @@ func TestListRange(t *testing.T) {
 		t.Fatalf("allprev want=%#v got=%#v\n", want, got)
 	}
 
-	l.MoveToBack(l.Index(4))
+	l.MoveToBack(&l.items[4])
 	if want, got := "ijabcefghd", allnext(); want != got {
 		t.Fatalf("allnext want=%#v got=%#v\n", want, got)
 	}
@@ -58,7 +58,7 @@ func TestListRange(t *testing.T) {
 		t.Fatalf("allprev want=%#v got=%#v\n", want, got)
 	}
 
-	l.MoveToFront(l.Index(4))
+	l.MoveToFront(&l.items[4])
 	if want, got := "dijabcefgh", allnext(); want != got {
 		t.Fatalf("allnext want=%#v got=%#v\n", want, got)
 	}
