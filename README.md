@@ -37,6 +37,8 @@ goarch: amd64
 cpu: Intel(R) Xeon(R) Silver 4216 CPU @ 2.10GHz
 BenchmarkCloudflareGet
 BenchmarkCloudflareGet-8   	97366081	        65.24 ns/op	      16 B/op	       1 allocs/op
+BenchmarkCcacheGet
+BenchmarkCcacheGet-8       	83768920	        60.56 ns/op	      20 B/op	       2 allocs/op
 BenchmarkRistrettoGet
 BenchmarkRistrettoGet-8    	100000000	        50.97 ns/op	      16 B/op	       1 allocs/op
 BenchmarkOtterGet

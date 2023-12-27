@@ -9,6 +9,7 @@ import (
 
 	cloudflare "github.com/cloudflare/golibs/lrucache"
 	ristretto "github.com/dgraph-io/ristretto"
+	ccache "github.com/karlseguin/ccache/v3"
 	otter "github.com/maypok86/otter"
 	phuslu "github.com/phuslu/lru"
 )
@@ -42,6 +43,22 @@ func BenchmarkCloudflareGet(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			_, _ = cache.Get(keymap[fastrandn(cachesize)])
+		}
+	})
+}
+
+func BenchmarkCcacheGet(b *testing.B) {
+	cache := ccache.New(ccache.Configure[int]().MaxSize(cachesize))
+	for i := 0; i < cachesize/2; i++ {
+		cache.Set(keymap[i], i, time.Hour)
+	}
+
+	b.SetParallelism(parallelism)
+	b.ResetTimer()
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			_ = cache.Get(keymap[fastrandn(cachesize)])
 		}
 	})
 }
