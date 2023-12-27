@@ -14,7 +14,9 @@ func (l *list[T]) Init(size uint32, value func(index uint32) T) *list[T] {
 	size += 1
 	l.items = make([]listitem[T], size)
 	for i := uint32(0); i < size; i++ {
-		l.items[i].Value = value(i)
+		if value != nil && i != 0 {
+			l.items[i].Value = value(i)
+		}
 		l.items[i].index = i
 		l.items[i].next = (i + 1) % size
 		l.items[i].prev = (i + size - 1) % size
