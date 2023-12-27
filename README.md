@@ -4,7 +4,7 @@
 
 ### Getting Started
 
-try on https://go.dev/play/p/yiKM7AAaynl
+try on https://go.dev/play/p/tPcBftK0qJ8
 ```go
 package main
 
@@ -17,13 +17,13 @@ import (
 func main() {
 	c := lru.New[string, int](1024)
 
-	c.SetWithTTL("a", 1, 50*time.Millisecond)
+	c.SetWithTTL("a", 1, 1000*time.Millisecond)
 	println(c.Get("a"))
 
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(500 * time.Millisecond)
 	println(c.Get("a"))
 
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(1500 * time.Millisecond)
 	println(c.Get("a"))
 }
 ```
@@ -37,8 +37,8 @@ goarch: amd64
 cpu: Intel(R) Xeon(R) Silver 4216 CPU @ 2.10GHz
 BenchmarkCloudflareGet
 BenchmarkCloudflareGet-8   	97366081	        65.24 ns/op	      16 B/op	       1 allocs/op
-BenchmarkOistrettoGet
-BenchmarkOistrettoGet-8    	100000000	        50.97 ns/op	      16 B/op	       1 allocs/op
+BenchmarkRistrettoGet
+BenchmarkRistrettoGet-8    	100000000	        50.97 ns/op	      16 B/op	       1 allocs/op
 BenchmarkOtterGet
 BenchmarkOtterGet-8        	356862066	        17.20 ns/op	       0 B/op	       0 allocs/op
 BenchmarkPhusluGet
