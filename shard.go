@@ -19,7 +19,7 @@ type entry[K comparable, V any] struct {
 	expires int64
 }
 
-func (s *shard[K, V]) Get(hash uint64, key K) (value V, ok bool) {
+func (s *shard[K, V]) Get(hash uint32, key K) (value V, ok bool) {
 	s.mu.Lock()
 
 	if i, exists := s.table.Get(hash, key); exists {
@@ -40,7 +40,7 @@ func (s *shard[K, V]) Get(hash uint64, key K) (value V, ok bool) {
 	return
 }
 
-func (s *shard[K, V]) Peek(hash uint64, key K) (value V, ok bool) {
+func (s *shard[K, V]) Peek(hash uint32, key K) (value V, ok bool) {
 	s.mu.Lock()
 
 	if i, exists := s.table.Get(hash, key); exists {
@@ -53,7 +53,7 @@ func (s *shard[K, V]) Peek(hash uint64, key K) (value V, ok bool) {
 	return
 }
 
-func (s *shard[K, V]) Set(hash uint64, hashfun func(K) uint64, key K, value V, ttl time.Duration) (prev V, replaced bool) {
+func (s *shard[K, V]) Set(hash uint32, hashfun func(K) uint32, key K, value V, ttl time.Duration) (prev V, replaced bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -85,7 +85,7 @@ func (s *shard[K, V]) Set(hash uint64, hashfun func(K) uint64, key K, value V, t
 	return
 }
 
-func (s *shard[K, V]) Delete(hash uint64, key K) (v V) {
+func (s *shard[K, V]) Delete(hash uint32, key K) (v V) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 

@@ -10,7 +10,7 @@ import (
 // Cache implements LRU Cache with least recent used eviction policy.
 type Cache[K comparable, V any] struct {
 	shards  []shard[K, V]
-	mask    uint64
+	mask    uint32
 	keysize int
 }
 
@@ -30,7 +30,7 @@ func New[K comparable, V any](size int) *Cache[K, V] {
 func newWithShards[K comparable, V any](shardcount, shardsize int) *Cache[K, V] {
 	c := &Cache[K, V]{
 		shards: make([]shard[K, V], shardcount),
-		mask:   uint64(shardcount) - 1,
+		mask:   uint32(shardcount) - 1,
 	}
 	for i := range c.shards {
 		c.shards[i] = *newshard[K, V](shardsize)
@@ -47,20 +47,20 @@ func newWithShards[K comparable, V any](shardcount, shardsize int) *Cache[K, V] 
 	return c
 }
 
-func (c *Cache[K, V]) hash(key K) uint64 {
+func (c *Cache[K, V]) hash(key K) uint32 {
 	if c.keysize == 0 {
 		data := *(*string)(unsafe.Pointer(&key))
 		if len(data) == 0 {
 			return 0
 		}
 
-		return wyhash_hash(data, 0)
+		return uint32(wyhash_hash(data, 0) & 0xFFFFFFFF)
 	}
 
-	return wyhash_hash(*(*string)(unsafe.Pointer(&struct {
+	return uint32(wyhash_hash(*(*string)(unsafe.Pointer(&struct {
 		data unsafe.Pointer
 		len  int
-	}{unsafe.Pointer(&key), c.keysize})), 0)
+	}{unsafe.Pointer(&key), c.keysize})), 0) & 0xFFFFFFFF)
 }
 
 // Get returns value for key.

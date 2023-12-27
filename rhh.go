@@ -6,10 +6,10 @@ package lru
 
 const (
 	loadFactor  = 0.85                      // must be above 50%
-	dibBitSize  = 16                        // 0xFFFF
-	hashBitSize = 64 - dibBitSize           // 0xFFFFFFFFFFFF
-	maxHash     = ^uint64(0) >> dibBitSize  // max 28,147,497,671,0655
-	maxDIB      = ^uint64(0) >> hashBitSize // max 65,535
+	dibBitSize  = 8                         // 0xFF
+	hashBitSize = 32 - dibBitSize           // 0xFFFFFF
+	maxHash     = ^uint32(0) >> dibBitSize  // max 28,147,497,671,0655
+	maxDIB      = ^uint32(0) >> hashBitSize // max 65,535
 )
 
 type rhhitem[K comparable, V any] struct {
@@ -19,11 +19,11 @@ type rhhitem[K comparable, V any] struct {
 
 // rhhmap is a robin hood hashing map, see https://github.com/tidwall/hashmap
 type rhhmap[K comparable, V any] struct {
-	hdib     []uint64 // bitfield { hash:48 dib:16 }
+	hdib     []uint32 // bitfield { hash:24 dib:8 }
 	buckets  []rhhitem[K, V]
 	cap      int
 	length   int
-	mask     uint64
+	mask     uint32
 	growAt   int
 	shrinkAt int
 }
@@ -38,9 +38,9 @@ func (m *rhhmap[K, V]) init(cap int) {
 	if m.cap > 0 {
 		m.cap = sz
 	}
-	m.hdib = make([]uint64, sz)
+	m.hdib = make([]uint32, sz)
 	m.buckets = make([]rhhitem[K, V], sz)
-	m.mask = uint64(len(m.buckets) - 1)
+	m.mask = uint32(len(m.buckets) - 1)
 	m.growAt = int(float64(len(m.buckets)) * loadFactor)
 	m.shrinkAt = int(float64(len(m.buckets)) * (1 - loadFactor))
 }
@@ -60,7 +60,7 @@ func (m *rhhmap[K, V]) resize(newCap int) {
 
 // Set assigns a value to a key.
 // Returns the previous value, or false when no value was assigned.
-func (m *rhhmap[K, V]) Set(hash uint64, key K, value V) (V, bool) {
+func (m *rhhmap[K, V]) Set(hash uint32, key K, value V) (V, bool) {
 	if len(m.buckets) == 0 {
 		m.init(0)
 	}
@@ -70,8 +70,8 @@ func (m *rhhmap[K, V]) Set(hash uint64, key K, value V) (V, bool) {
 	return m.set(hash>>dibBitSize, key, value)
 }
 
-func (m *rhhmap[K, V]) set(hash uint64, key K, value V) (prev V, ok bool) {
-	hdib := hash<<dibBitSize | uint64(1)&maxDIB
+func (m *rhhmap[K, V]) set(hash uint32, key K, value V) (prev V, ok bool) {
+	hdib := hash<<dibBitSize | uint32(1)&maxDIB
 	e := rhhitem[K, V]{key, value}
 	i := (hdib >> dibBitSize) & m.mask
 	for {
@@ -98,7 +98,7 @@ func (m *rhhmap[K, V]) set(hash uint64, key K, value V) (prev V, ok bool) {
 
 // Get returns a value for a key.
 // Returns false when no value has been assign for key.
-func (m *rhhmap[K, V]) Get(hash uint64, key K) (prev V, ok bool) {
+func (m *rhhmap[K, V]) Get(hash uint32, key K) (prev V, ok bool) {
 	if len(m.buckets) == 0 {
 		return
 	}
@@ -122,7 +122,7 @@ func (m *rhhmap[K, V]) Len() int {
 
 // Delete deletes a value for a key.
 // Returns the deleted value, or false when no value was assigned.
-func (m *rhhmap[K, V]) Delete(hash uint64, key K) (v V, ok bool) {
+func (m *rhhmap[K, V]) Delete(hash uint32, key K) (v V, ok bool) {
 	if len(m.buckets) == 0 {
 		return
 	}
@@ -141,8 +141,8 @@ func (m *rhhmap[K, V]) Delete(hash uint64, key K) (v V, ok bool) {
 	}
 }
 
-func (m *rhhmap[K, V]) delete(i uint64) {
-	m.hdib[i] = m.hdib[i]>>dibBitSize<<dibBitSize | uint64(0)&maxDIB
+func (m *rhhmap[K, V]) delete(i uint32) {
+	m.hdib[i] = m.hdib[i]>>dibBitSize<<dibBitSize | uint32(0)&maxDIB
 	for {
 		pi := i
 		i = (i + 1) & m.mask
@@ -176,9 +176,9 @@ func (m *rhhmap[K, V]) Range(iter func(key K, value V) bool) {
 // The pos param can be any valid uint64. Useful for grabbing a random item
 // from the map.
 // It's not safe to call or Set or Delete while ranging.
-func (m *rhhmap[K, V]) GetPos(pos uint64) (key K, value V, ok bool) {
+func (m *rhhmap[K, V]) GetPos(pos uint32) (key K, value V, ok bool) {
 	for i := 0; i < len(m.buckets); i++ {
-		index := (pos + uint64(i)) & m.mask
+		index := (pos + uint32(i)) & m.mask
 		if m.hdib[index]&maxDIB > 0 {
 			return m.buckets[index].key, m.buckets[index].value, true
 		}
