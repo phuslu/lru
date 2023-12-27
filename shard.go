@@ -23,14 +23,14 @@ func (s *shard[K, V]) Get(hash uint64, key K) (value V, ok bool) {
 	s.mu.Lock()
 
 	if i, exists := s.table.Get(hash, key); exists {
-		e := &s.list.items[i]
-		if ts := e.Value.expires; ts > 0 && atomic.LoadInt64(&now) > ts {
-			s.list.MoveToBack(e)
-			e.Value.value = value
+		item := &s.list.items[i]
+		if ts := item.Value.expires; ts > 0 && atomic.LoadInt64(&now) > ts {
+			s.list.MoveToBack(item)
+			item.Value.value = value
 			s.table.Delete(hash, key)
 		} else {
-			s.list.MoveToFront(e)
-			value = e.Value.value
+			s.list.MoveToFront(item)
+			value = item.Value.value
 			ok = true
 		}
 	}
@@ -58,30 +58,29 @@ func (s *shard[K, V]) Set(hash uint64, hashfun func(K) uint64, key K, value V, t
 	defer s.mu.Unlock()
 
 	if i, exists := s.table.Get(hash, key); exists {
-		e := &s.list.items[i]
-		previousValue := e.Value.value
-		s.list.MoveToFront(e)
-		e.Value.value = value
+		item := &s.list.items[i]
+		previousValue := item.Value.value
+		s.list.MoveToFront(item)
+		item.Value.value = value
 		if ttl > 0 {
-			e.Value.expires = atomic.LoadInt64(&now) + int64(ttl)
+			item.Value.expires = atomic.LoadInt64(&now) + int64(ttl)
 		}
 		prev = previousValue
 		replaced = true
 		return
 	}
 
-	e := s.list.Back()
-	i := e.Value
-	evictedValue := i.value
-	s.table.Delete(hashfun(i.key), i.key)
+	item := s.list.Back()
+	evictedValue := item.Value.value
+	s.table.Delete(hashfun(item.Value.key), item.Value.key)
 
-	i.key = key
-	i.value = value
+	item.Value.key = key
+	item.Value.value = value
 	if ttl > 0 {
-		i.expires = atomic.LoadInt64(&now) + int64(ttl)
+		item.Value.expires = atomic.LoadInt64(&now) + int64(ttl)
 	}
-	s.table.Set(hash, key, e.index)
-	s.list.MoveToFront(e)
+	s.table.Set(hash, key, item.index)
+	s.list.MoveToFront(item)
 	prev = evictedValue
 	return
 }
@@ -91,10 +90,10 @@ func (s *shard[K, V]) Delete(hash uint64, key K) (v V) {
 	defer s.mu.Unlock()
 
 	if i, exists := s.table.Get(hash, key); exists {
-		e := &s.list.items[i]
-		value := e.Value.value
-		s.list.MoveToBack(e)
-		e.Value.value = v
+		item := &s.list.items[i]
+		value := item.Value.value
+		s.list.MoveToBack(item)
+		item.Value.value = v
 		s.table.Delete(hash, key)
 		v = value
 	}
