@@ -24,7 +24,10 @@ func New[K comparable, V any](size int) *Cache[K, V] {
 	for shardsize*shardcount < size {
 		shardsize *= 2
 	}
+	return newWithShards[K, V](shardcount, shardsize)
+}
 
+func newWithShards[K comparable, V any](shardcount, shardsize int) *Cache[K, V] {
 	c := &Cache[K, V]{
 		shards: make([]shard[K, V], shardcount),
 		mask:   uint64(shardcount) - 1,
