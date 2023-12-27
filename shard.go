@@ -9,8 +9,7 @@ import (
 type shard[K comparable, V any] struct {
 	mu    sync.Mutex
 	list  list[entry[K, V]]
-	table rhhmap[K, uint32]
-	_     uint64
+	table rhhmap[K]
 }
 
 type entry[K comparable, V any] struct {
@@ -109,11 +108,15 @@ func (s *shard[K, V]) Len() (n int) {
 	return
 }
 
+func (s *shard[K, V]) getkey(i uint32) K {
+	return s.list.items[i].Value.key
+}
+
 func newshard[K comparable, V any](size int) *shard[K, V] {
 	s := &shard[K, V]{}
 
 	s.list.Init(uint32(size), nil)
-	s.table.init(size)
+	s.table.init(size, s.getkey)
 
 	return s
 }

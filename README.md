@@ -1,4 +1,4 @@
-# lru - a thread-safe and gc-friendly LRU cache
+# lru - a high-performance and gc-friendly LRU cache
 
 [![godoc][godoc-img]][godoc] [![release][release-img]][release] [![goreport][goreport-img]][goreport]
 
