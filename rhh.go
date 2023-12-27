@@ -23,7 +23,7 @@ type rhhmap[K comparable, V any] struct {
 	buckets  []rhhitem[K, V]
 	cap      int
 	length   int
-	mask     int
+	mask     uint64
 	growAt   int
 	shrinkAt int
 }
@@ -40,7 +40,7 @@ func (m *rhhmap[K, V]) init(cap int) {
 	}
 	m.hdib = make([]uint64, sz)
 	m.buckets = make([]rhhitem[K, V], sz)
-	m.mask = len(m.buckets) - 1
+	m.mask = uint64(len(m.buckets) - 1)
 	m.growAt = int(float64(len(m.buckets)) * loadFactor)
 	m.shrinkAt = int(float64(len(m.buckets)) * (1 - loadFactor))
 }
@@ -50,7 +50,7 @@ func (m *rhhmap[K, V]) resize(newCap int) {
 	nmap.init(newCap)
 	for i := 0; i < len(m.buckets); i++ {
 		if int(m.hdib[i]&maxDIB) > 0 {
-			nmap.set(int(m.hdib[i]>>dibBitSize), m.buckets[i].key, m.buckets[i].value)
+			nmap.set(m.hdib[i]>>dibBitSize, m.buckets[i].key, m.buckets[i].value)
 		}
 	}
 	cap := m.cap
@@ -67,32 +67,32 @@ func (m *rhhmap[K, V]) Set(hash uint64, key K, value V) (V, bool) {
 	if m.length >= m.growAt {
 		m.resize(len(m.buckets) * 2)
 	}
-	return m.set(int(hash>>dibBitSize), key, value)
+	return m.set(hash>>dibBitSize, key, value)
 }
 
-func (m *rhhmap[K, V]) set(hash int, key K, value V) (prev V, ok bool) {
-	hdib := uint64(hash)<<dibBitSize | uint64(1)&maxDIB
+func (m *rhhmap[K, V]) set(hash uint64, key K, value V) (prev V, ok bool) {
+	hdib := hash<<dibBitSize | uint64(1)&maxDIB
 	e := rhhitem[K, V]{key, value}
-	i := int(hdib>>dibBitSize) & m.mask
+	i := (hdib >> dibBitSize) & m.mask
 	for {
-		if int(m.hdib[i]&maxDIB) == 0 {
+		if m.hdib[i]&maxDIB == 0 {
 			m.hdib[i] = hdib
 			m.buckets[i] = e
 			m.length++
 			return
 		}
-		if int(hdib>>dibBitSize) == int(m.hdib[i]>>dibBitSize) && e.key == m.buckets[i].key {
+		if hdib>>dibBitSize == m.hdib[i]>>dibBitSize && e.key == m.buckets[i].key {
 			old := m.buckets[i].value
 			m.hdib[i] = hdib
 			m.buckets[i].value = e.value
 			return old, true
 		}
-		if int(m.hdib[i]&maxDIB) < int(hdib&maxDIB) {
+		if m.hdib[i]&maxDIB < hdib&maxDIB {
 			hdib, m.hdib[i] = m.hdib[i], hdib
 			e, m.buckets[i] = m.buckets[i], e
 		}
 		i = (i + 1) & m.mask
-		hdib = hdib>>dibBitSize<<dibBitSize | uint64(int(hdib&maxDIB)+1)&maxDIB
+		hdib = hdib>>dibBitSize<<dibBitSize | (hdib&maxDIB+1)&maxDIB
 	}
 }
 
@@ -102,13 +102,13 @@ func (m *rhhmap[K, V]) Get(hash uint64, key K) (prev V, ok bool) {
 	if len(m.buckets) == 0 {
 		return
 	}
-	subhash := int(hash >> dibBitSize)
+	subhash := hash >> dibBitSize
 	i := subhash & m.mask
 	for {
-		if int(m.hdib[i]&maxDIB) == 0 {
+		if m.hdib[i]&maxDIB == 0 {
 			return
 		}
-		if int(m.hdib[i]>>dibBitSize) == subhash && m.buckets[i].key == key {
+		if m.hdib[i]>>dibBitSize == subhash && m.buckets[i].key == key {
 			return m.buckets[i].value, true
 		}
 		i = (i + 1) & m.mask
@@ -126,13 +126,13 @@ func (m *rhhmap[K, V]) Delete(hash uint64, key K) (v V, ok bool) {
 	if len(m.buckets) == 0 {
 		return
 	}
-	subhash := int(hash >> dibBitSize)
+	subhash := hash >> dibBitSize
 	i := subhash & m.mask
 	for {
-		if int(m.hdib[i]&maxDIB) == 0 {
+		if m.hdib[i]&maxDIB == 0 {
 			return
 		}
-		if int(m.hdib[i]>>dibBitSize) == subhash && m.buckets[i].key == key {
+		if m.hdib[i]>>dibBitSize == subhash && m.buckets[i].key == key {
 			old := m.buckets[i].value
 			m.delete(i)
 			return old, true
@@ -141,18 +141,18 @@ func (m *rhhmap[K, V]) Delete(hash uint64, key K) (v V, ok bool) {
 	}
 }
 
-func (m *rhhmap[K, V]) delete(i int) {
+func (m *rhhmap[K, V]) delete(i uint64) {
 	m.hdib[i] = m.hdib[i]>>dibBitSize<<dibBitSize | uint64(0)&maxDIB
 	for {
 		pi := i
 		i = (i + 1) & m.mask
-		if int(m.hdib[i]&maxDIB) <= 1 {
+		if m.hdib[i]&maxDIB <= 1 {
 			m.buckets[pi] = rhhitem[K, V]{}
 			m.hdib[pi] = 0
 			break
 		}
 		m.buckets[pi] = m.buckets[i]
-		m.hdib[pi] = m.hdib[i]>>dibBitSize<<dibBitSize | uint64(int(m.hdib[i]&maxDIB)-1)&maxDIB
+		m.hdib[pi] = m.hdib[i]>>dibBitSize<<dibBitSize | (m.hdib[i]&maxDIB-1)&maxDIB
 	}
 	m.length--
 	if len(m.buckets) > m.cap && m.length <= m.shrinkAt {
@@ -164,7 +164,7 @@ func (m *rhhmap[K, V]) delete(i int) {
 // It's not safe to call or Set or Delete while ranging.
 func (m *rhhmap[K, V]) Range(iter func(key K, value V) bool) {
 	for i := 0; i < len(m.buckets); i++ {
-		if int(m.hdib[i]&maxDIB) > 0 {
+		if m.hdib[i]&maxDIB > 0 {
 			if !iter(m.buckets[i].key, m.buckets[i].value) {
 				return
 			}
@@ -178,8 +178,8 @@ func (m *rhhmap[K, V]) Range(iter func(key K, value V) bool) {
 // It's not safe to call or Set or Delete while ranging.
 func (m *rhhmap[K, V]) GetPos(pos uint64) (key K, value V, ok bool) {
 	for i := 0; i < len(m.buckets); i++ {
-		index := (pos + uint64(i)) & uint64(m.mask)
-		if int(m.hdib[index]&maxDIB) > 0 {
+		index := (pos + uint64(i)) & m.mask
+		if m.hdib[index]&maxDIB > 0 {
 			return m.buckets[index].key, m.buckets[index].value, true
 		}
 	}
