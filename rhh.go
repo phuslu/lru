@@ -13,7 +13,7 @@ const (
 	maxDIB      = ^uint32(0) >> hashBitSize // max 255
 )
 
-// rhh is a robin hood hashing, only stores key getter func and key-value index for performance
+// rhh is a robin hood hashing, only stores key getter and key-value index to reduce GC efforts.
 type rhh[K comparable] struct {
 	buckets []struct {
 		hdib  uint32 // bitfield { hash:24 dib:8 }

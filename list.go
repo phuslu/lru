@@ -7,6 +7,7 @@ type listitem[T any] struct {
 	next, prev uint32
 }
 
+// list is a ringbuffer simulating double linked list to reduce GC efforts and improve performance.
 type list[T any] struct {
 	items []listitem[T]
 }

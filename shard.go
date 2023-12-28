@@ -7,6 +7,7 @@ import (
 	"unsafe"
 )
 
+// shard is a LRU partition contains a double linked list and a index map.
 type shard[K comparable, V any] struct {
 	mu    sync.Mutex
 	list  list[entry[K, V]]
