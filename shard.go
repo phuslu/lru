@@ -4,12 +4,15 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+	"unsafe"
 )
 
 type shard[K comparable, V any] struct {
 	mu    sync.Mutex
 	list  list[entry[K, V]]
 	table rhh[K]
+
+	_ [128 - unsafe.Sizeof(sync.Mutex{}) - unsafe.Sizeof(list[entry[K, V]]{}) - unsafe.Sizeof(rhh[K]{})]byte
 }
 
 type entry[K comparable, V any] struct {
