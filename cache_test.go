@@ -38,6 +38,10 @@ func TestCacheSetget(t *testing.T) {
 	if v, replaced := l.Set(5, 9); v != 10 || !replaced {
 		t.Fatal("old value should be evicted")
 	}
+
+	if v, ok := l.Get(5); !ok || v != 9 {
+		t.Fatalf("bad returned value: %v != %v", v, 10)
+	}
 }
 
 func TestCacheEviction(t *testing.T) {
@@ -59,39 +63,60 @@ func TestCacheEviction(t *testing.T) {
 	}
 
 	for i := 0; i < 256; i++ {
-		if v, _ := l.Get(i); v != nil {
+		if v, ok := l.Get(i); ok || v != nil {
 			t.Fatalf("key %v value %v should be evicted", i, *v)
 		}
 	}
 
-	for i := 256; i < 256; i++ {
+	for i := 256; i < 512; i++ {
 		if v, ok := l.Get(i); !ok {
 			t.Fatalf("key %v value %v should not be evicted", i, *v)
 		}
 	}
 
-	for i := 256; i < 256; i++ {
+	for i := 256; i < 384; i++ {
 		l.Delete(i)
 		if v, ok := l.Get(i); ok {
 			t.Fatalf("old key %v value %v should be deleted", i, *v)
 		}
+	}
+
+	for i := 384; i < 512; i++ {
+		if v, ok := l.Get(i); !ok || v == nil {
+			t.Fatalf("old key %v value %v should not be deleted", i, *v)
+		}
+	}
+
+	if got, want := l.Len(), 128; got != want {
+		t.Fatalf("curent cache length %v should be %v", got, want)
 	}
 }
 
 func TestCachePeek(t *testing.T) {
 	l := New[int, int](64)
 
-	l.Set(1, 1)
-	l.Set(2, 2)
-	if v, ok := l.Peek(1); !ok || v != 1 {
-		t.Errorf("1 should be set to 1: %v,", v)
+	l.Set(10, 10)
+	l.Set(20, 20)
+	if v, ok := l.Peek(10); !ok || v != 10 {
+		t.Errorf("10 should be set to 10: %v,", v)
+	}
+
+	if v, ok := l.Peek(20); !ok || v != 20 {
+		t.Errorf("20 should be set to 20: %v,", v)
+	}
+
+	if v, ok := l.Peek(30); ok || v != 0 {
+		t.Errorf("30 should be set to 0: %v,", v)
 	}
 
 	for k := 3; k < 1024; k++ {
 		l.Set(k, k)
 	}
-	if v, ok := l.Peek(1); ok || v == 1 {
-		t.Errorf("%v should not have updated recent-ness of 1", v)
+	if v, ok := l.Peek(10); ok || v == 10 {
+		t.Errorf("%v should not have updated recent-ness of 10", v)
+	}
+	if v, ok := l.Peek(30); ok || v != 0 {
+		t.Errorf("%v should have updated recent-ness of 30", v)
 	}
 }
 
