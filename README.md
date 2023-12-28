@@ -36,17 +36,17 @@ goos: linux
 goarch: amd64
 cpu: Intel(R) Xeon(R) Silver 4216 CPU @ 2.10GHz
 BenchmarkCloudflareGet
-BenchmarkCloudflareGet-8   	97366081	        65.24 ns/op	      16 B/op	       1 allocs/op
+BenchmarkCloudflareGet-8   	86020137	        66.80 ns/op	      16 B/op	       1 allocs/op
 BenchmarkCcacheGet
-BenchmarkCcacheGet-8       	83768920	        60.56 ns/op	      20 B/op	       2 allocs/op
+BenchmarkCcacheGet-8       	77877148	        67.71 ns/op	      20 B/op	       2 allocs/op
 BenchmarkRistrettoGet
-BenchmarkRistrettoGet-8    	100000000	        50.97 ns/op	      16 B/op	       1 allocs/op
-BenchmarkOtterGet
-BenchmarkOtterGet-8        	356862066	        17.20 ns/op	       0 B/op	       0 allocs/op
+BenchmarkRistrettoGet-8    	122215453	        50.40 ns/op	      16 B/op	       1 allocs/op
+BenchmarkGoburrowGet
+BenchmarkGoburrowGet-8     	85251061	        69.03 ns/op	      16 B/op	       1 allocs/op
 BenchmarkPhusluGet
-BenchmarkPhusluGet-8       	174274854	        34.73 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPhusluGet-8       	165763562	        36.49 ns/op	       0 B/op	       0 allocs/op
 PASS
-ok  	command-line-arguments	24.309s
+ok  	command-line-arguments	38.869s
 ```
 
 [godoc-img]: http://img.shields.io/badge/godoc-reference-blue.svg

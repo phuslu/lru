@@ -9,8 +9,8 @@ import (
 
 	cloudflare "github.com/cloudflare/golibs/lrucache"
 	ristretto "github.com/dgraph-io/ristretto"
+	goburrow "github.com/goburrow/cache"
 	ccache "github.com/karlseguin/ccache/v3"
-	otter "github.com/maypok86/otter"
 	phuslu "github.com/phuslu/lru"
 )
 
@@ -83,21 +83,19 @@ func BenchmarkRistrettoGet(b *testing.B) {
 	})
 }
 
-func BenchmarkOtterGet(b *testing.B) {
-	cache, err := otter.MustBuilder[string, int](cachesize).Build()
-	if err != nil {
-		panic(err)
-	}
-	for i := 0; i < cachesize/2; i++ {
-		cache.SetWithTTL(keymap[i], i, time.Hour)
-	}
+func BenchmarkGoburrowGet(b *testing.B) {
+	cache := goburrow.New(
+		goburrow.WithMaximumSize(cachesize),       // Limit number of entries in the cache.
+		goburrow.WithExpireAfterAccess(time.Hour), // Expire entries after 1 minute since last accessed.
+		goburrow.WithRefreshAfterWrite(time.Hour), // Expire entries after 2 minutes since last created.
+	)
 
 	b.SetParallelism(parallelism)
 	b.ResetTimer()
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			_, _ = cache.Get(keymap[fastrandn(cachesize)])
+			_, _ = cache.GetIfPresent(keymap[fastrandn(cachesize)])
 		}
 	})
 }
