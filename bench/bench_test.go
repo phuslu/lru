@@ -17,7 +17,7 @@ import (
 const (
 	keysize     = 16
 	cachesize   = 65536
-	parallelism = 2000
+	parallelism = 32
 )
 
 var keymap = func() (x [cachesize]string) {
