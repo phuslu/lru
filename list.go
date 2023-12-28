@@ -1,3 +1,4 @@
+// Copyright 2023 Phus Lu. All rights reserved.
 package lru
 
 type listitem[T any] struct {

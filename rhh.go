@@ -1,3 +1,4 @@
+// Copyright 2023 Phus Lu. All rights reserved.
 // Copyright 2019 Joshua J Baker. All rights reserved.
 // Use of this source code is governed by an ISC-style
 // license that can be found in the LICENSE file.
@@ -8,15 +9,17 @@ const (
 	loadFactor  = 0.85                      // must be above 50%
 	dibBitSize  = 8                         // 0xFF
 	hashBitSize = 32 - dibBitSize           // 0xFFFFFF
-	maxHash     = ^uint32(0) >> dibBitSize  // max 28,147,497,671,0655
-	maxDIB      = ^uint32(0) >> hashBitSize // max 65,535
+	maxHash     = ^uint32(0) >> dibBitSize  // max 16777215
+	maxDIB      = ^uint32(0) >> hashBitSize // max 255
 )
 
-// rhhmap is a robin hood hashing map, see https://github.com/tidwall/hashmap
-type rhhmap[K comparable] struct {
-	hdib     []uint32 // bitfield { hash:24 dib:8 }
-	buckets  []uint32
-	getkey   func(i uint32) K
+// rhh is a robin hood hashing, only stores key getter func and key-value index for performance
+type rhh[K comparable] struct {
+	buckets []struct {
+		hdib  uint32 // bitfield { hash:24 dib:8 }
+		index uint32 // key-value index
+	}
+	getkey   func(index uint32) K
 	cap      int
 	length   int
 	mask     uint32
@@ -24,7 +27,7 @@ type rhhmap[K comparable] struct {
 	shrinkAt int
 }
 
-func (m *rhhmap[K]) init(cap int, getkey func(i uint32) K) {
+func (m *rhh[K]) init(cap int, getkey func(i uint32) K) {
 	m.cap = cap
 	m.length = 0
 	sz := 8
@@ -35,19 +38,18 @@ func (m *rhhmap[K]) init(cap int, getkey func(i uint32) K) {
 		m.cap = sz
 	}
 	m.getkey = getkey
-	m.hdib = make([]uint32, sz)
-	m.buckets = make([]uint32, sz)
+	m.buckets = make([]struct{ hdib, index uint32 }, sz)
 	m.mask = uint32(len(m.buckets) - 1)
 	m.growAt = int(float64(len(m.buckets)) * loadFactor)
 	m.shrinkAt = int(float64(len(m.buckets)) * (1 - loadFactor))
 }
 
-func (m *rhhmap[K]) resize(newCap int) {
-	var nmap rhhmap[K]
+func (m *rhh[K]) resize(newCap int) {
+	var nmap rhh[K]
 	nmap.init(newCap, m.getkey)
 	for i := 0; i < len(m.buckets); i++ {
-		if int(m.hdib[i]&maxDIB) > 0 {
-			nmap.set(m.hdib[i]>>dibBitSize, m.getkey(m.buckets[i]), m.buckets[i])
+		if int(m.buckets[i].hdib&maxDIB) > 0 {
+			nmap.set(m.buckets[i].hdib>>dibBitSize, m.getkey(m.buckets[i].index), m.buckets[i].index)
 		}
 	}
 	cap := m.cap
@@ -57,33 +59,33 @@ func (m *rhhmap[K]) resize(newCap int) {
 
 // Set assigns a value to a key.
 // Returns the previous value, or false when no value was assigned.
-func (m *rhhmap[K]) Set(hash uint32, key K, value uint32) (uint32, bool) {
+func (m *rhh[K]) Set(hash uint32, key K, value uint32) (uint32, bool) {
 	if m.length >= m.growAt {
 		m.resize(len(m.buckets) * 2)
 	}
 	return m.set(hash>>dibBitSize, key, value)
 }
 
-func (m *rhhmap[K]) set(hash uint32, key K, value uint32) (prev uint32, ok bool) {
+func (m *rhh[K]) set(hash uint32, key K, value uint32) (prev uint32, ok bool) {
 	hdib := hash<<dibBitSize | uint32(1)&maxDIB
 	e := value
 	i := (hdib >> dibBitSize) & m.mask
 	for {
-		if m.hdib[i]&maxDIB == 0 {
-			m.hdib[i] = hdib
-			m.buckets[i] = e
+		if m.buckets[i].hdib&maxDIB == 0 {
+			m.buckets[i].hdib = hdib
+			m.buckets[i].index = e
 			m.length++
 			return
 		}
-		if hdib>>dibBitSize == m.hdib[i]>>dibBitSize && m.getkey(e) == m.getkey(m.buckets[i]) {
-			old := m.buckets[i]
-			m.hdib[i] = hdib
-			m.buckets[i] = e
+		if hdib>>dibBitSize == m.buckets[i].hdib>>dibBitSize && m.getkey(e) == m.getkey(m.buckets[i].index) {
+			old := m.buckets[i].index
+			m.buckets[i].hdib = hdib
+			m.buckets[i].index = e
 			return old, true
 		}
-		if m.hdib[i]&maxDIB < hdib&maxDIB {
-			hdib, m.hdib[i] = m.hdib[i], hdib
-			e, m.buckets[i] = m.buckets[i], e
+		if m.buckets[i].hdib&maxDIB < hdib&maxDIB {
+			hdib, m.buckets[i].hdib = m.buckets[i].hdib, hdib
+			e, m.buckets[i].index = m.buckets[i].index, e
 		}
 		i = (i + 1) & m.mask
 		hdib = hdib>>dibBitSize<<dibBitSize | (hdib&maxDIB+1)&maxDIB
@@ -92,42 +94,42 @@ func (m *rhhmap[K]) set(hash uint32, key K, value uint32) (prev uint32, ok bool)
 
 // Get returns a value for a key.
 // Returns false when no value has been assign for key.
-func (m *rhhmap[K]) Get(hash uint32, key K) (prev uint32, ok bool) {
+func (m *rhh[K]) Get(hash uint32, key K) (prev uint32, ok bool) {
 	if len(m.buckets) == 0 {
 		return
 	}
 	subhash := hash >> dibBitSize
 	i := subhash & m.mask
 	for {
-		if m.hdib[i]&maxDIB == 0 {
+		if m.buckets[i].hdib&maxDIB == 0 {
 			return
 		}
-		if m.hdib[i]>>dibBitSize == subhash && m.getkey(m.buckets[i]) == key {
-			return m.buckets[i], true
+		if m.buckets[i].hdib>>dibBitSize == subhash && m.getkey(m.buckets[i].index) == key {
+			return m.buckets[i].index, true
 		}
 		i = (i + 1) & m.mask
 	}
 }
 
 // Len returns the number of values in map.
-func (m *rhhmap[K]) Len() int {
+func (m *rhh[K]) Len() int {
 	return m.length
 }
 
 // Delete deletes a value for a key.
 // Returns the deleted value, or false when no value was assigned.
-func (m *rhhmap[K]) Delete(hash uint32, key K) (v uint32, ok bool) {
+func (m *rhh[K]) Delete(hash uint32, key K) (v uint32, ok bool) {
 	if len(m.buckets) == 0 {
 		return
 	}
 	subhash := hash >> dibBitSize
 	i := subhash & m.mask
 	for {
-		if m.hdib[i]&maxDIB == 0 {
+		if m.buckets[i].hdib&maxDIB == 0 {
 			return
 		}
-		if m.hdib[i]>>dibBitSize == subhash && m.getkey(m.buckets[i]) == key {
-			old := m.buckets[i]
+		if m.buckets[i].hdib>>dibBitSize == subhash && m.getkey(m.buckets[i].index) == key {
+			old := m.buckets[i].index
 			m.delete(i)
 			return old, true
 		}
@@ -135,18 +137,18 @@ func (m *rhhmap[K]) Delete(hash uint32, key K) (v uint32, ok bool) {
 	}
 }
 
-func (m *rhhmap[K]) delete(i uint32) {
-	m.hdib[i] = m.hdib[i]>>dibBitSize<<dibBitSize | uint32(0)&maxDIB
+func (m *rhh[K]) delete(i uint32) {
+	m.buckets[i].hdib = m.buckets[i].hdib>>dibBitSize<<dibBitSize | uint32(0)&maxDIB
 	for {
 		pi := i
 		i = (i + 1) & m.mask
-		if m.hdib[i]&maxDIB <= 1 {
-			m.buckets[pi] = 0
-			m.hdib[pi] = 0
+		if m.buckets[i].hdib&maxDIB <= 1 {
+			m.buckets[pi].index = 0
+			m.buckets[pi].hdib = 0
 			break
 		}
-		m.buckets[pi] = m.buckets[i]
-		m.hdib[pi] = m.hdib[i]>>dibBitSize<<dibBitSize | (m.hdib[i]&maxDIB-1)&maxDIB
+		m.buckets[pi].index = m.buckets[i].index
+		m.buckets[pi].hdib = m.buckets[i].hdib>>dibBitSize<<dibBitSize | (m.buckets[i].hdib&maxDIB-1)&maxDIB
 	}
 	m.length--
 	if len(m.buckets) > m.cap && m.length <= m.shrinkAt {

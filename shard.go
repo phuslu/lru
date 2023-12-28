@@ -9,7 +9,7 @@ import (
 type shard[K comparable, V any] struct {
 	mu    sync.Mutex
 	list  list[entry[K, V]]
-	table rhhmap[K]
+	table rhh[K]
 }
 
 type entry[K comparable, V any] struct {
