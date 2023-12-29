@@ -2,10 +2,11 @@
 package bench
 
 import (
+	"fmt"
 	"testing"
 	"time"
-	_ "unsafe"
 
+	"github.com/DmitriyVTitov/size"
 	cloudflare "github.com/cloudflare/golibs/lrucache"
 	ristretto "github.com/dgraph-io/ristretto"
 	goburrow "github.com/goburrow/cache"
@@ -14,97 +15,67 @@ import (
 )
 
 const (
-	parallelism = 32
+	keysize   = 16
+	cachesize = 1_000_000
 )
 
-//go:noescape
-//go:linkname fastrandn runtime.fastrandn
-func fastrandn(x uint32) uint32
+var keymap = func() (x []string) {
+	x = make([]string, cachesize)
+	for i := 0; i < cachesize; i++ {
+		x[i] = fmt.Sprintf(fmt.Sprintf("%%0%dd", keysize), i)
+	}
+	return
+}()
 
-func BenchmarkCloudflareGet(b *testing.B) {
+func TestCloudflareSize(t *testing.T) {
 	cache := cloudflare.NewMultiLRUCache(1024, cachesize/1024)
-	for i := 0; i < cachesize/2; i++ {
+	for i := 0; i < cachesize; i++ {
 		cache.Set(keymap[i], i, time.Now().Add(time.Hour))
 	}
 
-	b.SetParallelism(parallelism)
-	b.ResetTimer()
-
-	b.RunParallel(func(pb *testing.PB) {
-		for pb.Next() {
-			_, _ = cache.Get(keymap[fastrandn(cachesize)])
-		}
-	})
+	t.Logf("cache memory size %v", size.Of(cache))
 }
 
-func BenchmarkCcacheGet(b *testing.B) {
+func TTestCcacheSize(t *testing.T) {
 	cache := ccache.New(ccache.Configure[int]().MaxSize(cachesize))
-	for i := 0; i < cachesize/2; i++ {
+	for i := 0; i < cachesize; i++ {
 		cache.Set(keymap[i], i, time.Hour)
 	}
 
-	b.SetParallelism(parallelism)
-	b.ResetTimer()
-
-	b.RunParallel(func(pb *testing.PB) {
-		for pb.Next() {
-			_ = cache.Get(keymap[fastrandn(cachesize)])
-		}
-	})
+	t.Logf("cache memory size %v", size.Of(cache))
 }
 
-func BenchmarkRistrettoGet(b *testing.B) {
+func TTestRistrettoSize(t *testing.T) {
 	cache, _ := ristretto.NewCache(&ristretto.Config{
 		NumCounters: cachesize, // number of keys to track frequency of (10M).
 		MaxCost:     1 << 30,   // maximum cost of cache (1GB).
 		BufferItems: 64,        // number of keys per Get buffer.
 	})
-	for i := 0; i < cachesize/2; i++ {
+	for i := 0; i < cachesize; i++ {
 		cache.SetWithTTL(keymap[i], i, 1, time.Hour)
 	}
 
-	b.SetParallelism(parallelism)
-	b.ResetTimer()
-
-	b.RunParallel(func(pb *testing.PB) {
-		for pb.Next() {
-			_, _ = cache.Get(keymap[fastrandn(cachesize)])
-		}
-	})
+	t.Logf("cache memory size %v", size.Of(cache))
 }
 
-func BenchmarkGoburrowGet(b *testing.B) {
+func TestGoburrowSize(t *testing.T) {
 	cache := goburrow.New(
 		goburrow.WithMaximumSize(cachesize),       // Limit number of entries in the cache.
 		goburrow.WithExpireAfterAccess(time.Hour), // Expire entries after 1 minute since last accessed.
 		goburrow.WithRefreshAfterWrite(time.Hour), // Expire entries after 2 minutes since last created.
 	)
-	for i := 0; i < cachesize/2; i++ {
+	for i := 0; i < cachesize; i++ {
 		cache.Put(keymap[i], i)
 	}
 
-	b.SetParallelism(parallelism)
-	b.ResetTimer()
-
-	b.RunParallel(func(pb *testing.PB) {
-		for pb.Next() {
-			_, _ = cache.GetIfPresent(keymap[fastrandn(cachesize)])
-		}
-	})
+	t.Logf("cache memory size %v", size.Of(cache))
 }
 
-func BenchmarkPhusluGet(b *testing.B) {
+func TestPhusluSize(t *testing.T) {
 	cache := phuslu.New[string, int](cachesize)
 	for i := 0; i < cachesize/2; i++ {
 		cache.SetWithTTL(keymap[i], i, time.Hour)
 	}
 
-	b.SetParallelism(parallelism)
-	b.ResetTimer()
-
-	b.RunParallel(func(pb *testing.PB) {
-		for pb.Next() {
-			_, _ = cache.Get(keymap[fastrandn(cachesize)])
-		}
-	})
+	t.Logf("cache memory size %v", size.Of(cache))
 }

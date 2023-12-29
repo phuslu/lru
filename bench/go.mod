@@ -3,11 +3,12 @@ module bench
 go 1.21.1
 
 require (
+	github.com/DmitriyVTitov/size v1.5.0
 	github.com/cloudflare/golibs v0.0.0-20210909181612-21743d7dd02a
 	github.com/dgraph-io/ristretto v0.1.1
 	github.com/goburrow/cache v0.1.4
 	github.com/karlseguin/ccache/v3 v3.0.5
-	github.com/phuslu/lru v0.0.0-20231226170143-1f4be1b88a11
+	github.com/phuslu/lru v0.0.0-20231229145559-356b4a3d88ba
 )
 
 require (
