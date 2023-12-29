@@ -93,7 +93,7 @@ func (c *Cache[K, V]) Delete(key K) (prev V) {
 	return c.shards[hash&c.mask].Delete(hash, key)
 }
 
-// Len returns number of cached items.
+// Len returns number of cached nodes.
 func (c *Cache[K, V]) Len() int {
 	n := 0
 	for i := range c.shards {
