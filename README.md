@@ -2,6 +2,20 @@
 
 [![godoc][godoc-img]][godoc] [![release][release-img]][release] [![goreport][goreport-img]][goreport]
 
+### Features
+
+* Simple
+    - No Dependency
+    - Less than 1000 Sloc
+* Fast
+    - Faster than all well-known LRU caches
+    - Zero memory allocs 
+* GC friendly
+    - Pointerless data structs
+    - Continuous memory layout
+* Memory efficient
+    - Save at least 30% memory than other LRU caches
+
 ### Getting Started
 
 try on https://go.dev/play/p/tPcBftK0qJ8
