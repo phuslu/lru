@@ -19,15 +19,14 @@ type shard[K comparable, V any] struct {
 func (s *shard[K, V]) Get(hash uint32, key K) (value V, ok bool) {
 	s.mu.Lock()
 
-	if i, exists := s.table.Get(hash, key); exists {
-		node := &s.list.nodes[i]
-		if ts := node.expires; ts > 0 && atomic.LoadInt64(&now) > ts {
-			s.list.MoveToBack(node)
-			node.value = value
+	if index, exists := s.table.Get(hash, key); exists {
+		if timestamp := s.list.nodes[index].expires; timestamp > 0 && atomic.LoadInt64(&now) > timestamp {
+			s.list.MoveToBack(index)
+			s.list.nodes[index].value = value
 			s.table.Delete(hash, key)
 		} else {
-			s.list.MoveToFront(node)
-			value = node.value
+			s.list.MoveToFront(index)
+			value = s.list.nodes[index].value
 			ok = true
 		}
 	}
@@ -40,8 +39,8 @@ func (s *shard[K, V]) Get(hash uint32, key K) (value V, ok bool) {
 func (s *shard[K, V]) Peek(hash uint32, key K) (value V, ok bool) {
 	s.mu.Lock()
 
-	if i, exists := s.table.Get(hash, key); exists {
-		value = s.list.nodes[i].value
+	if index, exists := s.table.Get(hash, key); exists {
+		value = s.list.nodes[index].value
 		ok = true
 	}
 
@@ -54,10 +53,10 @@ func (s *shard[K, V]) Set(hash uint32, hashfun func(K) uint32, key K, value V, t
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if i, exists := s.table.Get(hash, key); exists {
-		node := &s.list.nodes[i]
+	if index, exists := s.table.Get(hash, key); exists {
+		node := &s.list.nodes[index]
 		previousValue := node.value
-		s.list.MoveToFront(node)
+		s.list.MoveToFront(index)
 		node.value = value
 		if ttl > 0 {
 			node.expires = atomic.LoadInt64(&now) + int64(ttl)
@@ -67,7 +66,8 @@ func (s *shard[K, V]) Set(hash uint32, hashfun func(K) uint32, key K, value V, t
 		return
 	}
 
-	node := s.list.Back()
+	index := s.list.Back()
+	node := &s.list.nodes[index]
 	evictedValue := node.value
 	s.table.Delete(hashfun(node.key), node.key)
 
@@ -76,8 +76,8 @@ func (s *shard[K, V]) Set(hash uint32, hashfun func(K) uint32, key K, value V, t
 	if ttl > 0 {
 		node.expires = atomic.LoadInt64(&now) + int64(ttl)
 	}
-	s.table.Set(hash, key, node.index)
-	s.list.MoveToFront(node)
+	s.table.Set(hash, key, index)
+	s.list.MoveToFront(index)
 	prev = evictedValue
 	return
 }
@@ -86,10 +86,10 @@ func (s *shard[K, V]) Delete(hash uint32, key K) (v V) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if i, exists := s.table.Get(hash, key); exists {
-		node := &s.list.nodes[i]
+	if index, exists := s.table.Get(hash, key); exists {
+		node := &s.list.nodes[index]
 		value := node.value
-		s.list.MoveToBack(node)
+		s.list.MoveToBack(index)
 		node.value = v
 		s.table.Delete(hash, key)
 		v = value
@@ -106,8 +106,8 @@ func (s *shard[K, V]) Len() (n int) {
 	return
 }
 
-func (s *shard[K, V]) getkey(i uint32) K {
-	return s.list.nodes[i].key
+func (s *shard[K, V]) getkey(index uint32) K {
+	return s.list.nodes[index].key
 }
 
 func newshard[K comparable, V any](size int) *shard[K, V] {
