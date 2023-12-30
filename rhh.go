@@ -68,24 +68,23 @@ func (m *rhh[K]) Set(hash uint32, key K, value uint32) (uint32, bool) {
 
 func (m *rhh[K]) set(hash uint32, key K, value uint32) (prev uint32, ok bool) {
 	hdib := hash<<dibBitSize | uint32(1)&maxDIB
-	e := value
 	i := (hdib >> dibBitSize) & m.mask
 	for {
 		if m.buckets[i].hdib&maxDIB == 0 {
 			m.buckets[i].hdib = hdib
-			m.buckets[i].index = e
+			m.buckets[i].index = value
 			m.length++
 			return
 		}
-		if hdib>>dibBitSize == m.buckets[i].hdib>>dibBitSize && m.getkey(e) == m.getkey(m.buckets[i].index) {
+		if hdib>>dibBitSize == m.buckets[i].hdib>>dibBitSize && key == m.getkey(m.buckets[i].index) {
 			old := m.buckets[i].index
 			m.buckets[i].hdib = hdib
-			m.buckets[i].index = e
+			m.buckets[i].index = value
 			return old, true
 		}
 		if m.buckets[i].hdib&maxDIB < hdib&maxDIB {
 			hdib, m.buckets[i].hdib = m.buckets[i].hdib, hdib
-			e, m.buckets[i].index = m.buckets[i].index, e
+			value, m.buckets[i].index = m.buckets[i].index, value
 		}
 		i = (i + 1) & m.mask
 		hdib = hdib>>dibBitSize<<dibBitSize | (hdib&maxDIB+1)&maxDIB
