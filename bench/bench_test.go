@@ -2,6 +2,7 @@
 package bench
 
 import (
+	"fmt"
 	"testing"
 	"time"
 	_ "unsafe"
@@ -14,8 +15,18 @@ import (
 )
 
 const (
+	keysize     = 16
+	cachesize   = 1000000
 	parallelism = 32
 )
+
+var keymap = func() (x []string) {
+	x = make([]string, cachesize)
+	for i := 0; i < cachesize; i++ {
+		x[i] = fmt.Sprintf(fmt.Sprintf("%%0%dd", keysize), i)
+	}
+	return
+}()
 
 //go:noescape
 //go:linkname fastrandn runtime.fastrandn
@@ -32,7 +43,11 @@ func BenchmarkCloudflareGet(b *testing.B) {
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			_, _ = cache.Get(keymap[fastrandn(cachesize)])
+			i := int(fastrandn(cachesize))
+			v, ok := cache.Get(keymap[i])
+			if ok && v.(int) != i {
+				b.Fatalf("get %v from cache want %v, got %v", keymap[i], i, v)
+			}
 		}
 	})
 }
@@ -48,7 +63,11 @@ func BenchmarkCcacheGet(b *testing.B) {
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			_ = cache.Get(keymap[fastrandn(cachesize)])
+			i := int(fastrandn(cachesize))
+			v := cache.Get(keymap[i])
+			if v != nil && v.Value() != i {
+				b.Fatalf("get %v from cache want %v, got %v", keymap[i], i, v)
+			}
 		}
 	})
 }
@@ -68,7 +87,11 @@ func BenchmarkRistrettoGet(b *testing.B) {
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			_, _ = cache.Get(keymap[fastrandn(cachesize)])
+			i := int(fastrandn(cachesize))
+			v, ok := cache.Get(keymap[i])
+			if ok && v != i {
+				b.Fatalf("get %v from cache want %v, got %v", keymap[i], i, v)
+			}
 		}
 	})
 }
@@ -84,7 +107,11 @@ func BenchmarkEcacheGet(b *testing.B) {
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			_, _ = cache.Get(keymap[fastrandn(cachesize)])
+			i := int(fastrandn(cachesize))
+			v, ok := cache.Get(keymap[i])
+			if ok && v != i {
+				b.Fatalf("get %v from cache want %v, got %v", keymap[i], i, v)
+			}
 		}
 	})
 }
@@ -100,7 +127,11 @@ func BenchmarkPhusluGet(b *testing.B) {
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			_, _ = cache.Get(keymap[fastrandn(cachesize)])
+			i := int(fastrandn(cachesize))
+			v, ok := cache.Get(keymap[i])
+			if ok && v != i {
+				b.Fatalf("get %v from cache want %v, got %v", keymap[i], i, v)
+			}
 		}
 	})
 }

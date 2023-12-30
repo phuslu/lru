@@ -6,7 +6,7 @@
 
 * Simple
     - No Dependency
-    - Less than 1000 Sloc
+    - Less than 1000 sloc
 * Fast
     - Faster than all well-known LRU caches
     - Zero memory allocs 
@@ -14,7 +14,7 @@
     - Pointerless data structs
     - Continuous memory layout
 * Memory efficient
-    - Save at least 30% memory than other LRU caches
+    - Uses 24 extra bytes per cache object
 
 ### Getting Started
 
@@ -44,23 +44,23 @@ func main() {
 
 ### Benchmarks
 
-A Performance result as below
+A Performance result on keysize=16, cachesize=1000000, parallelism=32
 ```
 goos: linux
-goarch: amd64
-cpu: Intel(R) Xeon(R) Silver 4216 CPU @ 2.10GHz
+goarch: arm64
+pkg: bench
 BenchmarkCloudflareGet
-BenchmarkCloudflareGet-8   	100000000	        59.11 ns/op	      16 B/op	       1 allocs/op
+BenchmarkCloudflareGet-4   	32207244	       191.4 ns/op	      16 B/op	       1 allocs/op
 BenchmarkCcacheGet
-BenchmarkCcacheGet-8       	105142296	        56.85 ns/op	      20 B/op	       2 allocs/op
+BenchmarkCcacheGet-4       	32112368	       183.4 ns/op	      20 B/op	       2 allocs/op
 BenchmarkRistrettoGet
-BenchmarkRistrettoGet-8    	131303994	        45.99 ns/op	      16 B/op	       1 allocs/op
-BenchmarkGoburrowGet
-BenchmarkGoburrowGet-8     	100000000	        62.94 ns/op	      16 B/op	       1 allocs/op
+BenchmarkRistrettoGet-4    	39304964	       156.9 ns/op	      16 B/op	       1 allocs/op
+BenchmarkEcacheGet
+BenchmarkEcacheGet-4       	35331213	       166.2 ns/op	       0 B/op	       0 allocs/op
 BenchmarkPhusluGet
-BenchmarkPhusluGet-8       	176671556	        34.11 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPhusluGet-4       	45333045	       132.9 ns/op	       0 B/op	       0 allocs/op
 PASS
-ok  	command-line-arguments	43.895s
+ok  	bench	42.942s
 ```
 
 [godoc-img]: http://img.shields.io/badge/godoc-reference-blue.svg
