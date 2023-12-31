@@ -7,9 +7,11 @@ import (
 	"time"
 	_ "unsafe"
 
+	theine "github.com/Yiling-J/theine-go"
 	cloudflare "github.com/cloudflare/golibs/lrucache"
 	ristretto "github.com/dgraph-io/ristretto"
 	ccache "github.com/karlseguin/ccache/v3"
+	otter "github.com/maypok86/otter"
 	ecache "github.com/orca-zhang/ecache"
 	phuslu "github.com/phuslu/lru"
 )
@@ -72,6 +74,26 @@ func BenchmarkCcacheGet(b *testing.B) {
 	})
 }
 
+func BenchmarkEcacheGet(b *testing.B) {
+	cache := ecache.NewLRUCache(1024, cachesize/1024, time.Hour)
+	for i := 0; i < cachesize/2; i++ {
+		cache.Put(keymap[i], i)
+	}
+
+	b.SetParallelism(parallelism)
+	b.ResetTimer()
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			i := int(fastrandn(cachesize))
+			v, ok := cache.Get(keymap[i])
+			if ok && v != i {
+				b.Fatalf("get %v from cache want %v, got %v", keymap[i], i, v)
+			}
+		}
+	})
+}
+
 func BenchmarkRistrettoGet(b *testing.B) {
 	cache, _ := ristretto.NewCache(&ristretto.Config{
 		NumCounters: cachesize, // number of keys to track frequency of (10M).
@@ -96,10 +118,30 @@ func BenchmarkRistrettoGet(b *testing.B) {
 	})
 }
 
-func BenchmarkEcacheGet(b *testing.B) {
-	cache := ecache.NewLRUCache(1024, cachesize/1024, time.Hour)
+func BenchmarkTheineGet(b *testing.B) {
+	cache, _ := theine.NewBuilder[string, int](cachesize).Build()
 	for i := 0; i < cachesize/2; i++ {
-		cache.Put(keymap[i], i)
+		cache.SetWithTTL(keymap[i], i, 1, time.Hour)
+	}
+
+	b.SetParallelism(parallelism)
+	b.ResetTimer()
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			i := int(fastrandn(cachesize))
+			v, ok := cache.Get(keymap[i])
+			if ok && v != i {
+				b.Fatalf("get %v from cache want %v, got %v", keymap[i], i, v)
+			}
+		}
+	})
+}
+
+func BenchmarkOtterGet(b *testing.B) {
+	cache, _ := otter.MustBuilder[string, int](cachesize).Build()
+	for i := 0; i < cachesize/2; i++ {
+		cache.SetWithTTL(keymap[i], i, time.Hour)
 	}
 
 	b.SetParallelism(parallelism)
