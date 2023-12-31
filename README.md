@@ -1,4 +1,4 @@
-# lru - a high-performance and gc-friendly LRU cache
+# a high-performance and gc-friendly LRU cache
 
 [![godoc][godoc-img]][godoc] [![release][release-img]][release] [![goreport][goreport-img]][goreport]
 
@@ -6,15 +6,15 @@
 
 * Simple
     - No Dependency
-    - Less than 1000 sloc
+    - Less 500 lines of Go(excluding tests)
 * Fast
-    - Faster than all well-known LRU caches
+    - Faster than all well-known **LRU** caches
     - Zero memory allocs 
 * GC friendly
     - Pointerless data structs
     - Continuous memory layout
 * Memory efficient
-    - Uses 24 extra bytes per cache object
+    - Uses only 24 extra bytes per cache object
 
 ### Getting Started
 
@@ -44,23 +44,27 @@ func main() {
 
 ### Benchmarks
 
-A Performance result on keysize=16, cachesize=1000000, parallelism=32
+A Performance result on keysize=16, cachesize=1000000, parallelism=32. Check [actions][actions] for more results and details.
 ```
 goos: linux
-goarch: arm64
-pkg: bench
+goarch: amd64
+cpu: AMD EPYC 7763 64-Core Processor                
 BenchmarkCloudflareGet
-BenchmarkCloudflareGet-4   	32207244	       191.4 ns/op	      16 B/op	       1 allocs/op
+BenchmarkCloudflareGet-8   	43232113	       145.9 ns/op	      16 B/op	       1 allocs/op
 BenchmarkCcacheGet
-BenchmarkCcacheGet-4       	32112368	       183.4 ns/op	      20 B/op	       2 allocs/op
-BenchmarkRistrettoGet
-BenchmarkRistrettoGet-4    	39304964	       156.9 ns/op	      16 B/op	       1 allocs/op
+BenchmarkCcacheGet-8       	48490944	       135.8 ns/op	      20 B/op	       2 allocs/op
 BenchmarkEcacheGet
-BenchmarkEcacheGet-4       	35331213	       166.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkEcacheGet-8       	51344246	       115.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkRistrettoGet
+BenchmarkRistrettoGet-8    	56852104	       103.4 ns/op	      16 B/op	       1 allocs/op
+BenchmarkTheineGet
+BenchmarkTheineGet-8       	51490969	       108.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkOtterGet
+BenchmarkOtterGet-8        	75847165	        74.34 ns/op	       0 B/op	       0 allocs/op
 BenchmarkPhusluGet
-BenchmarkPhusluGet-4       	45333045	       132.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPhusluGet-8       	72334320	        87.05 ns/op	       0 B/op	       0 allocs/op
 PASS
-ok  	bench	42.942s
+ok  	command-line-arguments	58.332s
 ```
 
 [godoc-img]: http://img.shields.io/badge/godoc-reference-blue.svg
@@ -69,3 +73,4 @@ ok  	bench	42.942s
 [release]: https://github.com/phuslu/lru/releases
 [goreport-img]: https://goreportcard.com/badge/github.com/phuslu/lru
 [goreport]: https://goreportcard.com/report/github.com/phuslu/lru
+[actions]: https://github.com/phuslu/lru/actions/workflows/benchmark.yml

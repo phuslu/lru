@@ -69,25 +69,25 @@ func (c *Cache[K, V]) Get(key K) (value V, ok bool) {
 	return c.shards[hash&c.mask].Get(hash, key)
 }
 
-// Peek returns value for key (if key was in cache), but does not modify its recency.
+// Peek returns value for key, but does not modify its recency.
 func (c *Cache[K, V]) Peek(key K) (value V, ok bool) {
 	hash := c.hash(key)
 	return c.shards[hash&c.mask].Peek(hash, key)
 }
 
-// Set inserts key value pair and returns evicted value, if cache was full.
+// Set inserts key value pair and returns previous value, if cache was full.
 func (c *Cache[K, V]) Set(key K, value V) (prev V, replaced bool) {
 	hash := c.hash(key)
 	return c.shards[hash&c.mask].Set(hash, c.hash, key, value, 0)
 }
 
-// SetWithTTL inserts key value pair with ttl and returns evicted value, if cache was full.
+// SetWithTTL inserts key value pair with ttl and returns previous value, if cache was full.
 func (c *Cache[K, V]) SetWithTTL(key K, value V, ttl time.Duration) (prev V, replaced bool) {
 	hash := c.hash(key)
 	return c.shards[hash&c.mask].Set(hash, c.hash, key, value, ttl)
 }
 
-// Delete method deletes entry associated with key and returns pointer to deleted value (or nil if entry was not in cache).
+// Delete method deletes value associated with key and returns deleted value (or empty value if key was not in cache).
 func (c *Cache[K, V]) Delete(key K) (prev V) {
 	hash := c.hash(key)
 	return c.shards[hash&c.mask].Delete(hash, key)
