@@ -20,14 +20,17 @@ func (s *shard[K, V]) Get(hash uint32, key K) (value V, ok bool) {
 	s.mu.Lock()
 
 	if index, exists := s.table.Get(hash, key); exists {
-		if timestamp := s.list.nodes[index].expires; timestamp > 0 && atomic.LoadInt64(&now) > timestamp {
+		if timestamp := s.list.nodes[index].expires; timestamp == 0 || atomic.LoadInt64(&now) < timestamp {
+			// s.list.MoveToFront(index)
+			if s.list.nodes[0].next != index {
+				s.list.move(index, 0)
+			}
+			value = s.list.nodes[index].value
+			ok = true
+		} else {
 			s.list.MoveToBack(index)
 			s.list.nodes[index].value = value
 			s.table.Delete(hash, key)
-		} else {
-			s.list.MoveToFront(index)
-			value = s.list.nodes[index].value
-			ok = true
 		}
 	}
 
