@@ -1,0 +1,22 @@
+name: benchmark
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  push:
+    branches:
+      - master
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+          check-latest: true
+      - name: Benchmark
+        working-directory: ./bench
+        run: |
+          go test -v -cpu=8 -run=none -bench=. -benchtime=5s -benchmem bench_test.go
