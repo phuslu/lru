@@ -18,7 +18,7 @@
 
 ### Getting Started
 
-try on https://go.dev/play/p/tPcBftK0qJ8
+try on https://go.dev/play/p/XhMxFJe8jcy
 ```go
 package main
 

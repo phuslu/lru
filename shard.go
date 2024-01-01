@@ -20,7 +20,7 @@ func (s *shard[K, V]) Get(hash uint32, key K) (value V, ok bool) {
 	s.mu.Lock()
 
 	if index, exists := s.table.Get(hash, key); exists {
-		if timestamp := s.list.nodes[index].expires; timestamp == 0 || atomic.LoadInt64(&now) < timestamp {
+		if expires := s.list.nodes[index].expires; expires == 0 || atomic.LoadInt64(&clock) < expires {
 			// s.list.MoveToFront(index)
 			if s.list.nodes[0].next != index {
 				s.list.move(index, 0)
@@ -62,7 +62,7 @@ func (s *shard[K, V]) Set(hash uint32, hashfun func(K) uint32, key K, value V, t
 		s.list.MoveToFront(index)
 		node.value = value
 		if ttl > 0 {
-			node.expires = atomic.LoadInt64(&now) + int64(ttl)
+			node.expires = atomic.LoadInt64(&clock) + int64(ttl)
 		}
 		prev = previousValue
 		replaced = true
@@ -77,7 +77,7 @@ func (s *shard[K, V]) Set(hash uint32, hashfun func(K) uint32, key K, value V, t
 	node.key = key
 	node.value = value
 	if ttl > 0 {
-		node.expires = atomic.LoadInt64(&now) + int64(ttl)
+		node.expires = atomic.LoadInt64(&clock) + int64(ttl)
 	}
 	s.table.Set(hash, key, index)
 	s.list.MoveToFront(index)
@@ -122,14 +122,18 @@ func newshard[K comparable, V any](size int) *shard[K, V] {
 	return s
 }
 
-var now int64
+var clock int64
 
 func init() {
-	atomic.StoreInt64(&now, time.Now().UnixNano())
+	atomic.StoreInt64(&clock, time.Now().UnixNano())
 	go func() {
 		for {
-			time.Sleep(time.Second)
-			atomic.StoreInt64(&now, time.Now().UnixNano())
+			for i := 0; i < 9; i++ {
+				time.Sleep(100 * time.Millisecond)
+				atomic.AddInt64(&clock, int64(100*time.Millisecond))
+			}
+			time.Sleep(100 * time.Millisecond)
+			atomic.StoreInt64(&clock, time.Now().UnixNano())
 		}
 	}()
 }
