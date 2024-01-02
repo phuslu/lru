@@ -4,14 +4,13 @@ package lru
 import (
 	"runtime"
 	"time"
-	"unsafe"
 )
 
 // Cache implements LRU Cache with least recent used eviction policy.
 type Cache[K comparable, V any] struct {
-	shards  []shard[K, V]
-	mask    uint32
-	keysize int
+	shards []shard[K, V]
+	mask   uint32
+	hasher maphash_Hasher[K]
 }
 
 // New creates lru cache with size capacity.
@@ -31,65 +30,42 @@ func newWithShards[K comparable, V any](shardcount, shardsize int) *Cache[K, V] 
 	c := &Cache[K, V]{
 		shards: make([]shard[K, V], shardcount),
 		mask:   uint32(shardcount) - 1,
+		hasher: maphash_NewHasher[K](),
 	}
 	for i := range c.shards {
 		c.shards[i] = *newshard[K, V](shardsize)
 	}
 
-	var k K
-	switch ((any)(k)).(type) {
-	case string:
-		c.keysize = 0
-	default:
-		c.keysize = int(unsafe.Sizeof(k))
-	}
-
 	return c
-}
-
-func (c *Cache[K, V]) hash(key K) uint32 {
-	if c.keysize == 0 {
-		data := *(*string)(unsafe.Pointer(&key))
-		if len(data) == 0 {
-			return 0
-		}
-
-		return uint32(wyhash_hash(data, 0) & 0xFFFFFFFF)
-	}
-
-	return uint32(wyhash_hash(*(*string)(unsafe.Pointer(&struct {
-		data unsafe.Pointer
-		len  int
-	}{unsafe.Pointer(&key), c.keysize})), 0) & 0xFFFFFFFF)
 }
 
 // Get returns value for key.
 func (c *Cache[K, V]) Get(key K) (value V, ok bool) {
-	hash := c.hash(key)
+	hash := uint32(c.hasher.Hash(key))
 	return c.shards[hash&c.mask].Get(hash, key)
 }
 
 // Peek returns value for key, but does not modify its recency.
 func (c *Cache[K, V]) Peek(key K) (value V, ok bool) {
-	hash := c.hash(key)
+	hash := uint32(c.hasher.Hash(key))
 	return c.shards[hash&c.mask].Peek(hash, key)
 }
 
 // Set inserts key value pair and returns previous value, if cache was full.
 func (c *Cache[K, V]) Set(key K, value V) (prev V, replaced bool) {
-	hash := c.hash(key)
-	return c.shards[hash&c.mask].Set(hash, c.hash, key, value, 0)
+	hash := uint32(c.hasher.Hash(key))
+	return c.shards[hash&c.mask].Set(hash, c.hasher.Hash, key, value, 0)
 }
 
 // SetWithTTL inserts key value pair with ttl and returns previous value, if cache was full.
 func (c *Cache[K, V]) SetWithTTL(key K, value V, ttl time.Duration) (prev V, replaced bool) {
-	hash := c.hash(key)
-	return c.shards[hash&c.mask].Set(hash, c.hash, key, value, ttl)
+	hash := uint32(c.hasher.Hash(key))
+	return c.shards[hash&c.mask].Set(hash, c.hasher.Hash, key, value, ttl)
 }
 
 // Delete method deletes value associated with key and returns deleted value (or empty value if key was not in cache).
 func (c *Cache[K, V]) Delete(key K) (prev V) {
-	hash := c.hash(key)
+	hash := uint32(c.hasher.Hash(key))
 	return c.shards[hash&c.mask].Delete(hash, key)
 }
 

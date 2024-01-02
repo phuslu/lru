@@ -52,7 +52,7 @@ func (s *shard[K, V]) Peek(hash uint32, key K) (value V, ok bool) {
 	return
 }
 
-func (s *shard[K, V]) Set(hash uint32, hashfun func(K) uint32, key K, value V, ttl time.Duration) (prev V, replaced bool) {
+func (s *shard[K, V]) Set(hash uint32, hashfun func(K) uint64, key K, value V, ttl time.Duration) (prev V, replaced bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -72,7 +72,7 @@ func (s *shard[K, V]) Set(hash uint32, hashfun func(K) uint32, key K, value V, t
 	index := s.list.Back()
 	node := &s.list.nodes[index]
 	evictedValue := node.value
-	s.table.Delete(hashfun(node.key), node.key)
+	s.table.Delete(uint32(hashfun(node.key)), node.key)
 
 	node.key = key
 	node.value = value
