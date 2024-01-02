@@ -11,6 +11,8 @@ type Cache[K comparable, V any] struct {
 	shards []shard[K, V]
 	mask   uint32
 	hasher maphash_Hasher[K]
+	loader func(key K) (value V, ttl time.Duration, err error)
+	group  singleflight_Group[K, V]
 }
 
 // New creates lru cache with size capacity.
@@ -76,4 +78,37 @@ func (c *Cache[K, V]) Len() int {
 		n += c.shards[i].Len()
 	}
 	return n
+}
+
+// NewWithLoader creates lru cache with size capacity and loader function.
+func NewWithLoader[K comparable, V any](size int, loader func(K) (value V, ttl time.Duration, err error)) *Cache[K, V] {
+	cache := New[K, V](size)
+	cache.group = singleflight_Group[K, V]{}
+	cache.loader = loader
+	return cache
+}
+
+// GetOrLoad returns value for key, Call loader function if value was not in cache by singleflight.
+// If loader parameter is nil, use global loader function provided by NewWithLoader instead.
+func (c *Cache[K, V]) GetOrLoad(key K, loader func(K) (V, time.Duration, error)) (value V, err error, ok bool) {
+	hash := uint32(c.hasher.Hash(key))
+	value, ok = c.shards[hash&c.mask].Get(hash, key)
+	if !ok {
+		if loader == nil {
+			loader = c.loader
+		}
+		if loader == nil {
+			return
+		}
+		value, err, ok = c.group.Do(key, func() (v V, err error) {
+			var ttl time.Duration
+			v, ttl, err = loader(key)
+			if err != nil {
+				return v, err
+			}
+			c.shards[hash&c.mask].Set(hash, c.hasher.Hash, key, v, ttl)
+			return v, nil
+		})
+	}
+	return
 }
