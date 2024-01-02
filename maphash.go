@@ -18,7 +18,6 @@
 package lru
 
 import (
-	"math/rand"
 	"unsafe"
 )
 
@@ -63,7 +62,7 @@ func maphash_getRuntimeHasher[K comparable]() (h maphash_hashfn) {
 }
 
 func maphash_newHashSeed() uintptr {
-	return uintptr(rand.Int())
+	return uintptr(fastrand64())
 }
 
 // noescape hides a pointer from escape analysis. It is the identity function
