@@ -44,27 +44,25 @@ func main() {
 
 ### Benchmarks
 
-A Performance result on keysize=16, cachesize=1000000, parallelism=32. Check [actions][actions] for more results and details.
+A Performance result on keysize=16, cachesize=1000000, parallelism=32 with Read(75%)/Write(25%). Check [actions][actions] for more results and details.
 ```
 goos: linux
 goarch: amd64
 cpu: AMD EPYC 7763 64-Core Processor                
 BenchmarkCloudflareGet
-BenchmarkCloudflareGet-8   	43232113	       145.9 ns/op	      16 B/op	       1 allocs/op
-BenchmarkCcacheGet
-BenchmarkCcacheGet-8       	48490944	       135.8 ns/op	      20 B/op	       2 allocs/op
+BenchmarkCloudflareGet-8   	32122790	       183.9 ns/op	      18 B/op	       1 allocs/op
 BenchmarkEcacheGet
-BenchmarkEcacheGet-8       	51344246	       115.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkEcacheGet-8       	49922084	       120.0 ns/op	       5 B/op	       0 allocs/op
 BenchmarkRistrettoGet
-BenchmarkRistrettoGet-8    	56852104	       103.4 ns/op	      16 B/op	       1 allocs/op
+BenchmarkRistrettoGet-8    	33818906	       195.6 ns/op	      41 B/op	       1 allocs/op
 BenchmarkTheineGet
-BenchmarkTheineGet-8       	51490969	       108.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkTheineGet-8       	29022984	       208.9 ns/op	       0 B/op	       0 allocs/op
 BenchmarkOtterGet
-BenchmarkOtterGet-8        	75847165	        74.34 ns/op	       0 B/op	       0 allocs/op
+BenchmarkOtterGet-8        	71440144	        85.35 ns/op	       0 B/op	       0 allocs/op
 BenchmarkPhusluGet
-BenchmarkPhusluGet-8       	72334320	        87.05 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPhusluGet-8       	60555633	        98.51 ns/op	       0 B/op	       0 allocs/op
 PASS
-ok  	command-line-arguments	58.332s
+ok  	command-line-arguments	61.404s
 ```
 
 [godoc-img]: http://img.shields.io/badge/godoc-reference-blue.svg

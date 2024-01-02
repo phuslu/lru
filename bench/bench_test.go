@@ -10,7 +10,6 @@ import (
 	theine "github.com/Yiling-J/theine-go"
 	cloudflare "github.com/cloudflare/golibs/lrucache"
 	ristretto "github.com/dgraph-io/ristretto"
-	ccache "github.com/karlseguin/ccache/v3"
 	otter "github.com/maypok86/otter"
 	ecache "github.com/orca-zhang/ecache"
 	phuslu "github.com/phuslu/lru"
@@ -39,36 +38,16 @@ func BenchmarkCloudflareGet(b *testing.B) {
 	for i := 0; i < cachesize/2; i++ {
 		cache.Set(keymap[i], i, time.Now().Add(time.Hour))
 	}
-
 	b.SetParallelism(parallelism)
 	b.ResetTimer()
-
 	b.RunParallel(func(pb *testing.PB) {
+		expires := time.Now().Add(time.Hour)
 		for pb.Next() {
 			i := int(fastrandn(cachesize))
-			v, ok := cache.Get(keymap[i])
-			if ok && v.(int) != i {
-				b.Fatalf("get %v from cache want %v, got %v", keymap[i], i, v)
-			}
-		}
-	})
-}
-
-func BenchmarkCcacheGet(b *testing.B) {
-	cache := ccache.New(ccache.Configure[int]().MaxSize(cachesize))
-	for i := 0; i < cachesize/2; i++ {
-		cache.Set(keymap[i], i, time.Hour)
-	}
-
-	b.SetParallelism(parallelism)
-	b.ResetTimer()
-
-	b.RunParallel(func(pb *testing.PB) {
-		for pb.Next() {
-			i := int(fastrandn(cachesize))
-			v := cache.Get(keymap[i])
-			if v != nil && v.Value() != i {
-				b.Fatalf("get %v from cache want %v, got %v", keymap[i], i, v)
+			if i >= cachesize/4 {
+				cache.Get(keymap[i])
+			} else {
+				cache.Set(keymap[i], i, expires)
 			}
 		}
 	})
@@ -79,16 +58,15 @@ func BenchmarkEcacheGet(b *testing.B) {
 	for i := 0; i < cachesize/2; i++ {
 		cache.Put(keymap[i], i)
 	}
-
 	b.SetParallelism(parallelism)
 	b.ResetTimer()
-
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			i := int(fastrandn(cachesize))
-			v, ok := cache.Get(keymap[i])
-			if ok && v != i {
-				b.Fatalf("get %v from cache want %v, got %v", keymap[i], i, v)
+			if i >= cachesize/4 {
+				cache.Get(keymap[i])
+			} else {
+				cache.Put(keymap[i], i)
 			}
 		}
 	})
@@ -97,7 +75,7 @@ func BenchmarkEcacheGet(b *testing.B) {
 func BenchmarkRistrettoGet(b *testing.B) {
 	cache, _ := ristretto.NewCache(&ristretto.Config{
 		NumCounters: cachesize, // number of keys to track frequency of (10M).
-		MaxCost:     1 << 30,   // maximum cost of cache (1GB).
+		MaxCost:     2 << 30,   // maximum cost of cache (2GB).
 		BufferItems: 64,        // number of keys per Get buffer.
 	})
 	for i := 0; i < cachesize/2; i++ {
@@ -110,9 +88,10 @@ func BenchmarkRistrettoGet(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			i := int(fastrandn(cachesize))
-			v, ok := cache.Get(keymap[i])
-			if ok && v != i {
-				b.Fatalf("get %v from cache want %v, got %v", keymap[i], i, v)
+			if i >= cachesize/4 {
+				cache.Get(keymap[i])
+			} else {
+				cache.SetWithTTL(keymap[i], i, 1, time.Hour)
 			}
 		}
 	})
@@ -130,9 +109,10 @@ func BenchmarkTheineGet(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			i := int(fastrandn(cachesize))
-			v, ok := cache.Get(keymap[i])
-			if ok && v != i {
-				b.Fatalf("get %v from cache want %v, got %v", keymap[i], i, v)
+			if i >= cachesize/4 {
+				cache.Get(keymap[i])
+			} else {
+				cache.SetWithTTL(keymap[i], i, 1, time.Hour)
 			}
 		}
 	})
@@ -150,9 +130,10 @@ func BenchmarkOtterGet(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			i := int(fastrandn(cachesize))
-			v, ok := cache.Get(keymap[i])
-			if ok && v != i {
-				b.Fatalf("get %v from cache want %v, got %v", keymap[i], i, v)
+			if i >= cachesize/4 {
+				cache.Get(keymap[i])
+			} else {
+				cache.SetWithTTL(keymap[i], i, time.Hour)
 			}
 		}
 	})
@@ -170,9 +151,10 @@ func BenchmarkPhusluGet(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			i := int(fastrandn(cachesize))
-			v, ok := cache.Get(keymap[i])
-			if ok && v != i {
-				b.Fatalf("get %v from cache want %v, got %v", keymap[i], i, v)
+			if i >= cachesize/4 {
+				cache.Get(keymap[i])
+			} else {
+				cache.SetWithTTL(keymap[i], i, time.Hour)
 			}
 		}
 	})

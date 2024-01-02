@@ -6,7 +6,6 @@ require (
 	github.com/Yiling-J/theine-go v0.3.1
 	github.com/cloudflare/golibs v0.0.0-20210909181612-21743d7dd02a
 	github.com/dgraph-io/ristretto v0.1.1
-	github.com/karlseguin/ccache/v3 v3.0.5
 	github.com/maypok86/otter v0.0.0-20231222143008-a9479c80c78a
 	github.com/orca-zhang/ecache v1.1.1
 	github.com/phuslu/lru v0.0.0-00010101000000-000000000000
@@ -22,6 +21,7 @@ require (
 	github.com/klauspost/cpuid/v2 v2.0.9 // indirect
 	github.com/ncw/directio v1.0.5 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/stretchr/testify v1.8.4 // indirect
 	github.com/zeebo/xxh3 v1.0.2 // indirect
 	golang.org/x/sys v0.8.0 // indirect
 )
