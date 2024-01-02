@@ -21,10 +21,7 @@ func (s *shard[K, V]) Get(hash uint32, key K) (value V, ok bool) {
 
 	if index, exists := s.table.Get(hash, key); exists {
 		if expires := s.list.nodes[index].expires; expires == 0 || atomic.LoadInt64(&clock) < expires {
-			// s.list.MoveToFront(index)
-			if s.list.nodes[0].next != index {
-				s.list.move(index, 0)
-			}
+			s.list.MoveToFront(index)
 			value = s.list.nodes[index].value
 			ok = true
 		} else {

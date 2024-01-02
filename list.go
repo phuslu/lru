@@ -26,34 +26,42 @@ func (l *list[K, V]) Init(size uint32, value func(index uint32) (K, V)) {
 	}
 }
 
-func (l *list[K, V]) move(i, j uint32) {
-	if i == j {
-		return
-	}
-
-	n, at := &l.nodes[i], &l.nodes[j]
-
-	l.nodes[n.prev].next = n.next
-	l.nodes[n.next].prev = n.prev
-
-	n.prev = j
-	n.next = at.next
-
-	l.nodes[j].next = i
-	l.nodes[n.next].prev = i
-}
-
 func (l *list[K, V]) Back() uint32 {
 	return l.nodes[0].prev
 }
 
 func (l *list[K, V]) MoveToFront(i uint32) {
-	if l.nodes[0].next == i {
+	root := &l.nodes[0]
+	if root.next == i {
 		return
 	}
-	l.move(i, 0)
+
+	node := &l.nodes[i]
+
+	l.nodes[node.prev].next = node.next
+	l.nodes[node.next].prev = node.prev
+
+	node.prev = 0
+	node.next = root.next
+
+	root.next = i
+	l.nodes[node.next].prev = i
 }
 
 func (l *list[K, V]) MoveToBack(i uint32) {
-	l.move(i, l.nodes[0].prev)
+	j := l.nodes[0].prev
+	if i == j {
+		return
+	}
+
+	node, at := &l.nodes[i], &l.nodes[j]
+
+	l.nodes[node.prev].next = node.next
+	l.nodes[node.next].prev = node.prev
+
+	node.prev = j
+	node.next = at.next
+
+	l.nodes[j].next = i
+	l.nodes[node.next].prev = i
 }
