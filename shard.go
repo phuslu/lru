@@ -22,7 +22,7 @@ func (s *shard[K, V]) Get(hash uint32, key K) (value V, ok bool) {
 	s.mu.Lock()
 
 	if index, exists := s.table.Get(hash, key); exists {
-		if expires := s.list.nodes[index].expires; expires == 0 || atomic.LoadInt64(&clock) < expires {
+		if expires := s.list.nodes[index].expires; expires == 0 || atomic.LoadUint32(&clock) < expires {
 			s.list.MoveToFront(index)
 			value = s.list.nodes[index].value
 			ok = true
@@ -46,9 +46,9 @@ func (s *shard[K, V]) TouchGet(hash uint32, key K) (value V, ok bool) {
 			s.list.MoveToFront(index)
 			value = s.list.nodes[index].value
 			ok = true
-		} else if now := atomic.LoadInt64(&clock); now < expires {
+		} else if now := atomic.LoadUint32(&clock); now < expires {
 			s.list.MoveToFront(index)
-			s.list.nodes[index].expires = atomic.LoadInt64(&clock) + s.list.nodes[index].ttl
+			s.list.nodes[index].expires = atomic.LoadUint32(&clock) + s.list.nodes[index].ttl
 			value = s.list.nodes[index].value
 			ok = true
 		} else {
@@ -86,8 +86,8 @@ func (s *shard[K, V]) Set(hash uint32, hashfun func(K) uint64, key K, value V, t
 		s.list.MoveToFront(index)
 		node.value = value
 		if ttl > 0 {
-			node.ttl = int64(ttl)
-			node.expires = atomic.LoadInt64(&clock) + int64(ttl)
+			node.ttl = uint32(ttl / time.Second)
+			node.expires = atomic.LoadUint32(&clock) + node.ttl
 		}
 		prev = previousValue
 		replaced = true
@@ -102,8 +102,8 @@ func (s *shard[K, V]) Set(hash uint32, hashfun func(K) uint64, key K, value V, t
 	node.key = key
 	node.value = value
 	if ttl > 0 {
-		node.ttl = int64(ttl)
-		node.expires = atomic.LoadInt64(&clock) + int64(ttl)
+		node.ttl = uint32(ttl / time.Second)
+		node.expires = atomic.LoadUint32(&clock) + node.ttl
 	}
 	s.table.Set(hash, key, index)
 	s.list.MoveToFront(index)
@@ -148,18 +148,15 @@ func newshard[K comparable, V any](size int) *shard[K, V] {
 	return s
 }
 
-var clock int64
+var clock uint32
 
 func init() {
-	atomic.StoreInt64(&clock, time.Now().UnixNano())
+	const unixBase = 1704067200 // 2024-01-01T00:00:00Z
+	atomic.StoreUint32(&clock, uint32(time.Now().Unix()-unixBase))
 	go func() {
 		for {
-			for i := 0; i < 9; i++ {
-				time.Sleep(100 * time.Millisecond)
-				atomic.AddInt64(&clock, int64(100*time.Millisecond))
-			}
-			time.Sleep(100 * time.Millisecond)
-			atomic.StoreInt64(&clock, time.Now().UnixNano())
+			time.Sleep(500 * time.Millisecond)
+			atomic.StoreUint32(&clock, uint32(time.Now().Unix()-unixBase))
 		}
 	}()
 }

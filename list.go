@@ -5,8 +5,8 @@ package lru
 type node[K comparable, V any] struct {
 	key     K
 	value   V
-	expires int64
-	ttl     int64
+	expires uint32
+	ttl     uint32
 	next    uint32
 	prev    uint32
 }

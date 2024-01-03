@@ -92,22 +92,6 @@ func TestCacheEviction(t *testing.T) {
 	}
 }
 
-func TestCacheTouchGet(t *testing.T) {
-	l := newWithShards[string, int](1, 256)
-
-	l.SetWithTTL("foobar", 42, 400*time.Millisecond)
-
-	time.Sleep(200 * time.Millisecond)
-	if v, ok := l.TouchGet("foobar"); !ok || v != 42 {
-		t.Errorf("foobar should be set to 42: %v,", v)
-	}
-
-	time.Sleep(300 * time.Millisecond)
-	if v, ok := l.Get("foobar"); !ok || v != 42 {
-		t.Errorf("foobar should be still set to 42: %v,", v)
-	}
-}
-
 func TestCachePeek(t *testing.T) {
 	l := New[int, int](64)
 
@@ -133,6 +117,22 @@ func TestCachePeek(t *testing.T) {
 	}
 	if v, ok := l.Peek(30); ok || v != 0 {
 		t.Errorf("%v should have updated recent-ness of 30", v)
+	}
+}
+
+func TestCacheTouchGet(t *testing.T) {
+	l := newWithShards[string, int](1, 256)
+
+	l.SetWithTTL("foobar", 42, 3*time.Second)
+
+	time.Sleep(2 * time.Second)
+	if v, ok := l.TouchGet("foobar"); !ok || v != 42 {
+		t.Errorf("foobar should be set to 42: %v,", v)
+	}
+
+	time.Sleep(2 * time.Second)
+	if v, ok := l.Get("foobar"); !ok || v != 42 {
+		t.Errorf("foobar should be still set to 42: %v,", v)
 	}
 }
 
