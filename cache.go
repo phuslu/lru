@@ -49,10 +49,10 @@ func (c *Cache[K, V]) Get(key K) (value V, ok bool) {
 	return c.shards[hash&c.mask].Get(hash, key)
 }
 
-// SlidingGet returns value for key and reset the expires with TTL(aka, Sliding Cache).
-func (c *Cache[K, V]) SlidingGet(key K) (value V, ok bool) {
+// TouchGet returns value for key and reset the expires with TTL(aka, Sliding Cache).
+func (c *Cache[K, V]) TouchGet(key K) (value V, ok bool) {
 	hash := uint32(c.hasher.Hash(key))
-	return c.shards[hash&c.mask].SlidingGet(hash, key)
+	return c.shards[hash&c.mask].TouchGet(hash, key)
 }
 
 // Peek returns value for key, but does not modify its recency.

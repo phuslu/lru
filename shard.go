@@ -38,7 +38,7 @@ func (s *shard[K, V]) Get(hash uint32, key K) (value V, ok bool) {
 	return
 }
 
-func (s *shard[K, V]) SlidingGet(hash uint32, key K) (value V, ok bool) {
+func (s *shard[K, V]) TouchGet(hash uint32, key K) (value V, ok bool) {
 	s.mu.Lock()
 
 	if index, exists := s.table.Get(hash, key); exists {

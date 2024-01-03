@@ -92,13 +92,13 @@ func TestCacheEviction(t *testing.T) {
 	}
 }
 
-func TestCacheSlidingGet(t *testing.T) {
+func TestCacheTouchGet(t *testing.T) {
 	l := newWithShards[string, int](1, 256)
 
 	l.SetWithTTL("foobar", 42, 400*time.Millisecond)
 
 	time.Sleep(200 * time.Millisecond)
-	if v, ok := l.SlidingGet("foobar"); !ok || v != 42 {
+	if v, ok := l.TouchGet("foobar"); !ok || v != 42 {
 		t.Errorf("foobar should be set to 42: %v,", v)
 	}
 
