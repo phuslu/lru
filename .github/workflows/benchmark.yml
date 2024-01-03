@@ -23,6 +23,9 @@ jobs:
           awk '{if($0 ~ "// go test -v"){a=1;b=1};if($0 ~ "```" && b=1){b=0};if (a&&b) {print}}' ../README.md | tee bench_test.go
           go mod tidy
           go mod edit -replace github.com/phuslu/lru=../
+      - name: test
+        run: |
+          go test -v -count=1
       - name: benchmark
         working-directory: ./bench
         run: |
