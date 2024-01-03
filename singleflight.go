@@ -2,8 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Package singleflight provides a duplicate function call suppression
-// mechanism.
 package lru
 
 import "sync"
