@@ -19,7 +19,7 @@
 
 ### Getting Started
 
-try on https://go.dev/play/p/f2653y1Kj6i
+An out of box example. https://go.dev/play/p/QmllF57birV
 ```go
 package main
 
@@ -30,24 +30,37 @@ import (
 )
 
 func main() {
-	cache1 := lru.New[string, int](1024)
+	cache := lru.New[string, int](1024)
 
-	cache1.SetWithTTL("a", 1, 200*time.Millisecond)
-	println(cache1.Get("a"))
+	cache.SetWithTTL("a", 1, 2*time.Second)
+	println(cache.Get("a"))
 
-	time.Sleep(100 * time.Millisecond)
-	println(cache1.Get("a"))
+	time.Sleep(1 * time.Second)
+	println(cache.Get("a"))
 
-	time.Sleep(150 * time.Millisecond)
-	println(cache1.Get("a"))
+	time.Sleep(2 * time.Second)
+	println(cache.Get("a"))
+}
+```
 
-	cache2 := lru.NewWithLoader[string, int](1024, func(string) (int, time.Duration, error) {
+New a LRU loading cache. https://go.dev/play/p/S261F8ij2BL
+```go
+package main
+
+import (
+	"time"
+
+	"github.com/phuslu/lru"
+)
+
+func main() {
+	cache := lru.NewWithLoader[string, int](1024, func(string) (int, time.Duration, error) {
 		return 42, time.Hour, nil
 	})
 
-	println(cache2.Get("b"))
-	println(cache2.GetOrLoad("b", nil))
-	println(cache2.Get("b"))
+	println(cache.Get("b"))
+	println(cache.GetOrLoad("b", nil))
+	println(cache.Get("b"))
 }
 ```
 
@@ -81,7 +94,7 @@ A Performance result as below. Check [actions][actions] for more results and det
   	keysize     = 16
   	cachesize   = 1000000
   	parallelism = 32
-    writepercent = 10
+  	writepercent = 10
   )
 
   var keymap = func() (x []string) {
