@@ -94,7 +94,7 @@ A Performance result as below. Check [actions][actions] for more results and det
   	keysize     = 16
   	cachesize   = 1000000
   	parallelism = 32
-  	writepercent = 10
+  	writeradio  = 0.1
   )
 
   var keymap = func() (x []string) {
@@ -118,9 +118,10 @@ A Performance result as below. Check [actions][actions] for more results and det
   	b.ResetTimer()
   	b.RunParallel(func(pb *testing.PB) {
   		expires := time.Now().Add(time.Hour)
+  		waterlevel := int(float32(cachesize) * writeradio)
   		for pb.Next() {
   			i := int(fastrandn(cachesize))
-  			if i <= cachesize/writepercent {
+  			if i <= waterlevel {
   				cache.Set(keymap[i], i, expires)
   			} else {
   				cache.Get(keymap[i])
@@ -137,9 +138,10 @@ A Performance result as below. Check [actions][actions] for more results and det
   	b.SetParallelism(parallelism)
   	b.ResetTimer()
   	b.RunParallel(func(pb *testing.PB) {
+  		waterlevel := int(float32(cachesize) * writeradio)
   		for pb.Next() {
   			i := int(fastrandn(cachesize))
-  			if i <= cachesize/writepercent {
+  			if i <= waterlevel {
   				cache.Put(keymap[i], i)
   			} else {
   				cache.Get(keymap[i])
@@ -162,9 +164,10 @@ A Performance result as below. Check [actions][actions] for more results and det
   	b.ResetTimer()
 
   	b.RunParallel(func(pb *testing.PB) {
+  		waterlevel := int(float32(cachesize) * writeradio)
   		for pb.Next() {
   			i := int(fastrandn(cachesize))
-  			if i <= cachesize/writepercent {
+  			if i <= waterlevel {
   				cache.SetWithTTL(keymap[i], i, 1, time.Hour)
   			} else {
   				cache.Get(keymap[i])
@@ -183,9 +186,10 @@ A Performance result as below. Check [actions][actions] for more results and det
   	b.ResetTimer()
 
   	b.RunParallel(func(pb *testing.PB) {
+  		waterlevel := int(float32(cachesize) * writeradio)
   		for pb.Next() {
   			i := int(fastrandn(cachesize))
-  			if i <= cachesize/writepercent {
+  			if i <= waterlevel {
   				cache.SetWithTTL(keymap[i], i, 1, time.Hour)
   			} else {
   				cache.Get(keymap[i])
@@ -204,9 +208,10 @@ A Performance result as below. Check [actions][actions] for more results and det
   	b.ResetTimer()
 
   	b.RunParallel(func(pb *testing.PB) {
+  		waterlevel := int(float32(cachesize) * writeradio)
   		for pb.Next() {
   			i := int(fastrandn(cachesize))
-  			if i <= cachesize/writepercent {
+  			if i <= waterlevel {
   				cache.SetWithTTL(keymap[i], i, time.Hour)
   			} else {
   				cache.Get(keymap[i])
@@ -229,9 +234,10 @@ A Performance result as below. Check [actions][actions] for more results and det
   	b.ResetTimer()
 
   	b.RunParallel(func(pb *testing.PB) {
+  		waterlevel := int(float32(cachesize) * writeradio)
   		for pb.Next() {
   			i := int(fastrandn(cachesize))
-  			if i <= cachesize/writepercent {
+  			if i <= waterlevel {
   				cache.AddWithLifetime(keymap[i], i, time.Hour)
   			} else {
   				cache.Get(keymap[i])
@@ -250,9 +256,10 @@ A Performance result as below. Check [actions][actions] for more results and det
   	b.ResetTimer()
 
   	b.RunParallel(func(pb *testing.PB) {
+  		waterlevel := int(float32(cachesize) * writeradio)
   		for pb.Next() {
   			i := int(fastrandn(cachesize))
-  			if i <= cachesize/writepercent {
+  			if i <= waterlevel {
   				cache.SetWithTTL(keymap[i], i, time.Hour)
   			} else {
   				cache.Get(keymap[i])
