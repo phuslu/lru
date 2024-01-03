@@ -53,7 +53,7 @@ func main() {
 
 ### Benchmarks
 
-A Performance result on keysize=16, cachesize=1000000, parallelism=32 with Read(75%)/Write(25%). Check [actions][actions] for more results and details.
+A Performance result on keysize=16, cachesize=1000000, parallelism=32 with Read(90%)/Write(10%). Check [actions][actions] for more results and details.
 ```
 goos: linux
 goarch: amd64

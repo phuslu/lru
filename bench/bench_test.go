@@ -8,8 +8,10 @@ import (
 	_ "unsafe"
 
 	theine "github.com/Yiling-J/theine-go"
+	"github.com/cespare/xxhash/v2"
 	cloudflare "github.com/cloudflare/golibs/lrucache"
 	ristretto "github.com/dgraph-io/ristretto"
+	freelru "github.com/elastic/go-freelru"
 	otter "github.com/maypok86/otter"
 	ecache "github.com/orca-zhang/ecache"
 	phuslu "github.com/phuslu/lru"
@@ -44,7 +46,7 @@ func BenchmarkCloudflareGet(b *testing.B) {
 		expires := time.Now().Add(time.Hour)
 		for pb.Next() {
 			i := int(fastrandn(cachesize))
-			if i >= cachesize/4 {
+			if i >= cachesize/10 {
 				cache.Get(keymap[i])
 			} else {
 				cache.Set(keymap[i], i, expires)
@@ -63,7 +65,7 @@ func BenchmarkEcacheGet(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			i := int(fastrandn(cachesize))
-			if i >= cachesize/4 {
+			if i >= cachesize/10 {
 				cache.Get(keymap[i])
 			} else {
 				cache.Put(keymap[i], i)
@@ -88,7 +90,7 @@ func BenchmarkRistrettoGet(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			i := int(fastrandn(cachesize))
-			if i >= cachesize/4 {
+			if i >= cachesize/10 {
 				cache.Get(keymap[i])
 			} else {
 				cache.SetWithTTL(keymap[i], i, 1, time.Hour)
@@ -109,7 +111,7 @@ func BenchmarkTheineGet(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			i := int(fastrandn(cachesize))
-			if i >= cachesize/4 {
+			if i >= cachesize/10 {
 				cache.Get(keymap[i])
 			} else {
 				cache.SetWithTTL(keymap[i], i, 1, time.Hour)
@@ -130,10 +132,35 @@ func BenchmarkOtterGet(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			i := int(fastrandn(cachesize))
-			if i >= cachesize/4 {
+			if i >= cachesize/10 {
 				cache.Get(keymap[i])
 			} else {
 				cache.SetWithTTL(keymap[i], i, time.Hour)
+			}
+		}
+	})
+}
+
+func hashStringXXHASH(s string) uint32 {
+	return uint32(xxhash.Sum64String(s))
+}
+
+func BenchmarkFreelruGet(b *testing.B) {
+	cache, _ := freelru.NewSharded[string, int](cachesize, hashStringXXHASH)
+	for i := 0; i < cachesize/2; i++ {
+		cache.AddWithLifetime(keymap[i], i, time.Hour)
+	}
+
+	b.SetParallelism(parallelism)
+	b.ResetTimer()
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			i := int(fastrandn(cachesize))
+			if i >= cachesize/10 {
+				cache.Get(keymap[i])
+			} else {
+				cache.AddWithLifetime(keymap[i], i, time.Hour)
 			}
 		}
 	})
@@ -151,7 +178,7 @@ func BenchmarkPhusluGet(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			i := int(fastrandn(cachesize))
-			if i >= cachesize/4 {
+			if i >= cachesize/10 {
 				cache.Get(keymap[i])
 			} else {
 				cache.SetWithTTL(keymap[i], i, time.Hour)
