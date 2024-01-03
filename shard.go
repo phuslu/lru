@@ -47,8 +47,8 @@ func (s *shard[K, V]) TouchGet(hash uint32, key K) (value V, ok bool) {
 			value = s.list.nodes[index].value
 			ok = true
 		} else if now := atomic.LoadUint32(&clock); now < expires {
+			s.list.nodes[index].expires = now + s.list.nodes[index].ttl
 			s.list.MoveToFront(index)
-			s.list.nodes[index].expires = atomic.LoadUint32(&clock) + s.list.nodes[index].ttl
 			value = s.list.nodes[index].value
 			ok = true
 		} else {
