@@ -92,6 +92,22 @@ func TestCacheEviction(t *testing.T) {
 	}
 }
 
+func TestCacheSlidingGet(t *testing.T) {
+	l := newWithShards[string, int](1, 256)
+
+	l.SetWithTTL("foobar", 42, 400*time.Millisecond)
+
+	time.Sleep(200 * time.Millisecond)
+	if v, ok := l.SlidingGet("foobar"); !ok || v != 42 {
+		t.Errorf("foobar should be set to 42: %v,", v)
+	}
+
+	time.Sleep(300 * time.Millisecond)
+	if v, ok := l.Get("foobar"); !ok || v != 42 {
+		t.Errorf("foobar should be still set to 42: %v,", v)
+	}
+}
+
 func TestCachePeek(t *testing.T) {
 	l := New[int, int](64)
 

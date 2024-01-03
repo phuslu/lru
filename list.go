@@ -6,6 +6,7 @@ type node[K comparable, V any] struct {
 	key     K
 	value   V
 	expires int64
+	ttl     int64
 	next    uint32
 	prev    uint32
 }

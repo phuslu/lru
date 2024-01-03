@@ -38,6 +38,31 @@ func (s *shard[K, V]) Get(hash uint32, key K) (value V, ok bool) {
 	return
 }
 
+func (s *shard[K, V]) SlidingGet(hash uint32, key K) (value V, ok bool) {
+	s.mu.Lock()
+
+	if index, exists := s.table.Get(hash, key); exists {
+		if expires := s.list.nodes[index].expires; expires == 0 {
+			s.list.MoveToFront(index)
+			value = s.list.nodes[index].value
+			ok = true
+		} else if now := atomic.LoadInt64(&clock); now < expires {
+			s.list.MoveToFront(index)
+			s.list.nodes[index].expires = atomic.LoadInt64(&clock) + s.list.nodes[index].ttl
+			value = s.list.nodes[index].value
+			ok = true
+		} else {
+			s.list.MoveToBack(index)
+			s.list.nodes[index].value = value
+			s.table.Delete(hash, key)
+		}
+	}
+
+	s.mu.Unlock()
+
+	return
+}
+
 func (s *shard[K, V]) Peek(hash uint32, key K) (value V, ok bool) {
 	s.mu.Lock()
 
@@ -61,6 +86,7 @@ func (s *shard[K, V]) Set(hash uint32, hashfun func(K) uint64, key K, value V, t
 		s.list.MoveToFront(index)
 		node.value = value
 		if ttl > 0 {
+			node.ttl = int64(ttl)
 			node.expires = atomic.LoadInt64(&clock) + int64(ttl)
 		}
 		prev = previousValue
@@ -76,6 +102,7 @@ func (s *shard[K, V]) Set(hash uint32, hashfun func(K) uint64, key K, value V, t
 	node.key = key
 	node.value = value
 	if ttl > 0 {
+		node.ttl = int64(ttl)
 		node.expires = atomic.LoadInt64(&clock) + int64(ttl)
 	}
 	s.table.Set(hash, key, index)
