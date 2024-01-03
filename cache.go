@@ -101,11 +101,13 @@ func (c *Cache[K, V]) Loader() func(K) (value V, ttl time.Duration, err error) {
 	return c.loader
 }
 
-// GetOrLoad returns value for key, call loader function by singleflight if value was not in cache.
-// If loader parameter is nil, use global loader function provided by NewWithLoader instead.
-func (c *Cache[K, V]) GetOrLoad(key K, loader func(K) (V, time.Duration, error)) (value V, err error, ok bool) {
+func (c *Cache[K, V]) getOrLoad(key K, loader func(K) (V, time.Duration, error), touch bool) (value V, err error, ok bool) {
 	hash := uint32(c.hasher.Hash(key))
-	value, ok = c.shards[hash&c.mask].Get(hash, key)
+	if touch {
+		value, ok = c.shards[hash&c.mask].TouchGet(hash, key)
+	} else {
+		value, ok = c.shards[hash&c.mask].Get(hash, key)
+	}
 	if !ok {
 		if loader == nil {
 			loader = c.loader
@@ -124,4 +126,16 @@ func (c *Cache[K, V]) GetOrLoad(key K, loader func(K) (V, time.Duration, error))
 		})
 	}
 	return
+}
+
+// GetOrLoad returns value for key, call loader function by singleflight if value was not in cache.
+// If loader parameter is nil, use global loader function provided by NewWithLoader instead.
+func (c *Cache[K, V]) GetOrLoad(key K, loader func(K) (V, time.Duration, error)) (value V, err error, ok bool) {
+	return c.getOrLoad(key, loader, false)
+}
+
+// TouchGetOrLoad returns value for key and reset expires with TTL, call loader function by singleflight if value was not in cache.
+// If loader parameter is nil, use global loader function provided by NewWithLoader instead.
+func (c *Cache[K, V]) TouchGetOrLoad(key K, loader func(K) (V, time.Duration, error)) (value V, err error, ok bool) {
+	return c.getOrLoad(key, loader, true)
 }
