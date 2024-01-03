@@ -13,9 +13,9 @@ import (
 type shard[K comparable, V any] struct {
 	mu    sync.Mutex
 	list  list[K, V]
-	table rhh[K]
+	table hashtable[K]
 
-	_ [128 - unsafe.Sizeof(sync.Mutex{}) - unsafe.Sizeof(list[K, V]{}) - unsafe.Sizeof(rhh[K]{})]byte
+	_ [128 - unsafe.Sizeof(sync.Mutex{}) - unsafe.Sizeof(list[K, V]{}) - unsafe.Sizeof(hashtable[K]{})]byte
 }
 
 func (s *shard[K, V]) Get(hash uint32, key K) (value V, ok bool) {
