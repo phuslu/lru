@@ -155,7 +155,11 @@ func init() {
 	atomic.StoreUint32(&clock, uint32(time.Now().Unix()-unixBase))
 	go func() {
 		for {
-			time.Sleep(500 * time.Millisecond)
+			for i := 0; i < 9; i++ {
+				time.Sleep(100 * time.Millisecond)
+				atomic.StoreUint32(&clock, uint32(time.Now().Unix()-unixBase))
+			}
+			time.Sleep(100 * time.Millisecond)
 			atomic.StoreUint32(&clock, uint32(time.Now().Unix()-unixBase))
 		}
 	}()
