@@ -88,7 +88,12 @@ func NewWithLoader[K comparable, V any](size int, loader func(K) (value V, ttl t
 	return cache
 }
 
-// GetOrLoad returns value for key, Call loader function if value was not in cache by singleflight.
+// Loader returns the global default loader function.
+func (c *Cache[K, V]) Loader() func(K) (value V, ttl time.Duration, err error) {
+	return c.loader
+}
+
+// GetOrLoad returns value for key, call loader function by singleflight if value was not in cache.
 // If loader parameter is nil, use global loader function provided by NewWithLoader instead.
 func (c *Cache[K, V]) GetOrLoad(key K, loader func(K) (V, time.Duration, error)) (value V, err error, ok bool) {
 	hash := uint32(c.hasher.Hash(key))
