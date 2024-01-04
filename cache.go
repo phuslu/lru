@@ -21,7 +21,7 @@ type Cache[K comparable, V any] struct {
 // New creates lru cache with size capacity.
 func New[K comparable, V any](size int) *Cache[K, V] {
 	shardcount := 1
-	for shardcount < runtime.NumCPU()*16 {
+	for shardcount < runtime.GOMAXPROCS(0)*16 {
 		shardcount *= 2
 	}
 	shardsize := 1
