@@ -36,14 +36,6 @@ func maphash_NewHasher[K comparable]() maphash_Hasher[K] {
 	}
 }
 
-// NewSeed returns a copy of |h| with a new hash seed.
-func maphash_NewSeed[K comparable](h maphash_Hasher[K]) maphash_Hasher[K] {
-	return maphash_Hasher[K]{
-		hash: h.hash,
-		seed: maphash_newHashSeed(),
-	}
-}
-
 // Hash hashes |key|.
 func (h maphash_Hasher[K]) Hash(key K) uint64 {
 	// promise to the compiler that pointer
