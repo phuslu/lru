@@ -90,6 +90,10 @@ func TestCacheEviction(t *testing.T) {
 	if got, want := l.Len(), 128; got != want {
 		t.Fatalf("curent cache length %v should be %v", got, want)
 	}
+
+	if got, want := len(l.Keys()), 128; got != want {
+		t.Fatalf("curent cache keys length %v should be %v", got, want)
+	}
 }
 
 func TestCachePeek(t *testing.T) {
@@ -123,17 +127,32 @@ func TestCachePeek(t *testing.T) {
 func TestCacheTouchGet(t *testing.T) {
 	l := newWithShards[string, int](1, 256)
 
-	l.SetWithTTL("foobar", 42, 3*time.Second)
+	l.Set("a", 1)
+	l.SetWithTTL("b", 2, 3*time.Second)
+	l.SetWithTTL("c", 3, 3*time.Second)
 
-	time.Sleep(2 * time.Second)
-	if v, ok := l.TouchGet("foobar"); !ok || v != 42 {
-		t.Errorf("foobar should be set to 42: %v,", v)
+	if got, want := l.Keys(), 3; len(got) != want {
+		t.Fatalf("curent cache keys %v length should be %v", got, want)
 	}
 
 	time.Sleep(2 * time.Second)
-	if v, ok := l.Get("foobar"); !ok || v != 42 {
-		t.Errorf("foobar should be still set to 42: %v,", v)
+	if v, ok := l.TouchGet("c"); !ok || v != 3 {
+		t.Errorf("c should be set to 3: %v,", v)
 	}
+
+	if got, want := l.Keys(), 3; len(got) != want {
+		t.Fatalf("curent cache keys %v length should be %v", got, want)
+	}
+
+	time.Sleep(2 * time.Second)
+	if v, ok := l.Get("c"); !ok || v != 3 {
+		t.Errorf("c should be still set to 3: %v,", v)
+	}
+
+	if got, want := l.Keys(), 2; len(got) != want {
+		t.Fatalf("curent cache keys %v length should be %v", got, want)
+	}
+
 }
 
 func BenchmarkCacheRand(b *testing.B) {

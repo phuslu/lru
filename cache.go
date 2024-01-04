@@ -94,9 +94,12 @@ func (c *Cache[K, V]) Keys() (all []K) {
 	now := atomic.LoadUint32(&clock)
 	for i := range c.shards {
 		c.shards[i].mu.Lock()
-		for j := range c.shards[i].list.nodes {
-			node := &c.shards[i].list.nodes[j]
-			if expires := node.expires; expires == 0 || expires <= now {
+		for _, b := range c.shards[i].table.buckets {
+			if b.index == 0 {
+				continue
+			}
+			node := &c.shards[i].list.nodes[b.index]
+			if expires := node.expires; expires == 0 || now <= expires {
 				all = append(all, node.key)
 			}
 		}
