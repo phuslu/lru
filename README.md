@@ -15,7 +15,7 @@
     - Continuous memory layout
 * Memory efficient
     - Uses only 24 extra bytes per cache object
-    - TTL (8 bytes) + ArrayList node (2 x 4 bytes) + Key hash (4 bytes) + Hash Entry index (4 bytes)
+    - TTL (2 x 4 bytes) + ArrayList node (2 x 4 bytes) + Key hash (4 bytes) + Hash Entry index (4 bytes)
 
 ### Getting Started
 
