@@ -1,6 +1,6 @@
 # a high-performance and gc-friendly LRU cache
 
-[![godoc][godoc-img]][godoc] [![release][release-img]][release] [![goreport][goreport-img]][goreport]
+[![godoc][godoc-img]][godoc] [![release][release-img]][release] [![goreport][goreport-img]][goreport] [![codecov][codecov-img]][codecov]
 
 ### Features
 
@@ -295,3 +295,5 @@ ok  	command-line-arguments	46.827s
 [goreport-img]: https://goreportcard.com/badge/github.com/phuslu/lru
 [goreport]: https://goreportcard.com/report/github.com/phuslu/lru
 [actions]: https://github.com/phuslu/lru/actions/workflows/benchmark.yml
+[codecov-img]: https://codecov.io/gh/phuslu/lru/graph/badge.svg?token=Q21AMQNM1K
+[codecov]: https://codecov.io/gh/phuslu/lru
