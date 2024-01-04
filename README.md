@@ -5,17 +5,20 @@
 ### Features
 
 * Simple
-    - No Dependency
-    - Less 1000 lines of Go
+    - No Dependencies.
+    - Less than 1000 lines of Go code.
 * Fast
-    - Faster than all well-known **LRU** caches
-    - Zero memory allocs 
+    - Outperforms well-known *LRU* caches.
+    - Zero memory allocations .
 * GC friendly
-    - Pointerless data structs
-    - Continuous memory layout
+    - Pointerless data structs.
+    - Continuous memory layout.
 * Memory efficient
-    - Uses only 24 extra bytes per cache object
-    - TTL (2 x 4 bytes) + ArrayList node (2 x 4 bytes) + Key hash (4 bytes) + Hash Entry index (4 bytes)
+    - Adds only 24 extra bytes per cache object.
+    - TTL (2 x 4 bytes) + ArrayList node (2 x 4 bytes) + Key hash (4 bytes) + Hash Entry index (4 bytes).
+* Feature selected
+    - LoadingCache with `GetOrLoad` method.
+    - SlidingCache with `TouchGet` method.
 
 ### Getting Started
 
@@ -43,7 +46,7 @@ func main() {
 }
 ```
 
-New a LRU loading cache. https://go.dev/play/p/S261F8ij2BL
+Create a loading cache. https://go.dev/play/p/S261F8ij2BL
 ```go
 package main
 
@@ -92,7 +95,7 @@ func main() {
 
 ### Benchmarks
 
-A Performance result as below. Check [actions][actions] for more results and details.
+A Performance result as below. Check github [actions][actions] for more results and details.
 <details>
   <summary>benchmark on keysize=16, cachesize=1000000, parallelism=32 with read (90%) / write(10%)</summary>
 
@@ -288,10 +291,16 @@ PASS
 ok  	command-line-arguments	46.827s
 ```
 
+### License
+LRU is licensed under the MIT License. See the LICENSE file for details.
+
+### Contact
+For inquiries or support, contact phus.lu@gmail.com or raise github issues.
+
 [godoc-img]: http://img.shields.io/badge/godoc-reference-blue.svg
-[godoc]: https://godoc.org/github.com/phuslu/lru
+[godoc]: https://pkg.go.dev/github.com/phuslu/lru
 [release-img]: https://img.shields.io/github/v/tag/phuslu/lru?label=release
-[release]: https://github.com/phuslu/lru/releases
+[release]: https://github.com/phuslu/lru/tags
 [goreport-img]: https://goreportcard.com/badge/github.com/phuslu/lru
 [goreport]: https://goreportcard.com/report/github.com/phuslu/lru
 [actions]: https://github.com/phuslu/lru/actions/workflows/benchmark.yml
