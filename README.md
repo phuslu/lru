@@ -64,6 +64,32 @@ func main() {
 }
 ```
 
+Using as a sliding cache. https://go.dev/play/p/usCPrTN34Xp
+```go
+package main
+
+import (
+	"time"
+
+	"github.com/phuslu/lru"
+)
+
+func main() {
+	cache := lru.New[string, int](4096)
+
+	cache.SetWithTTL("foobar", 42, 3*time.Second)
+
+	time.Sleep(2 * time.Second)
+	println(cache.TouchGet("foobar"))
+
+	time.Sleep(2 * time.Second)
+	println(cache.TouchGet("foobar"))
+
+	time.Sleep(2 * time.Second)
+	println(cache.TouchGet("foobar"))
+}
+```
+
 ### Benchmarks
 
 A Performance result as below. Check [actions][actions] for more results and details.
