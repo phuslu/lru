@@ -11,7 +11,7 @@ import (
 
 // shard is a LRU partition contains a list and a hash table.
 type shard[K comparable, V any] struct {
-	mu    spinlock
+	mu    sync.Mutex
 	list  list[K, V]
 	table hashtable[K]
 
