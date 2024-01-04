@@ -107,10 +107,8 @@ A Performance result as below. Check [actions][actions] for more results and det
   	_ "unsafe"
 
   	theine "github.com/Yiling-J/theine-go"
-  	"github.com/cespare/xxhash/v2"
   	cloudflare "github.com/cloudflare/golibs/lrucache"
   	ristretto "github.com/dgraph-io/ristretto"
-  	freelru "github.com/elastic/go-freelru"
   	otter "github.com/maypok86/otter"
   	ecache "github.com/orca-zhang/ecache"
   	phuslu "github.com/phuslu/lru"
@@ -239,32 +237,6 @@ A Performance result as below. Check [actions][actions] for more results and det
   			i := int(fastrandn(cachesize))
   			if i <= waterlevel {
   				cache.SetWithTTL(keymap[i], i, time.Hour)
-  			} else {
-  				cache.Get(keymap[i])
-  			}
-  		}
-  	})
-  }
-
-  func hashStringXXHASH(s string) uint32 {
-  	return uint32(xxhash.Sum64String(s))
-  }
-
-  func BenchmarkFreelruGet(b *testing.B) {
-  	cache, _ := freelru.NewSharded[string, int](cachesize, hashStringXXHASH)
-  	for i := 0; i < cachesize/2; i++ {
-  		cache.AddWithLifetime(keymap[i], i, time.Hour)
-  	}
-
-  	b.SetParallelism(parallelism)
-  	b.ResetTimer()
-
-  	b.RunParallel(func(pb *testing.PB) {
-  		waterlevel := int(float32(cachesize) * writeradio)
-  		for pb.Next() {
-  			i := int(fastrandn(cachesize))
-  			if i <= waterlevel {
-  				cache.AddWithLifetime(keymap[i], i, time.Hour)
   			} else {
   				cache.Get(keymap[i])
   			}
