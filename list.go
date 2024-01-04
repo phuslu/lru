@@ -3,12 +3,12 @@
 package lru
 
 type node[K comparable, V any] struct {
-	key     K
-	value   V
 	expires uint32
-	ttl     uint32
 	next    uint32
 	prev    uint32
+	ttl     uint32
+	key     K
+	value   V
 }
 
 // list is an arraylist to reduce GC efforts and improve performance.
