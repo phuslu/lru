@@ -167,23 +167,33 @@ func TestCacheTouchGet(t *testing.T) {
 	l.Set("a", 1)
 	l.SetWithTTL("b", 2, 3*time.Second)
 	l.SetWithTTL("c", 3, 3*time.Second)
+	l.SetWithTTL("d", 3, 1*time.Second)
 
-	if got, want := l.Keys(), 3; len(got) != want {
+	if got, want := l.Keys(), 4; len(got) != want {
 		t.Fatalf("curent cache keys %v length should be %v", got, want)
+	}
+
+	if v, ok := l.TouchGet("a"); !ok || v != 1 {
+		t.Fatalf("a should be set to 1: %v,", v)
 	}
 
 	time.Sleep(2 * time.Second)
 	if v, ok := l.TouchGet("c"); !ok || v != 3 {
 		t.Errorf("c should be set to 3: %v,", v)
 	}
+	if v, ok := l.TouchGet("d"); ok || v != 0 {
+		t.Errorf("d should be set to 0: %v,", v)
+	}
 
 	if got, want := l.Keys(), 3; len(got) != want {
 		t.Fatalf("curent cache keys %v length should be %v", got, want)
 	}
 
+	l.SetWithTTL("c", 4, 3*time.Second)
+
 	time.Sleep(2 * time.Second)
-	if v, ok := l.Get("c"); !ok || v != 3 {
-		t.Errorf("c should be still set to 3: %v,", v)
+	if v, ok := l.Get("c"); !ok || v != 4 {
+		t.Errorf("c should be still set to 4: %v,", v)
 	}
 
 	if got, want := l.Keys(), 2; len(got) != want {
