@@ -135,20 +135,6 @@ func (s *shard[K, V]) Len() (n int) {
 	return
 }
 
-func (s *shard[K, V]) Range(f func(key K, value V, expires time.Time) bool) bool {
-	s.mu.Lock()
-	nodes := s.list.nodes[:]
-	s.mu.Unlock()
-
-	for i := range nodes {
-		if !f(nodes[i].key, nodes[i].value, time.Unix(int64(nodes[i].expires)+clockUnixBase, 0)) {
-			return false
-		}
-	}
-
-	return true
-}
-
 func (s *shard[K, V]) getkey(index uint32) K {
 	return s.list.nodes[index].key
 }
@@ -164,18 +150,17 @@ func newshard[K comparable, V any](size int) *shard[K, V] {
 
 var clock uint32
 
-const clockUnixBase = 1704067200 // 2024-01-01T00:00:00Z
-
 func init() {
-	atomic.StoreUint32(&clock, uint32(time.Now().Unix()-clockUnixBase))
+	const unixBase = 1704067200 // 2024-01-01T00:00:00Z
+	atomic.StoreUint32(&clock, uint32(time.Now().Unix()-unixBase))
 	go func() {
 		for {
 			for i := 0; i < 9; i++ {
 				time.Sleep(100 * time.Millisecond)
-				atomic.StoreUint32(&clock, uint32(time.Now().Unix()-clockUnixBase))
+				atomic.StoreUint32(&clock, uint32(time.Now().Unix()-unixBase))
 			}
 			time.Sleep(100 * time.Millisecond)
-			atomic.StoreUint32(&clock, uint32(time.Now().Unix()-clockUnixBase))
+			atomic.StoreUint32(&clock, uint32(time.Now().Unix()-unixBase))
 		}
 	}()
 }

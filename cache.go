@@ -88,15 +88,6 @@ func (c *Cache[K, V]) Len() int {
 	return n
 }
 
-// Range calls f sequentially for each key and value present in the cache snapshot. If f returns false, range stops the iteration.
-func (c *Cache[K, V]) Range(f func(key K, value V, expires time.Time) bool) {
-	for i := range c.shards {
-		if !c.shards[i].Range(f) {
-			return
-		}
-	}
-}
-
 // NewWithLoader creates lru cache with size capacity and loader function.
 func NewWithLoader[K comparable, V any](size int, loader func(K) (value V, ttl time.Duration, err error)) *Cache[K, V] {
 	cache := New[K, V](size)
