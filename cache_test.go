@@ -1,6 +1,7 @@
 package lru
 
 import (
+	"fmt"
 	"math/rand"
 	"testing"
 	"time"
@@ -121,6 +122,42 @@ func TestCachePeek(t *testing.T) {
 	}
 	if v, ok := l.Peek(30); ok || v != 0 {
 		t.Errorf("%v should have updated recent-ness of 30", v)
+	}
+}
+
+func TestCacheLoader(t *testing.T) {
+	l := NewWithLoader[string, int](1024, func(key string) (int, time.Duration, error) {
+		if key == "" {
+			return 0, 0, fmt.Errorf("invalid key: %v", key)
+		}
+		i := int(key[0] - 'a' + 1)
+		return i, time.Duration(i) * time.Second, nil
+	})
+
+	if v, err, ok := l.GetOrLoad("", l.Loader()); ok || err == nil || v != 0 {
+		t.Errorf("l.GetOrLoad(\"a\") again should be return error: %v, %v, %v", v, err, ok)
+	}
+
+	if v, err, ok := l.TouchGetOrLoad("b", nil); ok || err != nil || v != 2 {
+		t.Errorf("l.GetOrLoad(\"b\") again should be return 2: %v, %v, %v", v, err, ok)
+	}
+
+	if v, err, ok := l.GetOrLoad("a", nil); ok || err != nil || v != 1 {
+		t.Errorf("l.GetOrLoad(\"a\") should be return 1: %v, %v, %v", v, err, ok)
+	}
+
+	if v, err, ok := l.GetOrLoad("a", nil); !ok || err != nil || v != 1 {
+		t.Errorf("l.GetOrLoad(\"a\") again should be return 1: %v, %v, %v", v, err, ok)
+	}
+
+	time.Sleep(1 * time.Second)
+
+	if v, err, ok := l.GetOrLoad("a", nil); ok || err != nil || v != 1 {
+		t.Errorf("l.GetOrLoad(\"a\") again should be return 1: %v, %v, %v", v, err, ok)
+	}
+
+	if v, err, ok := NewWithLoader[string, int](1024, nil).GetOrLoad("a", nil); ok || v != 0 {
+		t.Errorf("empty loading cache GetOrLoad(\"a\") again should be return empty: %v, %v, %v", v, err, ok)
 	}
 }
 
