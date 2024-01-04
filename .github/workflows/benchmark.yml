@@ -23,10 +23,15 @@ jobs:
           awk '{if($0 ~ "// go test -v"){a=1;b=1};if($0 ~ "```" && b=1){b=0};if (a&&b) {print}}' ../README.md | tee bench_test.go
           go mod tidy
           go mod edit -replace github.com/phuslu/lru=../
-      - name: test
+      - name: Tests
         run: |
-          go test -v -count=1
-      - name: benchmark
+          go test -v -count=1 -coverprofile=coverage.txt
+      - name: Benchmark
         working-directory: ./bench
         run: |
           go test -v -cpu=8 -run=none -bench=. -benchtime=5s -benchmem bench_test.go
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage.txt
