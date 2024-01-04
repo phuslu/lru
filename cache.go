@@ -5,6 +5,7 @@ package lru
 
 import (
 	"runtime"
+	"sync/atomic"
 	"time"
 )
 
@@ -86,6 +87,22 @@ func (c *Cache[K, V]) Len() int {
 		n += c.shards[i].Len()
 	}
 	return n
+}
+
+// Keys returns all keys snapshot in cache.
+func (c *Cache[K, V]) Keys() (all []K) {
+	now := atomic.LoadUint32(&clock)
+	for i := range c.shards {
+		c.shards[i].mu.Lock()
+		for j := range c.shards[i].list.nodes {
+			node := &c.shards[i].list.nodes[j]
+			if expires := node.expires; expires == 0 || expires <= now {
+				all = append(all, node.key)
+			}
+		}
+		c.shards[i].mu.Unlock()
+	}
+	return
 }
 
 // NewWithLoader creates lru cache with size capacity and loader function.
