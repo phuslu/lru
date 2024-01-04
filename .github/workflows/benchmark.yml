@@ -25,7 +25,7 @@ jobs:
           go mod edit -replace github.com/phuslu/lru=../
       - name: Tests
         run: |
-          go test -v -count=1 -coverprofile=coverage.txt
+          go test -v -bench=. -race -count=1 -coverprofile=coverage.txt
       - name: Benchmark
         working-directory: ./bench
         run: |
@@ -34,4 +34,3 @@ jobs:
         uses: codecov/codecov-action@v3
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./coverage.txt
