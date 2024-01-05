@@ -3,6 +3,8 @@ package lru
 import (
 	"fmt"
 	"math/rand"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -160,6 +162,33 @@ func TestCacheLoader(t *testing.T) {
 
 	if v, err, ok := NewWithLoader[string, int](1024, nil).GetOrLoad("a", nil); ok || v != 0 {
 		t.Errorf("empty loading cache GetOrLoad(\"a\") again should be return empty: %v, %v, %v", v, err, ok)
+	}
+}
+
+func TestCacheLoaderSingleflight(t *testing.T) {
+	var loads uint32
+
+	l := NewWithLoader[string, int](1024, func(key string) (int, time.Duration, error) {
+		atomic.AddUint32(&loads, 1)
+		time.Sleep(100 * time.Millisecond)
+		return int(key[0] - 'a' + 1), time.Hour, nil
+	})
+
+	var wg sync.WaitGroup
+	wg.Add(10)
+	for i := 0; i < 10; i++ {
+		go func(i int) {
+			defer wg.Done()
+			v, err, ok := l.GetOrLoad("a", nil)
+			if v != 1 || err != nil || !ok {
+				t.Errorf("a should be set to 1: %v,%v,%v", v, err, ok)
+			}
+		}(i)
+	}
+	wg.Wait()
+
+	if n := atomic.LoadUint32(&loads); n != 1 {
+		t.Errorf("a should be loaded only once: %v", n)
 	}
 }
 

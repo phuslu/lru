@@ -135,9 +135,8 @@ func (c *Cache[K, V]) getOrLoad(key K, loader func(K) (V, time.Duration, error),
 		if loader == nil {
 			return
 		}
-		value, err, ok = c.group.Do(key, func() (v V, err error) {
-			var ttl time.Duration
-			v, ttl, err = loader(key)
+		value, err, ok = c.group.Do(key, func() (V, error) {
+			v, ttl, err := loader(key)
 			if err != nil {
 				return v, err
 			}
