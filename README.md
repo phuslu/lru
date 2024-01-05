@@ -125,7 +125,7 @@ A Performance result as below. Check github [actions][actions] for more results 
   	writeradio  = 0.1
   )
 
-  var keymap = func() (x []string) {
+  var keys = func() (x []string) {
   	x = make([]string, cachesize)
   	for i := 0; i < cachesize; i++ {
   		x[i] = fmt.Sprintf(fmt.Sprintf("%%0%dd", keysize), i)
@@ -140,7 +140,7 @@ A Performance result as below. Check github [actions][actions] for more results 
   func BenchmarkCloudflareGet(b *testing.B) {
   	cache := cloudflare.NewMultiLRUCache(1024, cachesize/1024)
   	for i := 0; i < cachesize/2; i++ {
-  		cache.Set(keymap[i], i, time.Now().Add(time.Hour))
+  		cache.Set(keys[i], i, time.Now().Add(time.Hour))
   	}
   	b.SetParallelism(parallelism)
   	b.ResetTimer()
@@ -150,9 +150,9 @@ A Performance result as below. Check github [actions][actions] for more results 
   		for pb.Next() {
   			i := int(fastrandn(cachesize))
   			if i <= waterlevel {
-  				cache.Set(keymap[i], i, expires)
+  				cache.Set(keys[i], i, expires)
   			} else {
-  				cache.Get(keymap[i])
+  				cache.Get(keys[i])
   			}
   		}
   	})
@@ -161,7 +161,7 @@ A Performance result as below. Check github [actions][actions] for more results 
   func BenchmarkEcacheGet(b *testing.B) {
   	cache := ecache.NewLRUCache(1024, cachesize/1024, time.Hour)
   	for i := 0; i < cachesize/2; i++ {
-  		cache.Put(keymap[i], i)
+  		cache.Put(keys[i], i)
   	}
   	b.SetParallelism(parallelism)
   	b.ResetTimer()
@@ -170,9 +170,9 @@ A Performance result as below. Check github [actions][actions] for more results 
   		for pb.Next() {
   			i := int(fastrandn(cachesize))
   			if i <= waterlevel {
-  				cache.Put(keymap[i], i)
+  				cache.Put(keys[i], i)
   			} else {
-  				cache.Get(keymap[i])
+  				cache.Get(keys[i])
   			}
   		}
   	})
@@ -185,7 +185,7 @@ A Performance result as below. Check github [actions][actions] for more results 
   		BufferItems: 64,        // number of keys per Get buffer.
   	})
   	for i := 0; i < cachesize/2; i++ {
-  		cache.SetWithTTL(keymap[i], i, 1, time.Hour)
+  		cache.SetWithTTL(keys[i], i, 1, time.Hour)
   	}
 
   	b.SetParallelism(parallelism)
@@ -196,9 +196,9 @@ A Performance result as below. Check github [actions][actions] for more results 
   		for pb.Next() {
   			i := int(fastrandn(cachesize))
   			if i <= waterlevel {
-  				cache.SetWithTTL(keymap[i], i, 1, time.Hour)
+  				cache.SetWithTTL(keys[i], i, 1, time.Hour)
   			} else {
-  				cache.Get(keymap[i])
+  				cache.Get(keys[i])
   			}
   		}
   	})
@@ -207,7 +207,7 @@ A Performance result as below. Check github [actions][actions] for more results 
   func BenchmarkTheineGet(b *testing.B) {
   	cache, _ := theine.NewBuilder[string, int](cachesize).Build()
   	for i := 0; i < cachesize/2; i++ {
-  		cache.SetWithTTL(keymap[i], i, 1, time.Hour)
+  		cache.SetWithTTL(keys[i], i, 1, time.Hour)
   	}
 
   	b.SetParallelism(parallelism)
@@ -218,9 +218,9 @@ A Performance result as below. Check github [actions][actions] for more results 
   		for pb.Next() {
   			i := int(fastrandn(cachesize))
   			if i <= waterlevel {
-  				cache.SetWithTTL(keymap[i], i, 1, time.Hour)
+  				cache.SetWithTTL(keys[i], i, 1, time.Hour)
   			} else {
-  				cache.Get(keymap[i])
+  				cache.Get(keys[i])
   			}
   		}
   	})
@@ -229,7 +229,7 @@ A Performance result as below. Check github [actions][actions] for more results 
   func BenchmarkOtterGet(b *testing.B) {
   	cache, _ := otter.MustBuilder[string, int](cachesize).Build()
   	for i := 0; i < cachesize/2; i++ {
-  		cache.SetWithTTL(keymap[i], i, time.Hour)
+  		cache.SetWithTTL(keys[i], i, time.Hour)
   	}
 
   	b.SetParallelism(parallelism)
@@ -240,9 +240,9 @@ A Performance result as below. Check github [actions][actions] for more results 
   		for pb.Next() {
   			i := int(fastrandn(cachesize))
   			if i <= waterlevel {
-  				cache.SetWithTTL(keymap[i], i, time.Hour)
+  				cache.SetWithTTL(keys[i], i, time.Hour)
   			} else {
-  				cache.Get(keymap[i])
+  				cache.Get(keys[i])
   			}
   		}
   	})
@@ -251,7 +251,7 @@ A Performance result as below. Check github [actions][actions] for more results 
   func BenchmarkPhusluGet(b *testing.B) {
   	cache := phuslu.New[string, int](cachesize)
   	for i := 0; i < cachesize/2; i++ {
-  		cache.SetWithTTL(keymap[i], i, time.Hour)
+  		cache.SetWithTTL(keys[i], i, time.Hour)
   	}
 
   	b.SetParallelism(parallelism)
@@ -262,9 +262,9 @@ A Performance result as below. Check github [actions][actions] for more results 
   		for pb.Next() {
   			i := int(fastrandn(cachesize))
   			if i <= waterlevel {
-  				cache.SetWithTTL(keymap[i], i, time.Hour)
+  				cache.SetWithTTL(keys[i], i, time.Hour)
   			} else {
-  				cache.Get(keymap[i])
+  				cache.Get(keys[i])
   			}
   		}
   	})
@@ -296,7 +296,7 @@ ok    command-line-arguments  47.529s
 
 The Memory usage result as below. Check github [actions][actions] for more results and details.
 <details>
-  <summary>memory usage on keysize=16, cachesize=1000000</summary>
+  <summary>memory usage on keysize=16(string), valuesize=8(int), cachesize=1000000(1M)</summary>
 
   ```go
   // memusage.go
@@ -321,7 +321,7 @@ The Memory usage result as below. Check github [actions][actions] for more resul
   	cachesize = 1000000
   )
 
-  var keymap = func() (x []string) {
+  var keys = func() (x []string) {
   	x = make([]string, cachesize)
   	for i := 0; i < cachesize; i++ {
   		x[i] = fmt.Sprintf(fmt.Sprintf("%%0%dd", keysize), i)
@@ -361,21 +361,21 @@ The Memory usage result as below. Check github [actions][actions] for more resul
   func SetupPhuslu() {
   	cache := phuslu.New[string, int](cachesize)
   	for i := 0; i < cachesize; i++ {
-  		cache.SetWithTTL(keymap[i], i, time.Hour)
+  		cache.SetWithTTL(keys[i], i, time.Hour)
   	}
   }
 
   func SetupOtter() {
   	cache, _ := otter.MustBuilder[string, int](cachesize).Build()
   	for i := 0; i < cachesize; i++ {
-  		cache.SetWithTTL(keymap[i], i, time.Hour)
+  		cache.SetWithTTL(keys[i], i, time.Hour)
   	}
   }
 
   func SetupEcache() {
   	cache := ecache.NewLRUCache(1024, cachesize/1024, time.Hour)
   	for i := 0; i < cachesize; i++ {
-  		cache.Put(keymap[i], i)
+  		cache.Put(keys[i], i)
   	}
   }
 
@@ -386,21 +386,21 @@ The Memory usage result as below. Check github [actions][actions] for more resul
   		BufferItems: 64,
   	})
   	for i := 0; i < cachesize; i++ {
-  		cache.SetWithTTL(keymap[i], i, 1, time.Hour)
+  		cache.SetWithTTL(keys[i], i, 1, time.Hour)
   	}
   }
 
   func SetupTheine() {
   	cache, _ := theine.NewBuilder[string, int](cachesize).Build()
   	for i := 0; i < cachesize; i++ {
-  		cache.SetWithTTL(keymap[i], i, 1, time.Hour)
+  		cache.SetWithTTL(keys[i], i, 1, time.Hour)
   	}
   }
 
   func SetupCloudflare() {
   	cache := cloudflare.NewMultiLRUCache(1024, cachesize/1024)
   	for i := 0; i < cachesize; i++ {
-  		cache.Set(keymap[i], i, time.Now().Add(time.Hour))
+  		cache.Set(keys[i], i, time.Now().Add(time.Hour))
   	}
   }
   ```
