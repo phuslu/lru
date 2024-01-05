@@ -143,7 +143,7 @@ func newshard[K comparable, V any](size int) *shard[K, V] {
 	s := &shard[K, V]{}
 
 	s.list.Init(uint32(size), nil)
-	s.table.init(int(float64(size)/0.8), s.getkey)
+	s.table.init(int(float64(size)/(loadFactor-0.05)), s.getkey)
 
 	return s
 }

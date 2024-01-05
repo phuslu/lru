@@ -13,7 +13,7 @@ const (
 	maxDIB      = ^uint32(0) >> hashBitSize // max 255
 )
 
-// hashtable is a robin hood hashing, only stores node index and key getter to reduce GC efforts.
+// hashtable is a fixd-size robin hood hashing, only stores node index and key getter to reduce GC efforts.
 type hashtable[K comparable] struct {
 	buckets []struct {
 		hdib  uint32 // bitfield { hash:24 dib:8 }
@@ -44,25 +44,9 @@ func (m *hashtable[K]) init(cap int, getkey func(i uint32) K) {
 	m.shrinkAt = int(float64(len(m.buckets)) * (1 - loadFactor))
 }
 
-func (m *hashtable[K]) resize(newCap int) {
-	var nmap hashtable[K]
-	nmap.init(newCap, m.getkey)
-	for i := 0; i < len(m.buckets); i++ {
-		if int(m.buckets[i].hdib&maxDIB) > 0 {
-			nmap.set(m.buckets[i].hdib>>dibBitSize, m.getkey(m.buckets[i].index), m.buckets[i].index)
-		}
-	}
-	cap := m.cap
-	*m = nmap
-	m.cap = cap
-}
-
 // Set assigns a value to a key.
 // Returns the previous value, or false when no value was assigned.
 func (m *hashtable[K]) Set(hash uint32, key K, value uint32) (uint32, bool) {
-	if m.length >= m.growAt {
-		m.resize(len(m.buckets) * 2)
-	}
 	return m.set(hash>>dibBitSize, key, value)
 }
 
@@ -94,9 +78,6 @@ func (m *hashtable[K]) set(hash uint32, key K, value uint32) (prev uint32, ok bo
 // Get returns a value for a key.
 // Returns false when no value has been assign for key.
 func (m *hashtable[K]) Get(hash uint32, key K) (prev uint32, ok bool) {
-	if len(m.buckets) == 0 {
-		return
-	}
 	subhash := hash >> dibBitSize
 	i := subhash & m.mask
 	for {
@@ -118,9 +99,6 @@ func (m *hashtable[K]) Len() int {
 // Delete deletes a value for a key.
 // Returns the deleted value, or false when no value was assigned.
 func (m *hashtable[K]) Delete(hash uint32, key K) (v uint32, ok bool) {
-	if len(m.buckets) == 0 {
-		return
-	}
 	subhash := hash >> dibBitSize
 	i := subhash & m.mask
 	for {
@@ -150,7 +128,4 @@ func (m *hashtable[K]) delete(i uint32) {
 		m.buckets[pi].hdib = m.buckets[i].hdib>>dibBitSize<<dibBitSize | (m.buckets[i].hdib&maxDIB-1)&maxDIB
 	}
 	m.length--
-	if len(m.buckets) > m.cap && m.length <= m.shrinkAt {
-		m.resize(m.length)
-	}
 }

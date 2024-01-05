@@ -92,6 +92,8 @@ func TestCacheEviction(t *testing.T) {
 		t.Fatalf("curent cache length %v should be %v", got, want)
 	}
 
+	l.Set(400, &evictedCounter)
+
 	if got, want := len(l.Keys()), 128; got != want {
 		t.Fatalf("curent cache keys length %v should be %v", got, want)
 	}
