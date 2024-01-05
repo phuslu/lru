@@ -16,7 +16,7 @@
     - Continuous memory layout.
 * Memory efficient
     - Adds only 24 extra bytes per cache object.
-    - TTL (2 x 4 bytes) + ArrayList node (2 x 4 bytes) + Key hash (4 bytes) + Hash Entry index (4 bytes).
+    - Saves at least [60%](#memory-usage) memory than others.
 * Feature selected
     - LoadingCache with `GetOrLoad` method.
     - SlidingCache with `TouchGet` method.
@@ -291,6 +291,129 @@ BenchmarkPhusluGet-8        75638493          83.86 ns/op        0 B/op        0
 PASS
 ok    command-line-arguments  47.529s
 ```
+
+### Memory usage
+
+The Memory usage result as below. Check github [actions][actions] for more results and details.
+<details>
+  <summary>memory usage on keysize=16, cachesize=1000000</summary>
+
+  ```go
+  // memusage.go
+  package main
+
+  import (
+  	"fmt"
+  	"os"
+  	"runtime"
+  	"time"
+
+  	theine "github.com/Yiling-J/theine-go"
+  	cloudflare "github.com/cloudflare/golibs/lrucache"
+  	ristretto "github.com/dgraph-io/ristretto"
+  	otter "github.com/maypok86/otter"
+  	ecache "github.com/orca-zhang/ecache"
+  	phuslu "github.com/phuslu/lru"
+  )
+
+  const (
+  	keysize   = 16
+  	cachesize = 1000000
+  )
+
+  var keymap = func() (x []string) {
+  	x = make([]string, cachesize)
+  	for i := 0; i < cachesize; i++ {
+  		x[i] = fmt.Sprintf(fmt.Sprintf("%%0%dd", keysize), i)
+  	}
+  	return
+  }()
+
+  func main() {
+  	var o runtime.MemStats
+  	runtime.ReadMemStats(&o)
+
+  	name := os.Args[1]
+  	switch name {
+  	case "phuslu":
+  		SetupPhuslu()
+  	case "ristretto":
+  		SetupRistretto()
+  	case "otter":
+  		SetupOtter()
+  	case "ecache":
+  		SetupEcache()
+  	case "cloudflare":
+  		SetupCloudflare()
+  	case "theine":
+  		SetupTheine()
+  	default:
+  		panic("no cache name")
+  	}
+
+  	mb := func(n uint64) uint64 { return n / 1024 / 1024 }
+
+  	var m runtime.MemStats
+  	runtime.ReadMemStats(&m)
+  	fmt.Printf("%s\t%v MiB\t%v MiB\t%v MiB\n", name, mb(m.Alloc-o.Alloc), mb(m.TotalAlloc-o.TotalAlloc), mb(m.Sys-o.Sys))
+  }
+
+  func SetupPhuslu() {
+  	cache := phuslu.New[string, int](cachesize)
+  	for i := 0; i < cachesize; i++ {
+  		cache.SetWithTTL(keymap[i], i, time.Hour)
+  	}
+  }
+
+  func SetupOtter() {
+  	cache, _ := otter.MustBuilder[string, int](cachesize).Build()
+  	for i := 0; i < cachesize; i++ {
+  		cache.SetWithTTL(keymap[i], i, time.Hour)
+  	}
+  }
+
+  func SetupEcache() {
+  	cache := ecache.NewLRUCache(1024, cachesize/1024, time.Hour)
+  	for i := 0; i < cachesize; i++ {
+  		cache.Put(keymap[i], i)
+  	}
+  }
+
+  func SetupRistretto() {
+  	cache, _ := ristretto.NewCache(&ristretto.Config{
+  		NumCounters: cachesize,
+  		MaxCost:     2 << 30,
+  		BufferItems: 64,
+  	})
+  	for i := 0; i < cachesize; i++ {
+  		cache.SetWithTTL(keymap[i], i, 1, time.Hour)
+  	}
+  }
+
+  func SetupTheine() {
+  	cache, _ := theine.NewBuilder[string, int](cachesize).Build()
+  	for i := 0; i < cachesize; i++ {
+  		cache.SetWithTTL(keymap[i], i, 1, time.Hour)
+  	}
+  }
+
+  func SetupCloudflare() {
+  	cache := cloudflare.NewMultiLRUCache(1024, cachesize/1024)
+  	for i := 0; i < cachesize; i++ {
+  		cache.Set(keymap[i], i, time.Now().Add(time.Hour))
+  	}
+  }
+  ```
+</details>
+
+| MemStats   | Alloc   | TotalAlloc | Sys     |
+| ---------- | ------- | ---------- | ------- |
+| phuslu     | 48 MiB  | 56 MiB     | 57 MiB  |
+| ecache     | 123 MiB | 131 MiB    | 127 MiB |
+| ristretto  | 128 MiB | 289 MiB    | 209 MiB |
+| otter      | 137 MiB | 211 MiB    | 177 MiB |
+| theine     | 177 MiB | 223 MiB    | 194 MiB |
+| cloudflare | 183 MiB | 191 MiB    | 188 MiB |
 
 ### License
 LRU is licensed under the MIT License. See the LICENSE file for details.
