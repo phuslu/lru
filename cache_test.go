@@ -42,6 +42,10 @@ func TestCacheSetget(t *testing.T) {
 		t.Fatal("old value should be evicted")
 	}
 
+	if v, replaced := l.Set(5, 9); v != 9 || !replaced {
+		t.Fatal("old value should be evicted")
+	}
+
 	if v, ok := l.Get(5); !ok || v != 9 {
 		t.Fatalf("bad returned value: %v != %v", v, 10)
 	}
