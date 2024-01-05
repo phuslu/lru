@@ -126,3 +126,7 @@ type maphash__type struct {
 	str        maphash_nameOff
 	ptrToThis  maphash_typeOff
 }
+
+//go:noescape
+//go:linkname fastrand64 runtime.fastrand64
+func fastrand64() uint64

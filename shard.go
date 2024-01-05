@@ -147,25 +147,3 @@ func newshard[K comparable, V any](size int) *shard[K, V] {
 
 	return s
 }
-
-// clock is the number of seconds since January 1, 2024 UTC
-var clock uint32
-
-func init() {
-	const clockBase = 1704067200 // 2024-01-01T00:00:00Z
-	atomic.StoreUint32(&clock, uint32(time.Now().Unix()-clockBase))
-	go func() {
-		for {
-			for i := 0; i < 9; i++ {
-				time.Sleep(100 * time.Millisecond)
-				atomic.StoreUint32(&clock, uint32(time.Now().Unix()-clockBase))
-			}
-			time.Sleep(100 * time.Millisecond)
-			atomic.StoreUint32(&clock, uint32(time.Now().Unix()-clockBase))
-		}
-	}()
-}
-
-//go:noescape
-//go:linkname fastrand64 runtime.fastrand64
-func fastrand64() uint64
