@@ -6,6 +6,7 @@
 
 * Simple
     - No Dependencies.
+    - 100% code coverage.
     - Less than 1000 lines of Go code.
 * Fast
     - Outperforms well-known *LRU* caches.
@@ -33,7 +34,7 @@ import (
 )
 
 func main() {
-	cache := lru.New[string, int](1024)
+	cache := lru.New[string, int](8192)
 
 	cache.SetWithTTL("a", 1, 2*time.Second)
 	println(cache.Get("a"))
@@ -57,7 +58,7 @@ import (
 )
 
 func main() {
-	cache := lru.NewWithLoader[string, int](1024, func(string) (int, time.Duration, error) {
+	cache := lru.NewWithLoader[string, int](8192, func(string) (int, time.Duration, error) {
 		return 42, time.Hour, nil
 	})
 
@@ -78,7 +79,7 @@ import (
 )
 
 func main() {
-	cache := lru.New[string, int](4096)
+	cache := lru.New[string, int](8192)
 
 	cache.SetWithTTL("foobar", 42, 3*time.Second)
 
@@ -276,19 +277,19 @@ goos: linux
 goarch: amd64
 cpu: AMD EPYC 7763 64-Core Processor                
 BenchmarkCloudflareGet
-BenchmarkCloudflareGet-8   	34575751	       171.1 ns/op	      17 B/op	       1 allocs/op
+BenchmarkCloudflareGet-8    37931065         152.8 ns/op        16 B/op        1 allocs/op
 BenchmarkEcacheGet
-BenchmarkEcacheGet-8       	52730455	       114.2 ns/op	       5 B/op	       0 allocs/op
+BenchmarkEcacheGet-8        52011871         112.7 ns/op         2 B/op        0 allocs/op
 BenchmarkRistrettoGet
-BenchmarkRistrettoGet-8    	34192080	       172.0 ns/op	      41 B/op	       1 allocs/op
+BenchmarkRistrettoGet-8     45767629         147.6 ns/op        27 B/op        1 allocs/op
 BenchmarkTheineGet
-BenchmarkTheineGet-8       	29694378	       202.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkTheineGet-8        34043275         180.7 ns/op         0 B/op        0 allocs/op
 BenchmarkOtterGet
-BenchmarkOtterGet-8        	76333077	        74.27 ns/op	       0 B/op	       0 allocs/op
+BenchmarkOtterGet-8         74572839          74.42 ns/op        0 B/op        0 allocs/op
 BenchmarkPhusluGet
-BenchmarkPhusluGet-8       	73868793	        82.88 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPhusluGet-8        75638493          83.86 ns/op        0 B/op        0 allocs/op
 PASS
-ok  	command-line-arguments	46.827s
+ok    command-line-arguments  47.529s
 ```
 
 ### License
