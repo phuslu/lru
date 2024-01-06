@@ -19,29 +19,20 @@ type hashtable[K comparable] struct {
 		hdib  uint32 // bitfield { hash:24 dib:8 }
 		index uint32 // node index
 	}
-	getkey   func(index uint32) K // return list.nodes[index].key
-	cap      int
-	length   int
-	mask     uint32
-	growAt   int
-	shrinkAt int
+	getkey func(index uint32) K // return list.nodes[index].key
+	mask   uint32
+	length int
 }
 
-func (m *hashtable[K]) init(cap int, getkey func(i uint32) K) {
-	m.cap = cap
-	m.length = 0
+func (m *hashtable[K]) init(size int, getkey func(i uint32) K) {
 	sz := 8
-	for sz < m.cap {
+	for sz < size {
 		sz *= 2
-	}
-	if m.cap > 0 {
-		m.cap = sz
 	}
 	m.getkey = getkey
 	m.buckets = make([]struct{ hdib, index uint32 }, sz)
 	m.mask = uint32(len(m.buckets) - 1)
-	m.growAt = int(float64(len(m.buckets)) * loadFactor)
-	m.shrinkAt = int(float64(len(m.buckets)) * (1 - loadFactor))
+	m.length = 0
 }
 
 // Set assigns a value to a key.
