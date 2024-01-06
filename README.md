@@ -351,11 +351,15 @@ The Memory usage result as below. Check github [actions][actions] for more resul
   		panic("no cache name")
   	}
 
-  	mb := func(n uint64) uint64 { return n / 1024 / 1024 }
-
   	var m runtime.MemStats
   	runtime.ReadMemStats(&m)
-  	fmt.Printf("%s\t%v MiB\t%v MiB\t%v MiB\n", name, mb(m.Alloc-o.Alloc), mb(m.TotalAlloc-o.TotalAlloc), mb(m.Sys-o.Sys))
+
+  	fmt.Printf("%s\t%v MiB\t%v MiB\t%v MiB\n",
+  		name,
+  		(m.Alloc-o.Alloc)/1048576,
+  		(m.TotalAlloc-o.TotalAlloc)/1048576,
+  		(m.Sys-o.Sys)/1048576,
+  	)
   }
 
   func SetupPhuslu() {
