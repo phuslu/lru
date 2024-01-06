@@ -5,7 +5,6 @@ package lru
 
 import (
 	"runtime"
-	"sync/atomic"
 	"time"
 )
 
@@ -90,20 +89,9 @@ func (c *Cache[K, V]) Len() int {
 }
 
 // Keys returns all keys snapshot in cache.
-func (c *Cache[K, V]) Keys() (all []K) {
-	now := atomic.LoadUint32(&clock)
+func (c *Cache[K, V]) Keys() (keys []K) {
 	for i := range c.shards {
-		c.shards[i].mu.Lock()
-		for _, b := range c.shards[i].buckets {
-			if b.index == 0 {
-				continue
-			}
-			node := &c.shards[i].list[b.index]
-			if expires := node.expires; expires == 0 || now <= expires {
-				all = append(all, node.key)
-			}
-		}
-		c.shards[i].mu.Unlock()
+		keys = c.shards[i].AppendKeys(keys)
 	}
 	return
 }

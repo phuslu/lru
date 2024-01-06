@@ -155,6 +155,24 @@ func (s *shard[K, V]) Len() (n int) {
 	return
 }
 
+func (s *shard[K, V]) AppendKeys(dst []K) []K {
+	now := atomic.LoadUint32(&clock)
+
+	s.mu.Lock()
+	for _, b := range s.buckets {
+		if b.index == 0 {
+			continue
+		}
+		node := &s.list[b.index]
+		if expires := node.expires; expires == 0 || now <= expires {
+			dst = append(dst, node.key)
+		}
+	}
+	s.mu.Unlock()
+
+	return dst
+}
+
 func newshard[K comparable, V any](size int) *shard[K, V] {
 	s := &shard[K, V]{}
 
