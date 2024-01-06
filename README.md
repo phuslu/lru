@@ -277,19 +277,19 @@ goos: linux
 goarch: amd64
 cpu: AMD EPYC 7763 64-Core Processor                
 BenchmarkCloudflareGet
-BenchmarkCloudflareGet-8    37931065         152.8 ns/op        16 B/op        1 allocs/op
+BenchmarkCloudflareGet-8    35573719         158.8 ns/op        16 B/op        1 allocs/op
 BenchmarkEcacheGet
-BenchmarkEcacheGet-8        52011871         112.7 ns/op         2 B/op        0 allocs/op
+BenchmarkEcacheGet-8        50885976         116.8 ns/op         2 B/op        0 allocs/op
 BenchmarkRistrettoGet
-BenchmarkRistrettoGet-8     45767629         147.6 ns/op        27 B/op        1 allocs/op
+BenchmarkRistrettoGet-8     41817271         146.3 ns/op        27 B/op        1 allocs/op
 BenchmarkTheineGet
-BenchmarkTheineGet-8        34043275         180.7 ns/op         0 B/op        0 allocs/op
+BenchmarkTheineGet-8        33138063         180.4 ns/op         0 B/op        0 allocs/op
 BenchmarkOtterGet
-BenchmarkOtterGet-8         74572839          74.42 ns/op        0 B/op        0 allocs/op
+BenchmarkOtterGet-8         69140085          79.58 ns/op        0 B/op        0 allocs/op
 BenchmarkPhusluGet
-BenchmarkPhusluGet-8        75638493          83.86 ns/op        0 B/op        0 allocs/op
+BenchmarkPhusluGet-8        71629431          86.70 ns/op        0 B/op        0 allocs/op
 PASS
-ok    command-line-arguments  47.529s
+ok    command-line-arguments  46.622s
 ```
 
 ### Memory usage
@@ -408,10 +408,10 @@ The Memory usage result as below. Check github [actions][actions] for more resul
 
 | MemStats   | Alloc   | TotalAlloc | Sys     |
 | ---------- | ------- | ---------- | ------- |
-| phuslu     | 48 MiB  | 56 MiB     | 57 MiB  |
+| phuslu     | 48 MiB  | 56 MiB     | 61 MiB  |
 | ecache     | 123 MiB | 131 MiB    | 127 MiB |
-| ristretto  | 128 MiB | 289 MiB    | 209 MiB |
-| otter      | 137 MiB | 211 MiB    | 177 MiB |
+| ristretto  | 135 MiB | 219 MiB    | 144 MiB |
+| otter      | 137 MiB | 211 MiB    | 181 MiB |
 | theine     | 177 MiB | 223 MiB    | 194 MiB |
 | cloudflare | 183 MiB | 191 MiB    | 188 MiB |
 
