@@ -8,13 +8,14 @@ import (
 	"time"
 )
 
+// node is a list node of LRU, storing key-value pairs and related information
 type node[K comparable, V any] struct {
+	key     K
+	value   V
 	expires uint32
 	next    uint32
 	prev    uint32
 	ttl     uint32
-	key     K
-	value   V
 }
 
 // shard is a LRU partition contains a list and a hash table.
