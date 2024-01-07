@@ -23,16 +23,17 @@ type shard[K comparable, V any] struct {
 	mu sync.Mutex
 
 	// hash table
-	buckets []struct {
-		hdib  uint32 // bitfield { hash:24 dib:8 }
-		index uint32 // node index
+	table struct {
+		buckets []struct {
+			hdib  uint32 // bitfield { hash:24 dib:8 }
+			index uint32 // node index
+		}
+		mask   uint32
+		length int
 	}
 
 	// linked list
 	list []node[K, V]
-
-	mask   uint32
-	length int
 
 	// padding
 	_ [56]byte
@@ -41,15 +42,15 @@ type shard[K comparable, V any] struct {
 func (s *shard[K, V]) Get(hash uint32, key K) (value V, ok bool) {
 	s.mu.Lock()
 
-	if index, exists := s.tableGet(hash, key); exists {
+	if index, exists := s.table_Get(hash, key); exists {
 		if expires := s.list[index].expires; expires == 0 || atomic.LoadUint32(&clock) < expires {
-			s.listMoveToFront(index)
+			s.list_MoveToFront(index)
 			value = s.list[index].value
 			ok = true
 		} else {
-			s.listMoveToBack(index)
+			s.list_MoveToBack(index)
 			s.list[index].value = value
-			s.tableDelete(hash, key)
+			s.table_Delete(hash, key)
 		}
 	}
 
@@ -61,20 +62,20 @@ func (s *shard[K, V]) Get(hash uint32, key K) (value V, ok bool) {
 func (s *shard[K, V]) TouchGet(hash uint32, key K) (value V, ok bool) {
 	s.mu.Lock()
 
-	if index, exists := s.tableGet(hash, key); exists {
+	if index, exists := s.table_Get(hash, key); exists {
 		if expires := s.list[index].expires; expires == 0 {
-			s.listMoveToFront(index)
+			s.list_MoveToFront(index)
 			value = s.list[index].value
 			ok = true
 		} else if now := atomic.LoadUint32(&clock); now < expires {
 			s.list[index].expires = now + s.list[index].ttl
-			s.listMoveToFront(index)
+			s.list_MoveToFront(index)
 			value = s.list[index].value
 			ok = true
 		} else {
-			s.listMoveToBack(index)
+			s.list_MoveToBack(index)
 			s.list[index].value = value
-			s.tableDelete(hash, key)
+			s.table_Delete(hash, key)
 		}
 	}
 
@@ -86,7 +87,7 @@ func (s *shard[K, V]) TouchGet(hash uint32, key K) (value V, ok bool) {
 func (s *shard[K, V]) Peek(hash uint32, key K) (value V, ok bool) {
 	s.mu.Lock()
 
-	if index, exists := s.tableGet(hash, key); exists {
+	if index, exists := s.table_Get(hash, key); exists {
 		value = s.list[index].value
 		ok = true
 	}
@@ -100,10 +101,10 @@ func (s *shard[K, V]) Set(hash uint32, hashfun func(K) uint64, key K, value V, t
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if index, exists := s.tableGet(hash, key); exists {
+	if index, exists := s.table_Get(hash, key); exists {
 		node := &s.list[index]
 		previousValue := node.value
-		s.listMoveToFront(index)
+		s.list_MoveToFront(index)
 		node.value = value
 		if ttl > 0 {
 			node.ttl = uint32(ttl / time.Second)
@@ -114,10 +115,10 @@ func (s *shard[K, V]) Set(hash uint32, hashfun func(K) uint64, key K, value V, t
 		return
 	}
 
-	index := s.listBack()
+	index := s.list_Back()
 	node := &s.list[index]
 	evictedValue := node.value
-	s.tableDelete(uint32(hashfun(node.key)), node.key)
+	s.table_Delete(uint32(hashfun(node.key)), node.key)
 
 	node.key = key
 	node.value = value
@@ -125,8 +126,8 @@ func (s *shard[K, V]) Set(hash uint32, hashfun func(K) uint64, key K, value V, t
 		node.ttl = uint32(ttl / time.Second)
 		node.expires = atomic.LoadUint32(&clock) + node.ttl
 	}
-	s.tableSet(hash, key, index)
-	s.listMoveToFront(index)
+	s.table_Set(hash, key, index)
+	s.list_MoveToFront(index)
 	prev = evictedValue
 	return
 }
@@ -135,12 +136,12 @@ func (s *shard[K, V]) Delete(hash uint32, key K) (v V) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if index, exists := s.tableGet(hash, key); exists {
+	if index, exists := s.table_Get(hash, key); exists {
 		node := &s.list[index]
 		value := node.value
-		s.listMoveToBack(index)
+		s.list_MoveToBack(index)
 		node.value = v
-		s.tableDelete(hash, key)
+		s.table_Delete(hash, key)
 		v = value
 	}
 
@@ -149,7 +150,7 @@ func (s *shard[K, V]) Delete(hash uint32, key K) (v V) {
 
 func (s *shard[K, V]) Len() (n int) {
 	s.mu.Lock()
-	n = s.tableLen()
+	n = s.table_Len()
 	s.mu.Unlock()
 
 	return
@@ -159,7 +160,7 @@ func (s *shard[K, V]) AppendKeys(dst []K) []K {
 	now := atomic.LoadUint32(&clock)
 
 	s.mu.Lock()
-	for _, b := range s.buckets {
+	for _, b := range s.table.buckets {
 		if b.index == 0 {
 			continue
 		}
@@ -176,8 +177,8 @@ func (s *shard[K, V]) AppendKeys(dst []K) []K {
 func newshard[K comparable, V any](size int) *shard[K, V] {
 	s := &shard[K, V]{}
 
-	s.listInit(uint32(size))
-	s.tableInit(int(float64(size) / (loadFactor - 0.05)))
+	s.list_Init(uint32(size))
+	s.table_Init(int(float64(size) / (loadFactor - 0.05)))
 
 	return s
 }

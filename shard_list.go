@@ -2,7 +2,7 @@
 
 package lru
 
-func (s *shard[K, V]) listInit(size uint32) {
+func (s *shard[K, V]) list_Init(size uint32) {
 	size += 1
 	s.list = make([]node[K, V], size)
 	for i := uint32(0); i < size; i++ {
@@ -11,11 +11,11 @@ func (s *shard[K, V]) listInit(size uint32) {
 	}
 }
 
-func (s *shard[K, V]) listBack() uint32 {
+func (s *shard[K, V]) list_Back() uint32 {
 	return s.list[0].prev
 }
 
-func (s *shard[K, V]) listMoveToFront(i uint32) {
+func (s *shard[K, V]) list_MoveToFront(i uint32) {
 	root := &s.list[0]
 	if root.next == i {
 		return
@@ -33,7 +33,7 @@ func (s *shard[K, V]) listMoveToFront(i uint32) {
 	s.list[node.next].prev = i
 }
 
-func (s *shard[K, V]) listMoveToBack(i uint32) {
+func (s *shard[K, V]) list_MoveToBack(i uint32) {
 	j := s.list[0].prev
 	if i == j {
 		return
