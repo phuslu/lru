@@ -43,13 +43,23 @@ func (s *shard[K, V]) Get(hash uint32, key K) (value V, ok bool) {
 	s.mu.Lock()
 
 	if index, exists := s.table_Get(hash, key); exists {
-		if expires := s.list[index].expires; expires == 0 || atomic.LoadUint32(&clock) < expires {
-			s.list_MoveToFront(index)
-			value = s.list[index].value
+		node := &s.list[index]
+		if expires := node.expires; expires == 0 || atomic.LoadUint32(&clock) < expires {
+			// inlining s.list_MoveToFront(index)
+			root := &s.list[0]
+			if root.next != index {
+				s.list[node.prev].next = node.next
+				s.list[node.next].prev = node.prev
+				node.prev = 0
+				node.next = root.next
+				root.next = index
+				s.list[node.next].prev = index
+			}
+			value = node.value
 			ok = true
 		} else {
 			s.list_MoveToBack(index)
-			s.list[index].value = value
+			node.value = value
 			s.table_Delete(hash, key)
 		}
 	}
