@@ -42,6 +42,7 @@ jobs:
           go run memusage.go ristretto  >> memusage.txt
           go run memusage.go otter      >> memusage.txt
           go run memusage.go theine     >> memusage.txt
+          go run memusage.go ccache     >> memusage.txt
           go run memusage.go cloudflare >> memusage.txt
           cat memusage.txt | csvlook
       - name: Upload coverage reports to Codecov

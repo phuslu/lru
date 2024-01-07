@@ -113,6 +113,7 @@ A Performance result as below. Check github [actions][actions] for more results 
   	theine "github.com/Yiling-J/theine-go"
   	cloudflare "github.com/cloudflare/golibs/lrucache"
   	ristretto "github.com/dgraph-io/ristretto"
+  	ccache "github.com/karlseguin/ccache/v3"
   	otter "github.com/maypok86/otter"
   	ecache "github.com/orca-zhang/ecache"
   	phuslu "github.com/phuslu/lru"
@@ -171,6 +172,26 @@ A Performance result as below. Check github [actions][actions] for more results 
   			i := int(fastrandn(cachesize))
   			if i <= waterlevel {
   				cache.Put(keys[i], i)
+  			} else {
+  				cache.Get(keys[i])
+  			}
+  		}
+  	})
+  }
+
+  func BenchmarkCcacheGet(b *testing.B) {
+  	cache := ccache.New(ccache.Configure[int]().MaxSize(cachesize).ItemsToPrune(100))
+  	for i := 0; i < cachesize/2; i++ {
+  		cache.Set(keys[i], i, time.Hour)
+  	}
+  	b.SetParallelism(parallelism)
+  	b.ResetTimer()
+  	b.RunParallel(func(pb *testing.PB) {
+  		waterlevel := int(float32(cachesize) * writeradio)
+  		for pb.Next() {
+  			i := int(fastrandn(cachesize))
+  			if i <= waterlevel {
+  				cache.Set(keys[i], i, time.Hour)
   			} else {
   				cache.Get(keys[i])
   			}
@@ -311,6 +332,7 @@ The Memory usage result as below. Check github [actions][actions] for more resul
   	theine "github.com/Yiling-J/theine-go"
   	cloudflare "github.com/cloudflare/golibs/lrucache"
   	ristretto "github.com/dgraph-io/ristretto"
+  	ccache "github.com/karlseguin/ccache/v3"
   	otter "github.com/maypok86/otter"
   	ecache "github.com/orca-zhang/ecache"
   	phuslu "github.com/phuslu/lru"
@@ -341,6 +363,8 @@ The Memory usage result as below. Check github [actions][actions] for more resul
   		SetupRistretto()
   	case "otter":
   		SetupOtter()
+  	case "ccache":
+  		SetupCcache()
   	case "ecache":
   		SetupEcache()
   	case "cloudflare":
@@ -380,6 +404,13 @@ The Memory usage result as below. Check github [actions][actions] for more resul
   	cache := ecache.NewLRUCache(1024, cachesize/1024, time.Hour)
   	for i := 0; i < cachesize; i++ {
   		cache.Put(keys[i], i)
+  	}
+  }
+
+  func SetupCcache() {
+  	cache := ccache.New(ccache.Configure[int]().MaxSize(cachesize).ItemsToPrune(100))
+  	for i := 0; i < cachesize; i++ {
+  		cache.Set(keys[i], i, time.Hour)
   	}
   }
 
