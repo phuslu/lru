@@ -22,7 +22,7 @@ type node[K comparable, V any] struct {
 type shard[K comparable, V any] struct {
 	mu sync.Mutex
 
-	// hash table
+	// the hash table, with 25% extra space than the list for fewer conflicts.
 	table struct {
 		buckets []struct {
 			hdib  uint32 // bitfield { hash:24 dib:8 }
@@ -32,7 +32,7 @@ type shard[K comparable, V any] struct {
 		length int
 	}
 
-	// linked list
+	// the list of nodes
 	list []node[K, V]
 
 	// padding

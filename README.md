@@ -15,7 +15,7 @@
     - Pointerless data structs.
     - Continuous memory layout.
 * Memory efficient
-    - Adds only 24 extra bytes per cache object.
+    - Adds only 26 extra bytes per cache object.
     - Saves at least [60%](#memory-usage) memory than others.
 * Feature selected
     - LoadingCache with `GetOrLoad` method.
