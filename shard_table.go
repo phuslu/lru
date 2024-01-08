@@ -14,10 +14,7 @@ const (
 )
 
 func (s *shard[K, V]) table_Init(size int) {
-	sz := 8
-	for sz < size {
-		sz *= 2
-	}
+	sz := max(roundUpToPowerOfTwo(size), 8)
 	s.table.buckets = make([]struct{ hdib, index uint32 }, sz)
 	s.table.mask = uint32(len(s.table.buckets) - 1)
 	s.table.length = 0
