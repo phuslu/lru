@@ -46,7 +46,7 @@ func newWithShards[K comparable, V any](shardcount, shardsize int) *Cache[K, V] 
 		hasher: maphash_NewHasher[K](),
 	}
 	for i := range c.shards {
-		c.shards[i] = *newshard[K, V](shardsize)
+		c.shards[i].Init(uint32(shardsize))
 	}
 
 	return c

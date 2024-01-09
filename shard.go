@@ -39,6 +39,11 @@ type shard[K comparable, V any] struct {
 	_ [56]byte
 }
 
+func (s *shard[K, V]) Init(size uint32) {
+	s.list_Init(size)
+	s.table_Init(int(float64(size) / (loadFactor - 0.05)))
+}
+
 func (s *shard[K, V]) Get(hash uint32, key K) (value V, ok bool) {
 	s.mu.Lock()
 
@@ -182,13 +187,4 @@ func (s *shard[K, V]) AppendKeys(dst []K) []K {
 	s.mu.Unlock()
 
 	return dst
-}
-
-func newshard[K comparable, V any](size int) *shard[K, V] {
-	s := &shard[K, V]{}
-
-	s.list_Init(uint32(size))
-	s.table_Init(int(float64(size) / (loadFactor - 0.05)))
-
-	return s
 }

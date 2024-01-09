@@ -5,7 +5,8 @@ import (
 )
 
 func TestShardTableSet(t *testing.T) {
-	s := newshard[string, uint32](1024)
+	var s shard[string, uint32]
+	s.Init(1024)
 
 	hashfun := func(key string) (x uint64) {
 		x = 5381
