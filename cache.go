@@ -4,21 +4,22 @@
 package lru
 
 import (
+	"runtime"
 	"time"
 )
 
 // Cache implements LRU Cache with least recent used eviction policy.
 type Cache[K comparable, V any] struct {
-	shards     []shard[K, V]
-	shardcount uint32
-	hasher     maphash_Hasher[K]
-	loader     func(key K) (value V, ttl time.Duration, err error)
-	group      singleflight_Group[K, V]
+	shards []shard[K, V]
+	mask   uint32
+	hasher maphash_Hasher[K]
+	loader func(key K) (value V, ttl time.Duration, err error)
+	group  singleflight_Group[K, V]
 }
 
 // New creates lru cache with size capacity.
 func New[K comparable, V any](size int) *Cache[K, V] {
-	shardcount := 127
+	shardcount := roundUpToPowerOfTwo(runtime.GOMAXPROCS(0) * 16)
 	shardsize := roundUpToPowerOfTwo(size / shardcount)
 	return newWithShards[K, V](shardcount, shardsize)
 }
@@ -38,17 +39,11 @@ func roundUpToPowerOfTwo(num int) int {
 	return num + 1
 }
 
-func fastModN(x, n uint32) uint32 {
-	return uint32((uint64(x) * uint64(n)) >> 32)
-}
-
-func goid() int
-
 func newWithShards[K comparable, V any](shardcount, shardsize int) *Cache[K, V] {
 	c := &Cache[K, V]{
-		shards:     make([]shard[K, V], shardcount),
-		shardcount: uint32(shardcount),
-		hasher:     maphash_NewHasher[K](),
+		shards: make([]shard[K, V], shardcount),
+		mask:   uint32(shardcount) - 1,
+		hasher: maphash_NewHasher[K](),
 	}
 	for i := range c.shards {
 		c.shards[i].Init(uint32(shardsize))
@@ -60,37 +55,37 @@ func newWithShards[K comparable, V any](shardcount, shardsize int) *Cache[K, V] 
 // Get returns value for key.
 func (c *Cache[K, V]) Get(key K) (value V, ok bool) {
 	hash := uint32(c.hasher.Hash(key))
-	return c.shards[fastModN(uint32(goid()), c.shardcount)].Get(hash, key)
+	return c.shards[hash&c.mask].Get(hash, key)
 }
 
 // TouchGet returns value for key and reset the expires with TTL(aka, Sliding Cache).
 func (c *Cache[K, V]) TouchGet(key K) (value V, ok bool) {
 	hash := uint32(c.hasher.Hash(key))
-	return c.shards[fastModN(uint32(goid()), c.shardcount)].TouchGet(hash, key)
+	return c.shards[hash&c.mask].TouchGet(hash, key)
 }
 
 // Peek returns value for key, but does not modify its recency.
 func (c *Cache[K, V]) Peek(key K) (value V, ok bool) {
 	hash := uint32(c.hasher.Hash(key))
-	return c.shards[fastModN(uint32(goid()), c.shardcount)].Peek(hash, key)
+	return c.shards[hash&c.mask].Peek(hash, key)
 }
 
 // Set inserts key value pair and returns previous value, if cache was full.
 func (c *Cache[K, V]) Set(key K, value V) (prev V, replaced bool) {
 	hash := uint32(c.hasher.Hash(key))
-	return c.shards[fastModN(uint32(goid()), c.shardcount)].Set(hash, c.hasher.Hash, key, value, 0)
+	return c.shards[hash&c.mask].Set(hash, c.hasher.Hash, key, value, 0)
 }
 
 // SetWithTTL inserts key value pair with ttl and returns previous value, if cache was full.
 func (c *Cache[K, V]) SetWithTTL(key K, value V, ttl time.Duration) (prev V, replaced bool) {
 	hash := uint32(c.hasher.Hash(key))
-	return c.shards[fastModN(uint32(goid()), c.shardcount)].Set(hash, c.hasher.Hash, key, value, ttl)
+	return c.shards[hash&c.mask].Set(hash, c.hasher.Hash, key, value, ttl)
 }
 
 // Delete method deletes value associated with key and returns deleted value (or empty value if key was not in cache).
 func (c *Cache[K, V]) Delete(key K) (prev V) {
 	hash := uint32(c.hasher.Hash(key))
-	return c.shards[fastModN(uint32(goid()), c.shardcount)].Delete(hash, key)
+	return c.shards[hash&c.mask].Delete(hash, key)
 }
 
 // Len returns number of cached nodes.
@@ -126,9 +121,9 @@ func (c *Cache[K, V]) Loader() func(K) (value V, ttl time.Duration, err error) {
 func (c *Cache[K, V]) getOrLoad(key K, loader func(K) (V, time.Duration, error), touch bool) (value V, err error, ok bool) {
 	hash := uint32(c.hasher.Hash(key))
 	if touch {
-		value, ok = c.shards[fastModN(uint32(goid()), c.shardcount)].TouchGet(hash, key)
+		value, ok = c.shards[hash&c.mask].TouchGet(hash, key)
 	} else {
-		value, ok = c.shards[fastModN(uint32(goid()), c.shardcount)].Get(hash, key)
+		value, ok = c.shards[hash&c.mask].Get(hash, key)
 	}
 	if !ok {
 		if loader == nil {
@@ -142,7 +137,7 @@ func (c *Cache[K, V]) getOrLoad(key K, loader func(K) (V, time.Duration, error),
 			if err != nil {
 				return v, err
 			}
-			c.shards[fastModN(uint32(goid()), c.shardcount)].Set(hash, c.hasher.Hash, key, v, ttl)
+			c.shards[hash&c.mask].Set(hash, c.hasher.Hash, key, v, ttl)
 			return v, nil
 		})
 	}
