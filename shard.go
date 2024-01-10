@@ -114,7 +114,6 @@ func (s *shard[K, V]) Peek(hash uint32, key K) (value V, ok bool) {
 
 func (s *shard[K, V]) Set(hash uint32, hashfun func(K) uint64, key K, value V, ttl time.Duration) (prev V, replaced bool) {
 	s.mu.Lock()
-	defer s.mu.Unlock()
 
 	if index, exists := s.table_Get(hash, key); exists {
 		node := &s.list[index]
@@ -127,6 +126,8 @@ func (s *shard[K, V]) Set(hash uint32, hashfun func(K) uint64, key K, value V, t
 		}
 		prev = previousValue
 		replaced = true
+
+		s.mu.Unlock()
 		return
 	}
 
@@ -144,12 +145,13 @@ func (s *shard[K, V]) Set(hash uint32, hashfun func(K) uint64, key K, value V, t
 	s.table_Set(hash, key, index)
 	s.list_MoveToFront(index)
 	prev = evictedValue
+
+	s.mu.Unlock()
 	return
 }
 
 func (s *shard[K, V]) Delete(hash uint32, key K) (v V) {
 	s.mu.Lock()
-	defer s.mu.Unlock()
 
 	if index, exists := s.table_Get(hash, key); exists {
 		node := &s.list[index]
@@ -159,6 +161,8 @@ func (s *shard[K, V]) Delete(hash uint32, key K) (v V) {
 		s.table_Delete(hash, key)
 		v = value
 	}
+
+	s.mu.Unlock()
 
 	return
 }
