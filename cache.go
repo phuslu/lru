@@ -19,24 +19,17 @@ type Cache[K comparable, V any] struct {
 
 // New creates lru cache with size capacity.
 func New[K comparable, V any](size int) *Cache[K, V] {
-	shardcount := roundUpToPowerOfTwo(runtime.GOMAXPROCS(0) * 16)
-	shardsize := roundUpToPowerOfTwo(size / shardcount)
+	shardcount := nextPowOf2(runtime.GOMAXPROCS(0) * 16)
+	shardsize := nextPowOf2(size / shardcount)
 	return newWithShards[K, V](shardcount, shardsize)
 }
 
-func roundUpToPowerOfTwo(num int) int {
-	if num <= 1 {
-		return 2
+func nextPowOf2(n int) int {
+	k := 1
+	for k < n {
+		k = k * 2
 	}
-
-	num--
-	num |= num >> 1
-	num |= num >> 2
-	num |= num >> 4
-	num |= num >> 8
-	num |= num >> 16
-
-	return num + 1
+	return k
 }
 
 func newWithShards[K comparable, V any](shardcount, shardsize int) *Cache[K, V] {
