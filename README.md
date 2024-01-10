@@ -16,7 +16,7 @@
     - Continuous memory layout.
 * Memory efficient
     - Adds only 26 extra bytes per cache object.
-    - Saves at least [60%](#memory-usage) memory than others.
+    - Utilizes the [least memory](#memory-usage) compared to others.
 * Feature selected
     - LoadingCache with `GetOrLoad` method.
     - SlidingCache with `TouchGet` method.
@@ -326,19 +326,23 @@ goos: linux
 goarch: amd64
 cpu: AMD EPYC 7763 64-Core Processor                
 BenchmarkCloudflareGet
-BenchmarkCloudflareGet-8    35573719         158.8 ns/op        16 B/op        1 allocs/op
+BenchmarkCloudflareGet-8   	36586563	       154.4 ns/op	      16 B/op	       1 allocs/op
 BenchmarkEcacheGet
-BenchmarkEcacheGet-8        50885976         116.8 ns/op         2 B/op        0 allocs/op
+BenchmarkEcacheGet-8       	52158634	       116.0 ns/op	       2 B/op	       0 allocs/op
+BenchmarkCcacheGet
+BenchmarkCcacheGet-8       	24443905	       285.3 ns/op	      31 B/op	       2 allocs/op
 BenchmarkRistrettoGet
-BenchmarkRistrettoGet-8     41817271         146.3 ns/op        27 B/op        1 allocs/op
+BenchmarkRistrettoGet-8    	36218810	       172.4 ns/op	      28 B/op	       1 allocs/op
 BenchmarkTheineGet
-BenchmarkTheineGet-8        33138063         180.4 ns/op         0 B/op        0 allocs/op
+BenchmarkTheineGet-8       	32136668	       189.8 ns/op	       0 B/op	       0 allocs/op
 BenchmarkOtterGet
-BenchmarkOtterGet-8         69140085          79.58 ns/op        0 B/op        0 allocs/op
+BenchmarkOtterGet-8        	69814954	        72.56 ns/op	       0 B/op	       0 allocs/op
+BenchmarkFreelruGet
+BenchmarkFreelruGet-8      	64574546	        95.33 ns/op	       0 B/op	       0 allocs/op
 BenchmarkPhusluGet
-BenchmarkPhusluGet-8        71629431          86.70 ns/op        0 B/op        0 allocs/op
+BenchmarkPhusluGet-8       	75602898	        82.10 ns/op	       0 B/op	       0 allocs/op
 PASS
-ok    command-line-arguments  46.622s
+ok  	command-line-arguments	69.187s
 ```
 
 ### Memory usage
@@ -360,7 +364,7 @@ The Memory usage result as below. Check github [actions][actions] for more resul
   	theine "github.com/Yiling-J/theine-go"
   	"github.com/cespare/xxhash/v2"
   	cloudflare "github.com/cloudflare/golibs/lrucache"
-    freelru "github.com/elastic/go-freelru"
+  	freelru "github.com/elastic/go-freelru"
   	ristretto "github.com/dgraph-io/ristretto"
   	ccache "github.com/karlseguin/ccache/v3"
   	otter "github.com/maypok86/otter"
@@ -482,10 +486,12 @@ The Memory usage result as below. Check github [actions][actions] for more resul
 | MemStats   | Alloc   | TotalAlloc | Sys     |
 | ---------- | ------- | ---------- | ------- |
 | phuslu     | 48 MiB  | 56 MiB     | 57 MiB  |
+| freelru    | 112 MiB | 120 MiB    | 122 MiB |
 | ecache     | 123 MiB | 131 MiB    | 127 MiB |
-| ristretto  | 158 MiB | 243 MiB    | 165 MiB |
+| ristretto  | 149 MiB | 236 MiB    | 156 MiB |
 | otter      | 137 MiB | 211 MiB    | 181 MiB |
-| theine     | 177 MiB | 223 MiB    | 193 MiB |
+| theine     | 177 MiB | 223 MiB    | 194 MiB |
+| ccache     | 183 MiB | 244 MiB    | 194 MiB |
 | cloudflare | 183 MiB | 191 MiB    | 188 MiB |
 
 ### License
