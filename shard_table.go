@@ -20,39 +20,39 @@ func (s *shard[K, V]) table_Init(size int) {
 	s.table.length = 0
 }
 
-// Set assigns a value to a key.
-// Returns the previous value, or false when no value was assigned.
-func (s *shard[K, V]) table_Set(hash uint32, key K, value uint32) (uint32, bool) {
-	return s.table_set(hash>>dibBitSize, key, value)
+// Set assigns an index to a key.
+// Returns the previous index, or false when no index was assigned.
+func (s *shard[K, V]) table_Set(hash uint32, key K, index uint32) (uint32, bool) {
+	return s.table_set(hash>>dibBitSize, key, index)
 }
 
-func (s *shard[K, V]) table_set(subhash uint32, key K, value uint32) (prev uint32, ok bool) {
+func (s *shard[K, V]) table_set(subhash uint32, key K, index uint32) (prev uint32, ok bool) {
 	hdib := subhash<<dibBitSize | uint32(1)&maxDIB
 	i := (hdib >> dibBitSize) & s.table.mask
 	for {
 		if s.table.buckets[i].hdib&maxDIB == 0 {
 			s.table.buckets[i].hdib = hdib
-			s.table.buckets[i].index = value
+			s.table.buckets[i].index = index
 			s.table.length++
 			return
 		}
 		if hdib>>dibBitSize == s.table.buckets[i].hdib>>dibBitSize && key == s.list[s.table.buckets[i].index].key {
 			old := s.table.buckets[i].index
 			s.table.buckets[i].hdib = hdib
-			s.table.buckets[i].index = value
+			s.table.buckets[i].index = index
 			return old, true
 		}
 		if s.table.buckets[i].hdib&maxDIB < hdib&maxDIB {
 			hdib, s.table.buckets[i].hdib = s.table.buckets[i].hdib, hdib
-			value, s.table.buckets[i].index = s.table.buckets[i].index, value
+			index, s.table.buckets[i].index = s.table.buckets[i].index, index
 		}
 		i = (i + 1) & s.table.mask
 		hdib = hdib>>dibBitSize<<dibBitSize | (hdib&maxDIB+1)&maxDIB
 	}
 }
 
-// Get returns a value for a key.
-// Returns false when no value has been assign for key.
+// Get returns an index for a key.
+// Returns false when no index has been assign for key.
 func (s *shard[K, V]) table_Get(hash uint32, key K) (prev uint32, ok bool) {
 	subhash := hash >> dibBitSize
 	mask := s.table.mask
@@ -68,13 +68,13 @@ func (s *shard[K, V]) table_Get(hash uint32, key K) (prev uint32, ok bool) {
 	}
 }
 
-// Len returns the number of values in map.
+// Len returns the number of indexs in map.
 func (s *shard[K, V]) table_Len() int {
 	return s.table.length
 }
 
-// Delete deletes a value for a key.
-// Returns the deleted value, or false when no value was assigned.
+// Delete deletes an index for a key.
+// Returns the deleted index, or false when no index was assigned.
 func (s *shard[K, V]) table_Delete(hash uint32, key K) (v uint32, ok bool) {
 	subhash := hash >> dibBitSize
 	i := subhash & s.table.mask
