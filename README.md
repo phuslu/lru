@@ -343,15 +343,14 @@ The Memory usage result as below. Check github [actions][actions] for more resul
   	cachesize = 1000000
   )
 
-  var keys = func() (x []string) {
-  	x = make([]string, cachesize)
-  	for i := 0; i < cachesize; i++ {
-  		x[i] = fmt.Sprintf(fmt.Sprintf("%%0%dd", keysize), i)
-  	}
-  	return
-  }()
+  var keys []string 
 
   func main() {
+  	keys = make([]string, cachesize)
+  	for i := 0; i < cachesize; i++ {
+  		keys[i] = fmt.Sprintf(fmt.Sprintf("%%0%dd", keysize), i)
+  	}
+
   	var o runtime.MemStats
   	runtime.ReadMemStats(&o)
 
@@ -443,11 +442,11 @@ The Memory usage result as below. Check github [actions][actions] for more resul
 
 | MemStats   | Alloc   | TotalAlloc | Sys     |
 | ---------- | ------- | ---------- | ------- |
-| phuslu     | 48 MiB  | 56 MiB     | 61 MiB  |
+| phuslu     | 48 MiB  | 56 MiB     | 57 MiB  |
 | ecache     | 123 MiB | 131 MiB    | 127 MiB |
-| ristretto  | 135 MiB | 219 MiB    | 144 MiB |
+| ristretto  | 158 MiB | 243 MiB    | 165 MiB |
 | otter      | 137 MiB | 211 MiB    | 181 MiB |
-| theine     | 177 MiB | 223 MiB    | 194 MiB |
+| theine     | 177 MiB | 223 MiB    | 193 MiB |
 | cloudflare | 183 MiB | 191 MiB    | 188 MiB |
 
 ### License
