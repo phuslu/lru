@@ -105,6 +105,12 @@ func (c *Cache[K, V]) Keys() (keys []K) {
 	return
 }
 
+// Exists returns the keys exists in cache or not.
+func (c *Cache[K, V]) Exists(key K) (ok bool) {
+	_, ok = c.Get(key)
+	return
+}
+
 // NewWithLoader creates lru cache with size capacity and loader function.
 func NewWithLoader[K comparable, V any](size int, loader func(K) (value V, ttl time.Duration, err error)) *Cache[K, V] {
 	cache := New[K, V](size)

@@ -49,6 +49,10 @@ func TestCacheSetget(t *testing.T) {
 	if v, ok := l.Get(5); !ok || v != 9 {
 		t.Fatalf("bad returned value: %v != %v", v, 10)
 	}
+
+	if !l.Exists(5) || l.Exists(6) {
+		t.Fatalf("5 value shoube be exists and 6 value should be non-exists")
+	}
 }
 
 func TestCacheEviction(t *testing.T) {
