@@ -90,12 +90,12 @@ func (c *Cache[K, V]) Len() int {
 	return n
 }
 
-// Keys returns all keys snapshot in cache.
-func (c *Cache[K, V]) Keys() (keys []K) {
+// AppendKeys appends all keys to keys and return the keys.
+func (c *Cache[K, V]) AppendKeys(keys []K) []K {
 	for i := range c.shards {
 		keys = c.shards[i].AppendKeys(keys)
 	}
-	return
+	return keys
 }
 
 // Exists returns the keys exists in cache or not.

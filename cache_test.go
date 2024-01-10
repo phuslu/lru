@@ -104,7 +104,7 @@ func TestCacheEviction(t *testing.T) {
 
 	l.Set(400, &evictedCounter)
 
-	if got, want := len(l.Keys()), 128; got != want {
+	if got, want := len(l.AppendKeys(nil)), 128; got != want {
 		t.Fatalf("curent cache keys length %v should be %v", got, want)
 	}
 }
@@ -208,7 +208,7 @@ func TestCacheTouchGet(t *testing.T) {
 	l.SetWithTTL("c", 3, 3*time.Second)
 	l.SetWithTTL("d", 3, 1*time.Second)
 
-	if got, want := l.Keys(), 4; len(got) != want {
+	if got, want := l.AppendKeys(nil), 4; len(got) != want {
 		t.Fatalf("curent cache keys %v length should be %v", got, want)
 	}
 
@@ -224,7 +224,7 @@ func TestCacheTouchGet(t *testing.T) {
 		t.Errorf("d should be set to 0: %v,", v)
 	}
 
-	if got, want := l.Keys(), 3; len(got) != want {
+	if got, want := l.AppendKeys(nil), 3; len(got) != want {
 		t.Fatalf("curent cache keys %v length should be %v", got, want)
 	}
 
@@ -235,7 +235,7 @@ func TestCacheTouchGet(t *testing.T) {
 		t.Errorf("c should be still set to 4: %v,", v)
 	}
 
-	if got, want := l.Keys(), 2; len(got) != want {
+	if got, want := l.AppendKeys(nil), 2; len(got) != want {
 		t.Fatalf("curent cache keys %v length should be %v", got, want)
 	}
 

@@ -111,8 +111,10 @@ A Performance result as below. Check github [actions][actions] for more results 
   	_ "unsafe"
 
   	theine "github.com/Yiling-J/theine-go"
+  	"github.com/cespare/xxhash/v2"
   	cloudflare "github.com/cloudflare/golibs/lrucache"
   	ristretto "github.com/dgraph-io/ristretto"
+  	freelru "github.com/elastic/go-freelru"
   	ccache "github.com/karlseguin/ccache/v3"
   	otter "github.com/maypok86/otter"
   	ecache "github.com/orca-zhang/ecache"
@@ -269,6 +271,32 @@ A Performance result as below. Check github [actions][actions] for more results 
   	})
   }
 
+  func hashStringXXHASH(s string) uint32 {
+  	return uint32(xxhash.Sum64String(s))
+  }
+
+  func BenchmarkFreelruGet(b *testing.B) {
+  	cache, _ := freelru.NewSharded[string, int](cachesize, hashStringXXHASH)
+  	for i := 0; i < cachesize/2; i++ {
+  		cache.AddWithLifetime(keys[i], i, time.Hour)
+  	}
+
+  	b.SetParallelism(parallelism)
+  	b.ResetTimer()
+
+  	b.RunParallel(func(pb *testing.PB) {
+  		waterlevel := int(float32(cachesize) * writeradio)
+  		for pb.Next() {
+  			i := int(fastrandn(cachesize))
+  			if i <= waterlevel {
+  				cache.AddWithLifetime(keys[i], i, time.Hour)
+  			} else {
+  				cache.Get(keys[i])
+  			}
+  		}
+  	})
+  }
+
   func BenchmarkPhusluGet(b *testing.B) {
   	cache := phuslu.New[string, int](cachesize)
   	for i := 0; i < cachesize/2; i++ {
@@ -330,7 +358,9 @@ The Memory usage result as below. Check github [actions][actions] for more resul
   	"time"
 
   	theine "github.com/Yiling-J/theine-go"
+  	"github.com/cespare/xxhash/v2"
   	cloudflare "github.com/cloudflare/golibs/lrucache"
+    freelru "github.com/elastic/go-freelru"
   	ristretto "github.com/dgraph-io/ristretto"
   	ccache "github.com/karlseguin/ccache/v3"
   	otter "github.com/maypok86/otter"
@@ -358,6 +388,8 @@ The Memory usage result as below. Check github [actions][actions] for more resul
   	switch name {
   	case "phuslu":
   		SetupPhuslu()
+  	case "freelru":
+  		SetupFreelru()
   	case "ristretto":
   		SetupRistretto()
   	case "otter":
@@ -389,6 +421,13 @@ The Memory usage result as below. Check github [actions][actions] for more resul
   	cache := phuslu.New[string, int](cachesize)
   	for i := 0; i < cachesize; i++ {
   		cache.SetWithTTL(keys[i], i, time.Hour)
+  	}
+  }
+
+  func SetupFreelru() {
+  	cache, _ := freelru.NewSharded[string, int](cachesize, func(s string) uint32 { return uint32(xxhash.Sum64String(s)) })
+  	for i := 0; i < cachesize; i++ {
+  		cache.AddWithLifetime(keys[i], i, time.Hour)
   	}
   }
 
