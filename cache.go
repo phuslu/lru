@@ -5,6 +5,7 @@ package lru
 
 import (
 	"runtime"
+	"sync/atomic"
 	"time"
 )
 
@@ -92,8 +93,9 @@ func (c *Cache[K, V]) Len() int {
 
 // AppendKeys appends all keys to keys and return the keys.
 func (c *Cache[K, V]) AppendKeys(keys []K) []K {
+	now := atomic.LoadUint32(&clock)
 	for i := range c.shards {
-		keys = c.shards[i].AppendKeys(keys)
+		keys = c.shards[i].AppendKeys(keys, now)
 	}
 	return keys
 }

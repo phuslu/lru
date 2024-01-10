@@ -175,9 +175,7 @@ func (s *shard[K, V]) Len() (n int) {
 	return
 }
 
-func (s *shard[K, V]) AppendKeys(dst []K) []K {
-	now := atomic.LoadUint32(&clock)
-
+func (s *shard[K, V]) AppendKeys(dst []K, now uint32) []K {
 	s.mu.Lock()
 	for _, b := range s.table.buckets {
 		if b.index == 0 {
