@@ -98,7 +98,7 @@ func main() {
 
 A Performance result as below. Check github [actions][actions] for more results and details.
 <details>
-  <summary>benchmark on keysize=16, cachesize=1000000, parallelism=32 with read (90%) / write(10%)</summary>
+  <summary>benchmark on keysize=16, cachesize=1000000, parallelism=32 with randomly read (90%) / write(10%)</summary>
 
   ```go
   // go test -v -cpu=8 -run=none -bench=. -benchtime=5s -benchmem bench_test.go
@@ -326,23 +326,23 @@ goos: linux
 goarch: amd64
 cpu: AMD EPYC 7763 64-Core Processor                
 BenchmarkCloudflareGet
-BenchmarkCloudflareGet-8   	36586563	       154.4 ns/op	      16 B/op	       1 allocs/op
+BenchmarkCloudflareGet-8    38424013         154.1 ns/op        16 B/op        1 allocs/op
 BenchmarkEcacheGet
-BenchmarkEcacheGet-8       	52158634	       116.0 ns/op	       2 B/op	       0 allocs/op
+BenchmarkEcacheGet-8        54001467         113.3 ns/op         2 B/op        0 allocs/op
 BenchmarkCcacheGet
-BenchmarkCcacheGet-8       	24443905	       285.3 ns/op	      31 B/op	       2 allocs/op
+BenchmarkCcacheGet-8        26143230         262.0 ns/op        31 B/op        2 allocs/op
 BenchmarkRistrettoGet
-BenchmarkRistrettoGet-8    	36218810	       172.4 ns/op	      28 B/op	       1 allocs/op
+BenchmarkRistrettoGet-8     38958865         144.6 ns/op        27 B/op        1 allocs/op
 BenchmarkTheineGet
-BenchmarkTheineGet-8       	32136668	       189.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkTheineGet-8        34741431         177.4 ns/op         0 B/op        0 allocs/op
 BenchmarkOtterGet
-BenchmarkOtterGet-8        	69814954	        72.56 ns/op	       0 B/op	       0 allocs/op
+BenchmarkOtterGet-8         30704629         211.7 ns/op         6 B/op        0 allocs/op
 BenchmarkFreelruGet
-BenchmarkFreelruGet-8      	64574546	        95.33 ns/op	       0 B/op	       0 allocs/op
+BenchmarkFreelruGet-8       52322312         113.8 ns/op         0 B/op        0 allocs/op
 BenchmarkPhusluGet
-BenchmarkPhusluGet-8       	75602898	        82.10 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPhusluGet-8        61701811          94.82 ns/op        0 B/op        0 allocs/op
 PASS
-ok  	command-line-arguments	69.187s
+ok    command-line-arguments  69.370s
 ```
 
 ### Memory usage
@@ -488,9 +488,9 @@ The Memory usage result as below. Check github [actions][actions] for more resul
 | phuslu     | 48 MiB  | 56 MiB     | 57 MiB  |
 | freelru    | 112 MiB | 120 MiB    | 122 MiB |
 | ecache     | 123 MiB | 131 MiB    | 127 MiB |
-| ristretto  | 149 MiB | 236 MiB    | 156 MiB |
+| ristretto  | 127 MiB | 219 MiB    | 136 MiB |
 | otter      | 137 MiB | 211 MiB    | 181 MiB |
-| theine     | 177 MiB | 223 MiB    | 194 MiB |
+| theine     | 177 MiB | 223 MiB    | 193 MiB |
 | ccache     | 183 MiB | 244 MiB    | 194 MiB |
 | cloudflare | 183 MiB | 191 MiB    | 188 MiB |
 
