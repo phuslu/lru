@@ -4,6 +4,7 @@
 package lru
 
 import (
+	"fmt"
 	"runtime"
 	"sync/atomic"
 	"time"
@@ -19,10 +20,44 @@ type Cache[K comparable, V any] struct {
 }
 
 // New creates lru cache with size capacity.
-func New[K comparable, V any](size int) *Cache[K, V] {
+func New[K comparable, V any](size int, options ...Option[K, V]) *Cache[K, V] {
 	shardcount := nextPowOf2(runtime.GOMAXPROCS(0) * 16)
 	shardsize := nextPowOf2(size / shardcount)
-	return newWithShards[K, V](shardcount, shardsize)
+	return newWithShards[K, V](shardcount, shardsize, options...)
+}
+
+// Options implements LRU Cache Option.
+type Option[K comparable, V any] interface {
+	Apply(*Cache[K, V])
+}
+
+// WithLoader specifies that use sliding cache or not.
+func WithSliding[K comparable, V any](sliding bool) Option[K, V] {
+	return &slidingOption[K, V]{sliding: sliding}
+}
+
+type slidingOption[K comparable, V any] struct {
+	sliding bool
+}
+
+func (o *slidingOption[K, V]) Apply(c *Cache[K, V]) {
+	for i := range c.shards {
+		c.shards[i].sliding = o.sliding
+	}
+}
+
+// WithLoader specifies that loader function of LoadingCache.
+func WithLoader[K comparable, V any](loader func(K) (V, time.Duration, error)) Option[K, V] {
+	return &loaderOption[K, V]{loader: loader}
+}
+
+type loaderOption[K comparable, V any] struct {
+	loader func(K) (V, time.Duration, error)
+}
+
+func (o *loaderOption[K, V]) Apply(c *Cache[K, V]) {
+	c.loader = o.loader
+	c.group = singleflight_Group[K, V]{}
 }
 
 func nextPowOf2(n int) int {
@@ -33,7 +68,7 @@ func nextPowOf2(n int) int {
 	return k
 }
 
-func newWithShards[K comparable, V any](shardcount, shardsize int) *Cache[K, V] {
+func newWithShards[K comparable, V any](shardcount, shardsize int, options ...Option[K, V]) *Cache[K, V] {
 	c := &Cache[K, V]{
 		shards: make([]shard[K, V], shardcount),
 		mask:   uint32(shardcount) - 1,
@@ -41,6 +76,9 @@ func newWithShards[K comparable, V any](shardcount, shardsize int) *Cache[K, V] 
 	}
 	for i := range c.shards {
 		c.shards[i].Init(uint32(shardsize))
+	}
+	for _, option := range options {
+		option.Apply(c)
 	}
 
 	return c
@@ -52,10 +90,25 @@ func (c *Cache[K, V]) Get(key K) (value V, ok bool) {
 	return c.shards[hash&c.mask].Get(hash, key)
 }
 
-// TouchGet returns value for key and reset the expires with TTL(aka, Sliding Cache).
-func (c *Cache[K, V]) TouchGet(key K) (value V, ok bool) {
+// GetOrLoad returns value for key, call loader function by singleflight if value was not in cache.
+func (c *Cache[K, V]) GetOrLoad(key K) (value V, err error, ok bool) {
 	hash := uint32(c.hasher.Hash(key))
-	return c.shards[hash&c.mask].TouchGet(hash, key)
+	value, ok = c.shards[hash&c.mask].Get(hash, key)
+	if !ok {
+		if c.loader == nil {
+			err = fmt.Errorf("loader is nil")
+			return
+		}
+		value, err, ok = c.group.Do(key, func() (V, error) {
+			v, ttl, err := c.loader(key)
+			if err != nil {
+				return v, err
+			}
+			c.shards[hash&c.mask].Set(hash, c.hasher.Hash, key, v, ttl)
+			return v, nil
+		})
+	}
+	return
 }
 
 // Peek returns value for key, but does not modify its recency.
@@ -65,13 +118,7 @@ func (c *Cache[K, V]) Peek(key K) (value V, ok bool) {
 }
 
 // Set inserts key value pair and returns previous value, if cache was full.
-func (c *Cache[K, V]) Set(key K, value V) (prev V, replaced bool) {
-	hash := uint32(c.hasher.Hash(key))
-	return c.shards[hash&c.mask].Set(hash, c.hasher.Hash, key, value, 0)
-}
-
-// SetWithTTL inserts key value pair with ttl and returns previous value, if cache was full.
-func (c *Cache[K, V]) SetWithTTL(key K, value V, ttl time.Duration) (prev V, replaced bool) {
+func (c *Cache[K, V]) Set(key K, value V, ttl time.Duration) (prev V, replaced bool) {
 	hash := uint32(c.hasher.Hash(key))
 	return c.shards[hash&c.mask].Set(hash, c.hasher.Hash, key, value, ttl)
 }
@@ -98,61 +145,4 @@ func (c *Cache[K, V]) AppendKeys(keys []K) []K {
 		keys = c.shards[i].AppendKeys(keys, now)
 	}
 	return keys
-}
-
-// Exists returns the keys exists in cache or not.
-func (c *Cache[K, V]) Exists(key K) (ok bool) {
-	_, ok = c.Get(key)
-	return
-}
-
-// NewWithLoader creates lru cache with size capacity and loader function.
-func NewWithLoader[K comparable, V any](size int, loader func(K) (value V, ttl time.Duration, err error)) *Cache[K, V] {
-	cache := New[K, V](size)
-	cache.group = singleflight_Group[K, V]{}
-	cache.loader = loader
-	return cache
-}
-
-// Loader returns the global default loader function.
-func (c *Cache[K, V]) Loader() func(K) (value V, ttl time.Duration, err error) {
-	return c.loader
-}
-
-func (c *Cache[K, V]) getOrLoad(key K, loader func(K) (V, time.Duration, error), touch bool) (value V, err error, ok bool) {
-	hash := uint32(c.hasher.Hash(key))
-	if touch {
-		value, ok = c.shards[hash&c.mask].TouchGet(hash, key)
-	} else {
-		value, ok = c.shards[hash&c.mask].Get(hash, key)
-	}
-	if !ok {
-		if loader == nil {
-			loader = c.loader
-		}
-		if loader == nil {
-			return
-		}
-		value, err, ok = c.group.Do(key, func() (V, error) {
-			v, ttl, err := loader(key)
-			if err != nil {
-				return v, err
-			}
-			c.shards[hash&c.mask].Set(hash, c.hasher.Hash, key, v, ttl)
-			return v, nil
-		})
-	}
-	return
-}
-
-// GetOrLoad returns value for key, call loader function by singleflight if value was not in cache.
-// If loader parameter is nil, use global loader function provided by NewWithLoader instead.
-func (c *Cache[K, V]) GetOrLoad(key K, loader func(K) (V, time.Duration, error)) (value V, err error, ok bool) {
-	return c.getOrLoad(key, loader, false)
-}
-
-// TouchGetOrLoad returns value for key and reset expires with TTL, call loader function by singleflight if value was not in cache.
-// If loader parameter is nil, use global loader function provided by NewWithLoader instead.
-func (c *Cache[K, V]) TouchGetOrLoad(key K, loader func(K) (V, time.Duration, error)) (value V, err error, ok bool) {
-	return c.getOrLoad(key, loader, true)
 }

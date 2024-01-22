@@ -14,7 +14,7 @@ func TestCacheDefaultkey(t *testing.T) {
 	var k string
 	var i int = 10
 
-	if prev, replaced := l.Set(k, i); replaced {
+	if prev, replaced := l.Set(k, i, 0); replaced {
 		t.Fatalf("value %v should not be replaced", prev)
 	}
 
@@ -30,7 +30,7 @@ func TestCacheSetget(t *testing.T) {
 		t.Fatalf("bad returned value: %v", v)
 	}
 
-	if _, replaced := l.Set(5, 10); replaced {
+	if _, replaced := l.Set(5, 10, 0); replaced {
 		t.Fatal("should not have replaced")
 	}
 
@@ -38,20 +38,16 @@ func TestCacheSetget(t *testing.T) {
 		t.Fatalf("bad returned value: %v != %v", v, 10)
 	}
 
-	if v, replaced := l.Set(5, 9); v != 10 || !replaced {
+	if v, replaced := l.Set(5, 9, 0); v != 10 || !replaced {
 		t.Fatal("old value should be evicted")
 	}
 
-	if v, replaced := l.Set(5, 9); v != 9 || !replaced {
+	if v, replaced := l.Set(5, 9, 0); v != 9 || !replaced {
 		t.Fatal("old value should be evicted")
 	}
 
 	if v, ok := l.Get(5); !ok || v != 9 {
 		t.Fatalf("bad returned value: %v != %v", v, 10)
-	}
-
-	if !l.Exists(5) || l.Exists(6) {
-		t.Fatalf("5 value shoube be exists and 6 value should be non-exists")
 	}
 }
 
@@ -60,7 +56,7 @@ func TestCacheEviction(t *testing.T) {
 
 	evictedCounter := 0
 	for i := 0; i < 512; i++ {
-		if v, _ := l.Set(i, &i); v != nil {
+		if v, _ := l.Set(i, &i, 0); v != nil {
 			evictedCounter++
 		}
 	}
@@ -102,7 +98,7 @@ func TestCacheEviction(t *testing.T) {
 		t.Fatalf("curent cache length %v should be %v", got, want)
 	}
 
-	l.Set(400, &evictedCounter)
+	l.Set(400, &evictedCounter, 0)
 
 	if got, want := len(l.AppendKeys(nil)), 128; got != want {
 		t.Fatalf("curent cache keys length %v should be %v", got, want)
@@ -112,8 +108,8 @@ func TestCacheEviction(t *testing.T) {
 func TestCachePeek(t *testing.T) {
 	l := New[int, int](64)
 
-	l.Set(10, 10)
-	l.Set(20, 20)
+	l.Set(10, 10, 0)
+	l.Set(20, 20, 0)
 	if v, ok := l.Peek(10); !ok || v != 10 {
 		t.Errorf("10 should be set to 10: %v,", v)
 	}
@@ -127,7 +123,7 @@ func TestCachePeek(t *testing.T) {
 	}
 
 	for k := 3; k < 1024; k++ {
-		l.Set(k, k)
+		l.Set(k, k, 0)
 	}
 	if v, ok := l.Peek(10); ok || v == 10 {
 		t.Errorf("%v should not have updated recent-ness of 10", v)
@@ -138,56 +134,57 @@ func TestCachePeek(t *testing.T) {
 }
 
 func TestCacheLoader(t *testing.T) {
-	l := NewWithLoader[string, int](1024, func(key string) (int, time.Duration, error) {
+	l := New[string, int](1024)
+	if v, err, ok := l.GetOrLoad("a"); ok || err == nil || v != 0 {
+		t.Errorf("l.GetOrLoad(\"a\") again should be return error: %v, %v, %v", v, err, ok)
+	}
+
+	l = New[string, int](1024, WithLoader(func(key string) (int, time.Duration, error) {
 		if key == "" {
 			return 0, 0, fmt.Errorf("invalid key: %v", key)
 		}
 		i := int(key[0] - 'a' + 1)
 		return i, time.Duration(i) * time.Second, nil
-	})
+	}))
 
-	if v, err, ok := l.GetOrLoad("", l.Loader()); ok || err == nil || v != 0 {
+	if v, err, ok := l.GetOrLoad(""); ok || err == nil || v != 0 {
 		t.Errorf("l.GetOrLoad(\"a\") again should be return error: %v, %v, %v", v, err, ok)
 	}
 
-	if v, err, ok := l.TouchGetOrLoad("b", nil); ok || err != nil || v != 2 {
+	if v, err, ok := l.GetOrLoad("b"); ok || err != nil || v != 2 {
 		t.Errorf("l.GetOrLoad(\"b\") again should be return 2: %v, %v, %v", v, err, ok)
 	}
 
-	if v, err, ok := l.GetOrLoad("a", nil); ok || err != nil || v != 1 {
+	if v, err, ok := l.GetOrLoad("a"); ok || err != nil || v != 1 {
 		t.Errorf("l.GetOrLoad(\"a\") should be return 1: %v, %v, %v", v, err, ok)
 	}
 
-	if v, err, ok := l.GetOrLoad("a", nil); !ok || err != nil || v != 1 {
+	if v, err, ok := l.GetOrLoad("a"); !ok || err != nil || v != 1 {
 		t.Errorf("l.GetOrLoad(\"a\") again should be return 1: %v, %v, %v", v, err, ok)
 	}
 
 	time.Sleep(1 * time.Second)
 
-	if v, err, ok := l.GetOrLoad("a", nil); ok || err != nil || v != 1 {
+	if v, err, ok := l.GetOrLoad("a"); ok || err != nil || v != 1 {
 		t.Errorf("l.GetOrLoad(\"a\") again should be return 1: %v, %v, %v", v, err, ok)
-	}
-
-	if v, err, ok := NewWithLoader[string, int](1024, nil).GetOrLoad("a", nil); ok || v != 0 {
-		t.Errorf("empty loading cache GetOrLoad(\"a\") again should be return empty: %v, %v, %v", v, err, ok)
 	}
 }
 
 func TestCacheLoaderSingleflight(t *testing.T) {
 	var loads uint32
 
-	l := NewWithLoader[string, int](1024, func(key string) (int, time.Duration, error) {
+	l := New[string, int](1024, WithLoader(func(key string) (int, time.Duration, error) {
 		atomic.AddUint32(&loads, 1)
 		time.Sleep(100 * time.Millisecond)
 		return int(key[0] - 'a' + 1), time.Hour, nil
-	})
+	}))
 
 	var wg sync.WaitGroup
 	wg.Add(10)
 	for i := 0; i < 10; i++ {
 		go func(i int) {
 			defer wg.Done()
-			v, err, ok := l.GetOrLoad("a", nil)
+			v, err, ok := l.GetOrLoad("a")
 			if v != 1 || err != nil || !ok {
 				t.Errorf("a should be set to 1: %v,%v,%v", v, err, ok)
 			}
@@ -200,27 +197,27 @@ func TestCacheLoaderSingleflight(t *testing.T) {
 	}
 }
 
-func TestCacheTouchGet(t *testing.T) {
-	l := newWithShards[string, int](1, 256)
+func TestCacheSlidingGet(t *testing.T) {
+	l := newWithShards[string, int](1, 256, WithSliding[string, int](true))
 
-	l.Set("a", 1)
-	l.SetWithTTL("b", 2, 3*time.Second)
-	l.SetWithTTL("c", 3, 3*time.Second)
-	l.SetWithTTL("d", 3, 1*time.Second)
+	l.Set("a", 1, 0)
+	l.Set("b", 2, 3*time.Second)
+	l.Set("c", 3, 3*time.Second)
+	l.Set("d", 3, 1*time.Second)
 
 	if got, want := l.AppendKeys(nil), 4; len(got) != want {
 		t.Fatalf("curent cache keys %v length should be %v", got, want)
 	}
 
-	if v, ok := l.TouchGet("a"); !ok || v != 1 {
+	if v, ok := l.Get("a"); !ok || v != 1 {
 		t.Fatalf("a should be set to 1: %v,", v)
 	}
 
 	time.Sleep(2 * time.Second)
-	if v, ok := l.TouchGet("c"); !ok || v != 3 {
+	if v, ok := l.Get("c"); !ok || v != 3 {
 		t.Errorf("c should be set to 3: %v,", v)
 	}
-	if v, ok := l.TouchGet("d"); ok || v != 0 {
+	if v, ok := l.Get("d"); ok || v != 0 {
 		t.Errorf("d should be set to 0: %v,", v)
 	}
 
@@ -228,7 +225,7 @@ func TestCacheTouchGet(t *testing.T) {
 		t.Fatalf("curent cache keys %v length should be %v", got, want)
 	}
 
-	l.SetWithTTL("c", 4, 3*time.Second)
+	l.Set("c", 4, 3*time.Second)
 
 	time.Sleep(2 * time.Second)
 	if v, ok := l.Get("c"); !ok || v != 4 {
@@ -255,7 +252,7 @@ func BenchmarkCacheRand(b *testing.B) {
 	var hit, miss int
 	for i := 0; i < 2*b.N; i++ {
 		if i%2 == 0 {
-			l.Set(trace[i], trace[i])
+			l.Set(trace[i], trace[i], 0)
 		} else {
 			if _, ok := l.Get(trace[i]); ok {
 				hit++
@@ -283,7 +280,7 @@ func BenchmarkCacheFreq(b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		l.Set(trace[i], trace[i])
+		l.Set(trace[i], trace[i], 0)
 	}
 	var hit, miss int
 	for i := 0; i < b.N; i++ {
@@ -312,7 +309,7 @@ func BenchmarkCacheTTL(b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		l.SetWithTTL(trace[i], trace[i], 60*time.Second)
+		l.Set(trace[i], trace[i], 60*time.Second)
 	}
 	var hit, miss int
 	for i := 0; i < b.N; i++ {

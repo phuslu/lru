@@ -17,13 +17,13 @@
 * Memory efficient
     - Adds only 26 extra bytes per cache object.
     - Utilizes the [least memory](#memory-usage) compared to others.
-* Feature selected
-    - LoadingCache with `GetOrLoad` method.
-    - SlidingCache with `TouchGet` method.
+* Feature optional
+    - SlidingCache via `WithSilding(true)` option.
+    - LoadingCache via `WithLoader(func(key K) (v V, ttl time.Duration, err error))` option.
 
 ### Getting Started
 
-An out of box example. https://go.dev/play/p/QmllF57birV
+An out of box example. https://go.dev/play/p/01hUdKwp2MC
 ```go
 package main
 
@@ -36,7 +36,7 @@ import (
 func main() {
 	cache := lru.New[string, int](8192)
 
-	cache.SetWithTTL("a", 1, 2*time.Second)
+	cache.Set("a", 1, 2*time.Second)
 	println(cache.Get("a"))
 
 	time.Sleep(1 * time.Second)
@@ -47,7 +47,7 @@ func main() {
 }
 ```
 
-Create a loading cache. https://go.dev/play/p/S261F8ij2BL
+Using as a sliding cache. https://go.dev/play/p/l6GUlrAigJK
 ```go
 package main
 
@@ -58,17 +58,22 @@ import (
 )
 
 func main() {
-	cache := lru.NewWithLoader[string, int](8192, func(string) (int, time.Duration, error) {
-		return 42, time.Hour, nil
-	})
+	cache := lru.New[string, int](8192, lru.WithSilding(true))
 
-	println(cache.Get("b"))
-	println(cache.GetOrLoad("b", nil))
-	println(cache.Get("b"))
+	cache.Set("foobar", 42, 3*time.Second)
+
+	time.Sleep(2 * time.Second)
+	println(cache.Get("foobar"))
+
+	time.Sleep(2 * time.Second)
+	println(cache.Get("foobar"))
+
+	time.Sleep(2 * time.Second)
+	println(cache.Get("foobar"))
 }
 ```
 
-Using as a sliding cache. https://go.dev/play/p/usCPrTN34Xp
+Create a loading cache. https://go.dev/play/p/Ve8o4Ihrdxp
 ```go
 package main
 
@@ -79,18 +84,15 @@ import (
 )
 
 func main() {
-	cache := lru.New[string, int](8192)
+	loader := func(key string) (int, time.Duration, error) {
+		return 42, time.Hour, nil
+	}
 
-	cache.SetWithTTL("foobar", 42, 3*time.Second)
+	cache := lru.New[string, int](8192, lru.WithLoader(loader))
 
-	time.Sleep(2 * time.Second)
-	println(cache.TouchGet("foobar"))
-
-	time.Sleep(2 * time.Second)
-	println(cache.TouchGet("foobar"))
-
-	time.Sleep(2 * time.Second)
-	println(cache.TouchGet("foobar"))
+	println(cache.Get("b"))
+	println(cache.GetOrLoad("b"))
+	println(cache.Get("b"))
 }
 ```
 
@@ -98,7 +100,7 @@ func main() {
 
 A Performance result as below. Check github [actions][actions] for more results and details.
 <details>
-  <summary>benchmark on keysize=16, cachesize=1000000, parallelism=32 with randomly read (90%) / write(10%)</summary>
+  <summary>benchmark on keysize=16, itemsize=1000000, cachesize=50%, concurrency=32 with randomly read (90%) / write(10%)</summary>
 
   ```go
   // go test -v -cpu=8 -run=none -bench=. -benchtime=5s -benchmem bench_test.go
@@ -250,9 +252,9 @@ A Performance result as below. Check github [actions][actions] for more results 
   }
 
   func BenchmarkOtterGet(b *testing.B) {
-  	cache, _ := otter.MustBuilder[string, int](cachesize).WithTTL(time.Hour).Build()
+  	cache, _ := otter.MustBuilder[string, int](cachesize).WithVariableTTL().Build()
   	for i := 0; i < cachesize/2; i++ {
-  		cache.Set(keys[i], i)
+  		cache.Set(keys[i], i, time.Hour)
   	}
 
   	b.SetParallelism(parallelism)
@@ -263,7 +265,7 @@ A Performance result as below. Check github [actions][actions] for more results 
   		for pb.Next() {
   			i := int(fastrandn(cachesize))
   			if i <= waterlevel {
-  				cache.Set(keys[i], i)
+  				cache.Set(keys[i], i, time.Hour)
   			} else {
   				cache.Get(keys[i])
   			}
@@ -300,7 +302,7 @@ A Performance result as below. Check github [actions][actions] for more results 
   func BenchmarkPhusluGet(b *testing.B) {
   	cache := phuslu.New[string, int](cachesize)
   	for i := 0; i < cachesize/2; i++ {
-  		cache.SetWithTTL(keys[i], i, time.Hour)
+  		cache.Set(keys[i], i, time.Hour)
   	}
 
   	b.SetParallelism(parallelism)
@@ -311,7 +313,7 @@ A Performance result as below. Check github [actions][actions] for more results 
   		for pb.Next() {
   			i := int(fastrandn(cachesize))
   			if i <= waterlevel {
-  				cache.SetWithTTL(keys[i], i, time.Hour)
+  				cache.Set(keys[i], i, time.Hour)
   			} else {
   				cache.Get(keys[i])
   			}
@@ -349,7 +351,7 @@ ok    command-line-arguments  69.056s
 
 The Memory usage result as below. Check github [actions][actions] for more results and details.
 <details>
-  <summary>memory usage on keysize=16(string), valuesize=8(int), cachesize=1000000(1M)</summary>
+  <summary>memory usage on keysize=16(string), valuesize=8(int), itemsize=1000000(1M), cachesize=100%</summary>
 
   ```go
   // memusage.go
@@ -424,7 +426,7 @@ The Memory usage result as below. Check github [actions][actions] for more resul
   func SetupPhuslu() {
   	cache := phuslu.New[string, int](cachesize)
   	for i := 0; i < cachesize; i++ {
-  		cache.SetWithTTL(keys[i], i, time.Hour)
+  		cache.Set(keys[i], i, time.Hour)
   	}
   }
 
@@ -436,9 +438,9 @@ The Memory usage result as below. Check github [actions][actions] for more resul
   }
 
   func SetupOtter() {
-  	cache, _ := otter.MustBuilder[string, int](cachesize).Build()
+  	cache, _ := otter.MustBuilder[string, int](cachesize).WithVariableTTL().Build()
   	for i := 0; i < cachesize; i++ {
-  		cache.Set(keys[i], i)
+  		cache.Set(keys[i], i, time.Hour)
   	}
   }
 
@@ -486,13 +488,13 @@ The Memory usage result as below. Check github [actions][actions] for more resul
 | MemStats   | Alloc   | TotalAlloc | Sys     |
 | ---------- | ------- | ---------- | ------- |
 | phuslu     | 48 MiB  | 56 MiB     | 61 MiB  |
-| otter      | 89 MiB  | 135 MiB    | 119 MiB |
 | freelru    | 112 MiB | 120 MiB    | 122 MiB |
 | ecache     | 123 MiB | 131 MiB    | 127 MiB |
-| ristretto  | 150 MiB | 304 MiB    | 221 MiB |
-| theine     | 177 MiB | 223 MiB    | 193 MiB |
-| cloudflare | 183 MiB | 191 MiB    | 188 MiB |
+| otter      | 137 MiB | 211 MiB    | 181 MiB |
+| ristretto  | 138 MiB | 298 MiB    | 226 MiB |
+| theine     | 177 MiB | 223 MiB    | 194 MiB |
 | ccache     | 183 MiB | 244 MiB    | 194 MiB |
+| cloudflare | 183 MiB | 191 MiB    | 188 MiB |
 
 ### License
 LRU is licensed under the MIT License. See the LICENSE file for details.
