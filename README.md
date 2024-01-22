@@ -250,9 +250,9 @@ A Performance result as below. Check github [actions][actions] for more results 
   }
 
   func BenchmarkOtterGet(b *testing.B) {
-  	cache, _ := otter.MustBuilder[string, int](cachesize).Build()
+  	cache, _ := otter.MustBuilder[string, int](cachesize).WithTTL(time.Hour).Build()
   	for i := 0; i < cachesize/2; i++ {
-  		cache.SetWithTTL(keys[i], i, time.Hour)
+  		cache.Set(keys[i], i)
   	}
 
   	b.SetParallelism(parallelism)
@@ -263,7 +263,7 @@ A Performance result as below. Check github [actions][actions] for more results 
   		for pb.Next() {
   			i := int(fastrandn(cachesize))
   			if i <= waterlevel {
-  				cache.SetWithTTL(keys[i], i, time.Hour)
+  				cache.Set(keys[i], i)
   			} else {
   				cache.Get(keys[i])
   			}
@@ -326,23 +326,23 @@ goos: linux
 goarch: amd64
 cpu: AMD EPYC 7763 64-Core Processor                
 BenchmarkCloudflareGet
-BenchmarkCloudflareGet-8    38424013         154.1 ns/op        16 B/op        1 allocs/op
+BenchmarkCloudflareGet-8    37052289         156.4 ns/op        16 B/op        1 allocs/op
 BenchmarkEcacheGet
-BenchmarkEcacheGet-8        54001467         113.3 ns/op         2 B/op        0 allocs/op
+BenchmarkEcacheGet-8        51275146         113.5 ns/op         2 B/op        0 allocs/op
 BenchmarkCcacheGet
-BenchmarkCcacheGet-8        26143230         262.0 ns/op        31 B/op        2 allocs/op
+BenchmarkCcacheGet-8        25764298         269.4 ns/op        31 B/op        2 allocs/op
 BenchmarkRistrettoGet
-BenchmarkRistrettoGet-8     38958865         144.6 ns/op        27 B/op        1 allocs/op
+BenchmarkRistrettoGet-8     37332340         148.7 ns/op        27 B/op        1 allocs/op
 BenchmarkTheineGet
-BenchmarkTheineGet-8        34741431         177.4 ns/op         0 B/op        0 allocs/op
+BenchmarkTheineGet-8        32714353         178.4 ns/op         0 B/op        0 allocs/op
 BenchmarkOtterGet
-BenchmarkOtterGet-8         30704629         211.7 ns/op         6 B/op        0 allocs/op
+BenchmarkOtterGet-8         31276680         191.4 ns/op         6 B/op        0 allocs/op
 BenchmarkFreelruGet
-BenchmarkFreelruGet-8       52322312         113.8 ns/op         0 B/op        0 allocs/op
+BenchmarkFreelruGet-8       60813242         106.0 ns/op         0 B/op        0 allocs/op
 BenchmarkPhusluGet
-BenchmarkPhusluGet-8        61701811          94.82 ns/op        0 B/op        0 allocs/op
+BenchmarkPhusluGet-8        69113716          92.58 ns/op        0 B/op        0 allocs/op
 PASS
-ok    command-line-arguments  69.370s
+ok    command-line-arguments  69.056s
 ```
 
 ### Memory usage
@@ -438,7 +438,7 @@ The Memory usage result as below. Check github [actions][actions] for more resul
   func SetupOtter() {
   	cache, _ := otter.MustBuilder[string, int](cachesize).Build()
   	for i := 0; i < cachesize; i++ {
-  		cache.SetWithTTL(keys[i], i, time.Hour)
+  		cache.Set(keys[i], i)
   	}
   }
 
@@ -485,14 +485,14 @@ The Memory usage result as below. Check github [actions][actions] for more resul
 
 | MemStats   | Alloc   | TotalAlloc | Sys     |
 | ---------- | ------- | ---------- | ------- |
-| phuslu     | 48 MiB  | 56 MiB     | 57 MiB  |
+| phuslu     | 48 MiB  | 56 MiB     | 61 MiB  |
+| otter      | 89 MiB  | 135 MiB    | 119 MiB |
 | freelru    | 112 MiB | 120 MiB    | 122 MiB |
 | ecache     | 123 MiB | 131 MiB    | 127 MiB |
-| ristretto  | 127 MiB | 219 MiB    | 136 MiB |
-| otter      | 137 MiB | 211 MiB    | 181 MiB |
+| ristretto  | 150 MiB | 304 MiB    | 221 MiB |
 | theine     | 177 MiB | 223 MiB    | 193 MiB |
-| ccache     | 183 MiB | 244 MiB    | 194 MiB |
 | cloudflare | 183 MiB | 191 MiB    | 188 MiB |
+| ccache     | 183 MiB | 244 MiB    | 194 MiB |
 
 ### License
 LRU is licensed under the MIT License. See the LICENSE file for details.
