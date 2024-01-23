@@ -4,7 +4,7 @@
 package lru
 
 import (
-	"fmt"
+	"errors"
 	"runtime"
 	"sync/atomic"
 	"time"
@@ -90,13 +90,15 @@ func (c *Cache[K, V]) Get(key K) (value V, ok bool) {
 	return c.shards[hash&c.mask].Get(hash, key)
 }
 
+var ErrLoaderIsNil = errors.New("loader is nil")
+
 // GetOrLoad returns value for key, call loader function by singleflight if value was not in cache.
 func (c *Cache[K, V]) GetOrLoad(key K) (value V, err error, ok bool) {
 	hash := uint32(c.hasher.Hash(key))
 	value, ok = c.shards[hash&c.mask].Get(hash, key)
 	if !ok {
 		if c.loader == nil {
-			err = fmt.Errorf("loader is nil")
+			err = ErrLoaderIsNil
 			return
 		}
 		value, err, ok = c.group.Do(key, func() (V, error) {
