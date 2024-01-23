@@ -119,10 +119,16 @@ func (c *Cache[K, V]) Peek(key K) (value V, ok bool) {
 	return c.shards[hash&c.mask].Peek(hash, key)
 }
 
-// Set inserts key value pair and returns previous value, if cache was full.
+// Set inserts key value pair and returns previous value.
 func (c *Cache[K, V]) Set(key K, value V, ttl time.Duration) (prev V, replaced bool) {
 	hash := uint32(c.hasher.Hash(key))
 	return c.shards[hash&c.mask].Set(hash, c.hasher.Hash, key, value, ttl)
+}
+
+// SetIfAbsent inserts key value pair and returns previous value, if key is absent in the cache.
+func (c *Cache[K, V]) SetIfAbsent(key K, value V, ttl time.Duration) (prev V, replaced bool) {
+	hash := uint32(c.hasher.Hash(key))
+	return c.shards[hash&c.mask].SetIfAbsent(hash, c.hasher.Hash, key, value, ttl)
 }
 
 // Delete method deletes value associated with key and returns deleted value (or empty value if key was not in cache).

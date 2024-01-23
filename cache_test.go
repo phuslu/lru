@@ -23,7 +23,7 @@ func TestCacheDefaultkey(t *testing.T) {
 	}
 }
 
-func TestCacheSetget(t *testing.T) {
+func TestCacheGetSet(t *testing.T) {
 	l := New[int, int](128)
 
 	if v, ok := l.Get(5); ok {
@@ -48,6 +48,62 @@ func TestCacheSetget(t *testing.T) {
 
 	if v, ok := l.Get(5); !ok || v != 9 {
 		t.Fatalf("bad returned value: %v != %v", v, 10)
+	}
+}
+
+func TestCacheSetIfAbsent(t *testing.T) {
+	l := New[int, int](128)
+
+	l.Set(5, 5, 0)
+
+	if _, replaced := l.SetIfAbsent(5, 10, 0); replaced {
+		t.Fatal("should not have replaced")
+	}
+
+	if v, ok := l.Get(5); !ok || v != 5 {
+		t.Fatalf("bad returned value: %v = %v", v, 5)
+	}
+
+	l.Delete(5)
+
+	if _, replaced := l.SetIfAbsent(5, 10, 0); replaced {
+		t.Fatal("should not have replaced")
+	}
+
+	if v, ok := l.Get(5); !ok || v != 10 {
+		t.Fatalf("bad returned value: %v = %v", v, 10)
+	}
+
+	l.Delete(5)
+
+	if _, replaced := l.SetIfAbsent(5, 10, 1*time.Second); replaced {
+		t.Fatal("should not have replaced")
+	}
+
+	if v, ok := l.Get(5); !ok || v != 10 {
+		t.Fatalf("bad returned value: %v = %v", v, 10)
+	}
+
+	l.Set(5, 5, 1*time.Second)
+	time.Sleep(2 * time.Second)
+
+	if _, replaced := l.SetIfAbsent(5, 10, 1*time.Second); !replaced {
+		t.Fatal("should have replaced")
+	}
+
+	if v, ok := l.Get(5); !ok || v != 10 {
+		t.Fatalf("bad returned value: %v = %v", v, 10)
+	}
+
+	l.Set(5, 5, 1*time.Second)
+	time.Sleep(2 * time.Second)
+
+	if _, replaced := l.SetIfAbsent(5, 10, 0); !replaced {
+		t.Fatal("should have replaced")
+	}
+
+	if v, ok := l.Get(5); !ok || v != 10 {
+		t.Fatalf("bad returned value: %v = %v", v, 10)
 	}
 }
 

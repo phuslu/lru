@@ -86,6 +86,50 @@ func (s *shard[K, V]) Peek(hash uint32, key K) (value V, ok bool) {
 	return
 }
 
+func (s *shard[K, V]) SetIfAbsent(hash uint32, hashfun func(K) uint64, key K, value V, ttl time.Duration) (prev V, replaced bool) {
+	s.mu.Lock()
+
+	if index, exists := s.table_Get(hash, key); exists {
+		node := &s.list[index]
+		prev = node.value
+		if node.expires == 0 || atomic.LoadUint32(&clock) < node.expires {
+			s.mu.Unlock()
+			return
+		}
+
+		node.value = value
+		if ttl > 0 {
+			node.ttl = uint32(ttl / time.Second)
+			node.expires = atomic.LoadUint32(&clock) + node.ttl
+		} else {
+			node.ttl = 0
+			node.expires = 0
+		}
+		replaced = true
+
+		s.mu.Unlock()
+		return
+	}
+
+	index := s.list_Back()
+	node := &s.list[index]
+	evictedValue := node.value
+	s.table_Delete(uint32(hashfun(node.key)), node.key)
+
+	node.key = key
+	node.value = value
+	if ttl > 0 {
+		node.ttl = uint32(ttl / time.Second)
+		node.expires = atomic.LoadUint32(&clock) + node.ttl
+	}
+	s.table_Set(hash, key, index)
+	s.list_MoveToFront(index)
+	prev = evictedValue
+
+	s.mu.Unlock()
+	return
+}
+
 func (s *shard[K, V]) Set(hash uint32, hashfun func(K) uint64, key K, value V, ttl time.Duration) (prev V, replaced bool) {
 	s.mu.Lock()
 
