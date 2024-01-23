@@ -2,6 +2,9 @@
 
 [![godoc][godoc-img]][godoc] [![release][release-img]][release] [![goreport][goreport-img]][goreport] [![codecov][codecov-img]][codecov]
 
+## Need feedback API and Feature for first release
+[http://github.com/phuslu/lru/issues/3](https://github.com/phuslu/lru/issues/3)
+
 ### Features
 
 * Simple
