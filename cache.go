@@ -28,7 +28,7 @@ func New[K comparable, V any](size int, options ...Option[K, V]) *Cache[K, V] {
 
 // Options implements LRU Cache Option.
 type Option[K comparable, V any] interface {
-	Apply(*Cache[K, V])
+	ApplyToCache(*Cache[K, V])
 }
 
 // WithLoader specifies that use sliding cache or not.
@@ -40,7 +40,7 @@ type slidingOption[K comparable, V any] struct {
 	sliding bool
 }
 
-func (o *slidingOption[K, V]) Apply(c *Cache[K, V]) {
+func (o *slidingOption[K, V]) ApplyToCache(c *Cache[K, V]) {
 	for i := range c.shards {
 		c.shards[i].sliding = o.sliding
 	}
@@ -55,7 +55,7 @@ type loaderOption[K comparable, V any] struct {
 	loader func(K) (V, time.Duration, error)
 }
 
-func (o *loaderOption[K, V]) Apply(c *Cache[K, V]) {
+func (o *loaderOption[K, V]) ApplyToCache(c *Cache[K, V]) {
 	c.loader = o.loader
 	c.group = singleflight_Group[K, V]{}
 }
@@ -78,7 +78,7 @@ func newWithShards[K comparable, V any](shardcount, shardsize int, options ...Op
 		c.shards[i].Init(uint32(shardsize))
 	}
 	for _, option := range options {
-		option.Apply(c)
+		option.ApplyToCache(c)
 	}
 
 	return c
