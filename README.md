@@ -121,6 +121,7 @@ A Performance result as below. Check github [actions][actions] for more results 
   	ristretto "github.com/dgraph-io/ristretto"
   	freelru "github.com/elastic/go-freelru"
   	ccache "github.com/karlseguin/ccache/v3"
+  	lxzan "github.com/lxzan/memorycache"
   	otter "github.com/maypok86/otter"
   	ecache "github.com/orca-zhang/ecache"
   	phuslu "github.com/phuslu/lru"
@@ -254,6 +255,32 @@ A Performance result as below. Check github [actions][actions] for more results 
   	})
   }
 
+  func BenchmarkLxzanGet(b *testing.B) {
+  	cache := lxzan.New[string, int](
+		lxzan.WithBucketNum(128),
+		lxzan.WithBucketSize(cachesize/128, cachesize/128),
+		lxzan.WithInterval(time.Hour, time.Hour),
+	)
+  	for i := 0; i < cachesize/2; i++ {
+  		cache.Set(keys[i], i, time.Hour)
+  	}
+
+  	b.SetParallelism(parallelism)
+  	b.ResetTimer()
+
+  	b.RunParallel(func(pb *testing.PB) {
+  		waterlevel := int(float32(cachesize) * writeradio)
+  		for pb.Next() {
+  			i := int(fastrandn(cachesize))
+  			if i <= waterlevel {
+  				cache.Set(keys[i], i, time.Hour)
+  			} else {
+  				cache.Get(keys[i])
+  			}
+  		}
+  	})
+  }
+
   func BenchmarkOtterGet(b *testing.B) {
   	cache, _ := otter.MustBuilder[string, int](cachesize).WithVariableTTL().Build()
   	for i := 0; i < cachesize/2; i++ {
@@ -342,6 +369,8 @@ BenchmarkTheineGet
 BenchmarkTheineGet-8        32714353         178.4 ns/op         0 B/op        0 allocs/op
 BenchmarkOtterGet
 BenchmarkOtterGet-8         31276680         191.4 ns/op         6 B/op        0 allocs/op
+BenchmarkLxzanGet
+BenchmarkLxzanGet-8         42737262         146.3 ns/op         0 B/op        0 allocs/op
 BenchmarkFreelruGet
 BenchmarkFreelruGet-8       60813242         106.0 ns/op         0 B/op        0 allocs/op
 BenchmarkPhusluGet
@@ -372,6 +401,7 @@ The Memory usage result as below. Check github [actions][actions] for more resul
   	freelru "github.com/elastic/go-freelru"
   	ristretto "github.com/dgraph-io/ristretto"
   	ccache "github.com/karlseguin/ccache/v3"
+  	lxzan "github.com/lxzan/memorycache"
   	otter "github.com/maypok86/otter"
   	ecache "github.com/orca-zhang/ecache"
   	phuslu "github.com/phuslu/lru"
@@ -405,6 +435,8 @@ The Memory usage result as below. Check github [actions][actions] for more resul
   		SetupOtter()
   	case "ccache":
   		SetupCcache()
+  	case "lxzan":
+  		SetupLxzan()
   	case "ecache":
   		SetupEcache()
   	case "cloudflare":
@@ -472,6 +504,17 @@ The Memory usage result as below. Check github [actions][actions] for more resul
   	}
   }
 
+  func SetupLxzan() {
+  	cache := lxzan.New[string, int](
+		lxzan.WithBucketNum(128),
+		lxzan.WithBucketSize(cachesize/128, cachesize/128),
+		lxzan.WithInterval(time.Hour, time.Hour),
+	)
+  	for i := 0; i < cachesize; i++ {
+  		cache.Set(keys[i], i, time.Hour)
+  	}
+  }
+
   func SetupTheine() {
   	cache, _ := theine.NewBuilder[string, int](cachesize).Build()
   	for i := 0; i < cachesize; i++ {
@@ -491,6 +534,7 @@ The Memory usage result as below. Check github [actions][actions] for more resul
 | MemStats   | Alloc   | TotalAlloc | Sys     |
 | ---------- | ------- | ---------- | ------- |
 | phuslu     | 48 MiB  | 56 MiB     | 61 MiB  |
+| lxzan      | 95 MiB  | 103 MiB    | 106 MiB |
 | freelru    | 112 MiB | 120 MiB    | 122 MiB |
 | ecache     | 123 MiB | 131 MiB    | 127 MiB |
 | otter      | 137 MiB | 211 MiB    | 181 MiB |
