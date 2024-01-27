@@ -2,9 +2,6 @@
 
 [![godoc][godoc-img]][godoc] [![release][release-img]][release] [![goreport][goreport-img]][goreport] [![codecov][codecov-img]][codecov]
 
-## Need feedback API and Feature for first release
-[http://github.com/phuslu/lru/issues/3](https://github.com/phuslu/lru/issues/3)
-
 ### Features
 
 * Simple
@@ -19,7 +16,7 @@
     - Continuous memory layout.
 * Memory efficient
     - Adds only 26 extra bytes per cache object.
-    - Utilizes the [least memory](#memory-usage) compared to others.
+    - Minimized memory usage compared to others.
 * Feature optional
     - SlidingCache via `WithSilding(true)` option.
     - LoadingCache via `WithLoader(func(key K) (v V, ttl time.Duration, err error))` option.
@@ -145,7 +142,7 @@ A Performance result as below. Check github [actions][actions] for more results 
   //go:linkname fastrandn runtime.fastrandn
   func fastrandn(x uint32) uint32
 
-  func BenchmarkCloudflareGet(b *testing.B) {
+  func BenchmarkCloudflareGetSet(b *testing.B) {
   	cache := cloudflare.NewMultiLRUCache(1024, cachesize/1024)
   	for i := 0; i < cachesize/2; i++ {
   		cache.Set(keys[i], i, time.Now().Add(time.Hour))
@@ -166,7 +163,7 @@ A Performance result as below. Check github [actions][actions] for more results 
   	})
   }
 
-  func BenchmarkEcacheGet(b *testing.B) {
+  func BenchmarkEcacheGetSet(b *testing.B) {
   	cache := ecache.NewLRUCache(1024, cachesize/1024, time.Hour)
   	for i := 0; i < cachesize/2; i++ {
   		cache.Put(keys[i], i)
@@ -186,7 +183,59 @@ A Performance result as below. Check github [actions][actions] for more results 
   	})
   }
 
-  func BenchmarkRistrettoGet(b *testing.B) {
+  func BenchmarkLxzanGetSet(b *testing.B) {
+    cache := lxzan.New[string, int](
+    lxzan.WithBucketNum(128),
+    lxzan.WithBucketSize(cachesize/128, cachesize/128),
+    lxzan.WithInterval(time.Hour, time.Hour),
+  )
+    for i := 0; i < cachesize/2; i++ {
+      cache.Set(keys[i], i, time.Hour)
+    }
+
+    b.SetParallelism(parallelism)
+    b.ResetTimer()
+
+    b.RunParallel(func(pb *testing.PB) {
+      waterlevel := int(float32(cachesize) * writeradio)
+      for pb.Next() {
+        i := int(fastrandn(cachesize))
+        if i <= waterlevel {
+          cache.Set(keys[i], i, time.Hour)
+        } else {
+          cache.Get(keys[i])
+        }
+      }
+    })
+  }
+
+  func hashStringXXHASH(s string) uint32 {
+    return uint32(xxhash.Sum64String(s))
+  }
+
+  func BenchmarkFreelruGetSet(b *testing.B) {
+    cache, _ := freelru.NewSharded[string, int](cachesize, hashStringXXHASH)
+    for i := 0; i < cachesize/2; i++ {
+      cache.AddWithLifetime(keys[i], i, time.Hour)
+    }
+
+    b.SetParallelism(parallelism)
+    b.ResetTimer()
+
+    b.RunParallel(func(pb *testing.PB) {
+      waterlevel := int(float32(cachesize) * writeradio)
+      for pb.Next() {
+        i := int(fastrandn(cachesize))
+        if i <= waterlevel {
+          cache.AddWithLifetime(keys[i], i, time.Hour)
+        } else {
+          cache.Get(keys[i])
+        }
+      }
+    })
+  }
+
+  func BenchmarkRistrettoGetSet(b *testing.B) {
   	cache, _ := ristretto.NewCache(&ristretto.Config{
   		NumCounters: cachesize, // number of keys to track frequency of (10M).
   		MaxCost:     2 << 30,   // maximum cost of cache (2GB).
@@ -212,7 +261,7 @@ A Performance result as below. Check github [actions][actions] for more results 
   	})
   }
 
-  func BenchmarkTheineGet(b *testing.B) {
+  func BenchmarkTheineGetSet(b *testing.B) {
   	cache, _ := theine.NewBuilder[string, int](cachesize).Build()
   	for i := 0; i < cachesize/2; i++ {
   		cache.SetWithTTL(keys[i], i, 1, time.Hour)
@@ -234,33 +283,7 @@ A Performance result as below. Check github [actions][actions] for more results 
   	})
   }
 
-  func BenchmarkLxzanGet(b *testing.B) {
-  	cache := lxzan.New[string, int](
-		lxzan.WithBucketNum(128),
-		lxzan.WithBucketSize(cachesize/128, cachesize/128),
-		lxzan.WithInterval(time.Hour, time.Hour),
-	)
-  	for i := 0; i < cachesize/2; i++ {
-  		cache.Set(keys[i], i, time.Hour)
-  	}
-
-  	b.SetParallelism(parallelism)
-  	b.ResetTimer()
-
-  	b.RunParallel(func(pb *testing.PB) {
-  		waterlevel := int(float32(cachesize) * writeradio)
-  		for pb.Next() {
-  			i := int(fastrandn(cachesize))
-  			if i <= waterlevel {
-  				cache.Set(keys[i], i, time.Hour)
-  			} else {
-  				cache.Get(keys[i])
-  			}
-  		}
-  	})
-  }
-
-  func BenchmarkOtterGet(b *testing.B) {
+  func BenchmarkOtterGetSet(b *testing.B) {
   	cache, _ := otter.MustBuilder[string, int](cachesize).WithVariableTTL().Build()
   	for i := 0; i < cachesize/2; i++ {
   		cache.Set(keys[i], i, time.Hour)
@@ -282,33 +305,7 @@ A Performance result as below. Check github [actions][actions] for more results 
   	})
   }
 
-  func hashStringXXHASH(s string) uint32 {
-  	return uint32(xxhash.Sum64String(s))
-  }
-
-  func BenchmarkFreelruGet(b *testing.B) {
-  	cache, _ := freelru.NewSharded[string, int](cachesize, hashStringXXHASH)
-  	for i := 0; i < cachesize/2; i++ {
-  		cache.AddWithLifetime(keys[i], i, time.Hour)
-  	}
-
-  	b.SetParallelism(parallelism)
-  	b.ResetTimer()
-
-  	b.RunParallel(func(pb *testing.PB) {
-  		waterlevel := int(float32(cachesize) * writeradio)
-  		for pb.Next() {
-  			i := int(fastrandn(cachesize))
-  			if i <= waterlevel {
-  				cache.AddWithLifetime(keys[i], i, time.Hour)
-  			} else {
-  				cache.Get(keys[i])
-  			}
-  		}
-  	})
-  }
-
-  func BenchmarkPhusluGet(b *testing.B) {
+  func BenchmarkPhusluGetSet(b *testing.B) {
   	cache := phuslu.New[string, int](cachesize)
   	for i := 0; i < cachesize/2; i++ {
   		cache.Set(keys[i], i, time.Hour)
@@ -336,24 +333,24 @@ A Performance result as below. Check github [actions][actions] for more results 
 goos: linux
 goarch: amd64
 cpu: AMD EPYC 7763 64-Core Processor                
-BenchmarkCloudflareGet
-BenchmarkCloudflareGet-8    37205697         155.6 ns/op        16 B/op        1 allocs/op
-BenchmarkEcacheGet
-BenchmarkEcacheGet-8        52714924         113.9 ns/op         2 B/op        0 allocs/op
-BenchmarkRistrettoGet
-BenchmarkRistrettoGet-8     44718444         147.3 ns/op        27 B/op        1 allocs/op
-BenchmarkTheineGet
-BenchmarkTheineGet-8        32343907         186.2 ns/op         0 B/op        0 allocs/op
-BenchmarkLxzanGet
-BenchmarkLxzanGet-8         46908740         130.1 ns/op         0 B/op        0 allocs/op
-BenchmarkOtterGet
-BenchmarkOtterGet-8         33689887         190.8 ns/op         6 B/op        0 allocs/op
-BenchmarkFreelruGet
-BenchmarkFreelruGet-8       58624096         106.1 ns/op         0 B/op        0 allocs/op
-BenchmarkPhusluGet
-BenchmarkPhusluGet-8        74193494          85.43 ns/op        0 B/op        0 allocs/op
+BenchmarkCloudflareGetSet
+BenchmarkCloudflareGetSet-8     37905620         156.7 ns/op        16 B/op        1 allocs/op
+BenchmarkEcacheGetSet
+BenchmarkEcacheGetSet-8         51791524         116.4 ns/op         2 B/op        0 allocs/op
+BenchmarkLxzanGetSet
+BenchmarkLxzanGetSet-8          49494284         127.3 ns/op         0 B/op        0 allocs/op
+BenchmarkFreelruGetSet
+BenchmarkFreelruGetSet-8        56382706         108.7 ns/op         0 B/op        0 allocs/op
+BenchmarkRistrettoGetSet
+BenchmarkRistrettoGetSet-8      34761458         146.6 ns/op        27 B/op        1 allocs/op
+BenchmarkTheineGetSet
+BenchmarkTheineGetSet-8         37194024         166.1 ns/op         0 B/op        0 allocs/op
+BenchmarkOtterGetSet
+BenchmarkOtterGetSet-8          31980354         191.4 ns/op         6 B/op        0 allocs/op
+BenchmarkPhusluGetSet
+BenchmarkPhusluGetSet-8         67774108          84.88 ns/op        0 B/op        0 allocs/op
 PASS
-ok    command-line-arguments  65.488s
+ok    command-line-arguments  60.874s
 ```
 
 ### Memory usage
@@ -500,14 +497,14 @@ The Memory usage result as below. Check github [actions][actions] for more resul
 
 | MemStats   | Alloc   | TotalAlloc | Sys     |
 | ---------- | ------- | ---------- | ------- |
-| phuslu     | 48 MiB  | 56 MiB     | 61 MiB  |
+| phuslu     | 48 MiB  | 56 MiB     | 57 MiB  |
 | lxzan      | 95 MiB  | 103 MiB    | 106 MiB |
 | freelru    | 112 MiB | 120 MiB    | 122 MiB |
 | ecache     | 123 MiB | 131 MiB    | 127 MiB |
+| ristretto  | 171 MiB | 253 MiB    | 181 MiB |
 | otter      | 137 MiB | 211 MiB    | 181 MiB |
-| ristretto  | 138 MiB | 298 MiB    | 226 MiB |
 | theine     | 177 MiB | 223 MiB    | 194 MiB |
-| cloudflare | 183 MiB | 191 MiB    | 188 MiB |
+| cloudflare | 183 MiB | 191 MiB    | 189 MiB |
 
 ### License
 LRU is licensed under the MIT License. See the LICENSE file for details.
