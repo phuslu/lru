@@ -120,7 +120,6 @@ A Performance result as below. Check github [actions][actions] for more results 
   	cloudflare "github.com/cloudflare/golibs/lrucache"
   	ristretto "github.com/dgraph-io/ristretto"
   	freelru "github.com/elastic/go-freelru"
-  	ccache "github.com/karlseguin/ccache/v3"
   	lxzan "github.com/lxzan/memorycache"
   	otter "github.com/maypok86/otter"
   	ecache "github.com/orca-zhang/ecache"
@@ -180,26 +179,6 @@ A Performance result as below. Check github [actions][actions] for more results 
   			i := int(fastrandn(cachesize))
   			if i <= waterlevel {
   				cache.Put(keys[i], i)
-  			} else {
-  				cache.Get(keys[i])
-  			}
-  		}
-  	})
-  }
-
-  func BenchmarkCcacheGet(b *testing.B) {
-  	cache := ccache.New(ccache.Configure[int]().MaxSize(cachesize).ItemsToPrune(100))
-  	for i := 0; i < cachesize/2; i++ {
-  		cache.Set(keys[i], i, time.Hour)
-  	}
-  	b.SetParallelism(parallelism)
-  	b.ResetTimer()
-  	b.RunParallel(func(pb *testing.PB) {
-  		waterlevel := int(float32(cachesize) * writeradio)
-  		for pb.Next() {
-  			i := int(fastrandn(cachesize))
-  			if i <= waterlevel {
-  				cache.Set(keys[i], i, time.Hour)
   			} else {
   				cache.Get(keys[i])
   			}
@@ -358,25 +337,23 @@ goos: linux
 goarch: amd64
 cpu: AMD EPYC 7763 64-Core Processor                
 BenchmarkCloudflareGet
-BenchmarkCloudflareGet-8    37052289         156.4 ns/op        16 B/op        1 allocs/op
+BenchmarkCloudflareGet-8    37205697         155.6 ns/op        16 B/op        1 allocs/op
 BenchmarkEcacheGet
-BenchmarkEcacheGet-8        51275146         113.5 ns/op         2 B/op        0 allocs/op
-BenchmarkCcacheGet
-BenchmarkCcacheGet-8        25764298         269.4 ns/op        31 B/op        2 allocs/op
+BenchmarkEcacheGet-8        52714924         113.9 ns/op         2 B/op        0 allocs/op
 BenchmarkRistrettoGet
-BenchmarkRistrettoGet-8     37332340         148.7 ns/op        27 B/op        1 allocs/op
+BenchmarkRistrettoGet-8     44718444         147.3 ns/op        27 B/op        1 allocs/op
 BenchmarkTheineGet
-BenchmarkTheineGet-8        32714353         178.4 ns/op         0 B/op        0 allocs/op
-BenchmarkOtterGet
-BenchmarkOtterGet-8         31276680         191.4 ns/op         6 B/op        0 allocs/op
+BenchmarkTheineGet-8        32343907         186.2 ns/op         0 B/op        0 allocs/op
 BenchmarkLxzanGet
-BenchmarkLxzanGet-8         42737262         146.3 ns/op         0 B/op        0 allocs/op
+BenchmarkLxzanGet-8         46908740         130.1 ns/op         0 B/op        0 allocs/op
+BenchmarkOtterGet
+BenchmarkOtterGet-8         33689887         190.8 ns/op         6 B/op        0 allocs/op
 BenchmarkFreelruGet
-BenchmarkFreelruGet-8       60813242         106.0 ns/op         0 B/op        0 allocs/op
+BenchmarkFreelruGet-8       58624096         106.1 ns/op         0 B/op        0 allocs/op
 BenchmarkPhusluGet
-BenchmarkPhusluGet-8        69113716          92.58 ns/op        0 B/op        0 allocs/op
+BenchmarkPhusluGet-8        74193494          85.43 ns/op        0 B/op        0 allocs/op
 PASS
-ok    command-line-arguments  69.056s
+ok    command-line-arguments  65.488s
 ```
 
 ### Memory usage
@@ -400,7 +377,6 @@ The Memory usage result as below. Check github [actions][actions] for more resul
   	cloudflare "github.com/cloudflare/golibs/lrucache"
   	freelru "github.com/elastic/go-freelru"
   	ristretto "github.com/dgraph-io/ristretto"
-  	ccache "github.com/karlseguin/ccache/v3"
   	lxzan "github.com/lxzan/memorycache"
   	otter "github.com/maypok86/otter"
   	ecache "github.com/orca-zhang/ecache"
@@ -433,8 +409,6 @@ The Memory usage result as below. Check github [actions][actions] for more resul
   		SetupRistretto()
   	case "otter":
   		SetupOtter()
-  	case "ccache":
-  		SetupCcache()
   	case "lxzan":
   		SetupLxzan()
   	case "ecache":
@@ -486,13 +460,6 @@ The Memory usage result as below. Check github [actions][actions] for more resul
   	}
   }
 
-  func SetupCcache() {
-  	cache := ccache.New(ccache.Configure[int]().MaxSize(cachesize).ItemsToPrune(100))
-  	for i := 0; i < cachesize; i++ {
-  		cache.Set(keys[i], i, time.Hour)
-  	}
-  }
-
   func SetupRistretto() {
   	cache, _ := ristretto.NewCache(&ristretto.Config{
   		NumCounters: cachesize,
@@ -540,7 +507,6 @@ The Memory usage result as below. Check github [actions][actions] for more resul
 | otter      | 137 MiB | 211 MiB    | 181 MiB |
 | ristretto  | 138 MiB | 298 MiB    | 226 MiB |
 | theine     | 177 MiB | 223 MiB    | 194 MiB |
-| ccache     | 183 MiB | 244 MiB    | 194 MiB |
 | cloudflare | 183 MiB | 191 MiB    | 188 MiB |
 
 ### License
