@@ -22,11 +22,8 @@ func (s *shard[K, V]) table_Init(size int) {
 
 // Set assigns an index to a key.
 // Returns the previous index, or false when no index was assigned.
-func (s *shard[K, V]) table_Set(hash uint32, key K, index uint32) (uint32, bool) {
-	return s.table_set(hash>>dibBitSize, key, index)
-}
-
-func (s *shard[K, V]) table_set(subhash uint32, key K, index uint32) (prev uint32, ok bool) {
+func (s *shard[K, V]) table_Set(hash uint32, key K, index uint32) (prev uint32, ok bool) {
+	subhash := hash >> dibBitSize
 	hdib := subhash<<dibBitSize | uint32(1)&maxDIB
 	i := (hdib >> dibBitSize) & s.table.mask
 	for {
@@ -37,10 +34,11 @@ func (s *shard[K, V]) table_set(subhash uint32, key K, index uint32) (prev uint3
 			return
 		}
 		if hdib>>dibBitSize == s.table.buckets[i].hdib>>dibBitSize && key == s.list[s.table.buckets[i].index].key {
-			old := s.table.buckets[i].index
+			prev = s.table.buckets[i].index
 			s.table.buckets[i].hdib = hdib
 			s.table.buckets[i].index = index
-			return old, true
+			ok = true
+			return
 		}
 		if s.table.buckets[i].hdib&maxDIB < hdib&maxDIB {
 			hdib, s.table.buckets[i].hdib = s.table.buckets[i].hdib, hdib
