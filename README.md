@@ -18,8 +18,10 @@
     - Adds only 26 extra bytes per cache object.
     - Minimized memory usage compared to others.
 * Feature optional
-    - SlidingCache via `WithSilding(true)` option.
-    - LoadingCache via `WithLoader(func(key K) (v V, ttl time.Duration, err error))` option.
+    - Specifies shards count via `WithShards(count)` option.
+    - Customize hasher function via `WithHasher(func(key K) (hash uint64))` option.
+    - Using SlidingCache via `WithSilding(true)` option.
+    - Create LoadingCache via `WithLoader(func(key K) (v V, ttl time.Duration, err error))` option.
 
 ### Getting Started
 
@@ -47,7 +49,44 @@ func main() {
 }
 ```
 
-Using as a sliding cache. https://go.dev/play/p/l6GUlrAigJK
+Using a customized shards count.
+```go
+package main
+
+import (
+	"time"
+
+	"github.com/phuslu/lru"
+)
+
+func main() {
+	cache := lru.New[string, int](8192, lru.WithShards[string, int](64))
+
+	cache.Set("foobar", 42, 3*time.Second)
+	println(cache.Get("foobar"))
+}
+```
+
+Using a customized hasher function.
+```go
+package main
+
+import (
+	"time"
+
+	"github.com/phuslu/lru"
+	"github.com/zeebo/xxh3"
+)
+
+func main() {
+	cache := lru.New[string, int](8192, lru.WithHasher[string, int](xxh3.HashString))
+
+	cache.Set("foobar", 42, 3*time.Second)
+	println(cache.Get("foobar"))
+}
+```
+
+Using as a sliding cache.
 ```go
 package main
 
@@ -73,7 +112,7 @@ func main() {
 }
 ```
 
-Create a loading cache. https://go.dev/play/p/Ve8o4Ihrdxp
+Create a loading cache.
 ```go
 package main
 
