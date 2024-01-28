@@ -102,231 +102,222 @@ A Performance result as below. Check github [actions][actions] for more results 
 <details>
   <summary>benchmark on keysize=16, itemsize=1000000, cachesize=50%, concurrency=32 with randomly read (90%) / write(10%)</summary>
 
-  ```go
-  // go test -v -cpu=8 -run=none -bench=. -benchtime=5s -benchmem bench_test.go
-  package bench
+```go
+// go test -v -cpu=8 -run=none -bench=. -benchtime=5s -benchmem bench_test.go
+package bench
 
-  import (
-  	"fmt"
-  	"testing"
-  	"time"
-  	_ "unsafe"
+import (
+	"crypto/sha1"
+	"fmt"
+	"testing"
+	"time"
+	_ "unsafe"
 
-  	theine "github.com/Yiling-J/theine-go"
-  	"github.com/cespare/xxhash/v2"
-  	cloudflare "github.com/cloudflare/golibs/lrucache"
-  	ristretto "github.com/dgraph-io/ristretto"
-  	freelru "github.com/elastic/go-freelru"
-  	lxzan "github.com/lxzan/memorycache"
-  	otter "github.com/maypok86/otter"
-  	ecache "github.com/orca-zhang/ecache"
-  	phuslu "github.com/phuslu/lru"
-  )
+	theine "github.com/Yiling-J/theine-go"
+	"github.com/cespare/xxhash/v2"
+	cloudflare "github.com/cloudflare/golibs/lrucache"
+	ristretto "github.com/dgraph-io/ristretto"
+	freelru "github.com/elastic/go-freelru"
+	lxzan "github.com/lxzan/memorycache"
+	otter "github.com/maypok86/otter"
+	ecache "github.com/orca-zhang/ecache"
+	phuslu "github.com/phuslu/lru"
+)
 
-  const (
-  	keysize     = 16
-  	cachesize   = 1000000
-  	parallelism = 32
-  	writeradio  = 0.1
-  )
+const (
+	keysize     = 16
+	cachesize   = 1000000
+	parallelism = 32
+	writepecent = 10
+)
 
-  var keys = func() (x []string) {
-  	x = make([]string, cachesize)
-  	for i := 0; i < cachesize; i++ {
-  		x[i] = fmt.Sprintf(fmt.Sprintf("%%0%dd", keysize), i)
-  	}
-  	return
-  }()
+var keys = func() (x []string) {
+	x = make([]string, cachesize)
+	for i := 0; i < cachesize; i++ {
+		x[i] = fmt.Sprintf("%x", sha1.Sum([]byte(fmt.Sprint(i))))[:keysize]
+	}
+	return
+}()
 
-  //go:noescape
-  //go:linkname fastrandn runtime.fastrandn
-  func fastrandn(x uint32) uint32
+//go:noescape
+//go:linkname fastrandn runtime.fastrandn
+func fastrandn(x uint32) uint32
 
-  func BenchmarkCloudflareGetSet(b *testing.B) {
-  	cache := cloudflare.NewMultiLRUCache(1024, cachesize/1024)
-  	for i := 0; i < cachesize/2; i++ {
-  		cache.Set(keys[i], i, time.Now().Add(time.Hour))
-  	}
-  	b.SetParallelism(parallelism)
-  	b.ResetTimer()
-  	b.RunParallel(func(pb *testing.PB) {
-  		expires := time.Now().Add(time.Hour)
-  		waterlevel := int(float32(cachesize) * writeradio)
-  		for pb.Next() {
-  			i := int(fastrandn(cachesize))
-  			if i <= waterlevel {
-  				cache.Set(keys[i], i, expires)
-  			} else {
-  				cache.Get(keys[i])
-  			}
-  		}
-  	})
-  }
+const threshold = cachesize * writepecent / 100
 
-  func BenchmarkEcacheGetSet(b *testing.B) {
-  	cache := ecache.NewLRUCache(1024, cachesize/1024, time.Hour)
-  	for i := 0; i < cachesize/2; i++ {
-  		cache.Put(keys[i], i)
-  	}
-  	b.SetParallelism(parallelism)
-  	b.ResetTimer()
-  	b.RunParallel(func(pb *testing.PB) {
-  		waterlevel := int(float32(cachesize) * writeradio)
-  		for pb.Next() {
-  			i := int(fastrandn(cachesize))
-  			if i <= waterlevel {
-  				cache.Put(keys[i], i)
-  			} else {
-  				cache.Get(keys[i])
-  			}
-  		}
-  	})
-  }
+func BenchmarkCloudflareGetSet(b *testing.B) {
+	cache := cloudflare.NewMultiLRUCache(1024, cachesize/1024)
+	for i := 0; i < cachesize/2; i++ {
+		cache.Set(keys[i], i, time.Now().Add(time.Hour))
+	}
+	expires := time.Now().Add(time.Hour)
 
-  func BenchmarkLxzanGetSet(b *testing.B) {
-    cache := lxzan.New[string, int](
-    lxzan.WithBucketNum(128),
-    lxzan.WithBucketSize(cachesize/128, cachesize/128),
-    lxzan.WithInterval(time.Hour, time.Hour),
-  )
-    for i := 0; i < cachesize/2; i++ {
-      cache.Set(keys[i], i, time.Hour)
-    }
+	b.SetParallelism(parallelism)
+	b.ResetTimer()
 
-    b.SetParallelism(parallelism)
-    b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			if i := int(fastrandn(cachesize)); i <= threshold {
+				cache.Set(keys[i], i, expires)
+			} else {
+				cache.Get(keys[i])
+			}
+		}
+	})
+}
 
-    b.RunParallel(func(pb *testing.PB) {
-      waterlevel := int(float32(cachesize) * writeradio)
-      for pb.Next() {
-        i := int(fastrandn(cachesize))
-        if i <= waterlevel {
-          cache.Set(keys[i], i, time.Hour)
-        } else {
-          cache.Get(keys[i])
-        }
-      }
-    })
-  }
+func BenchmarkEcacheGetSet(b *testing.B) {
+	cache := ecache.NewLRUCache(1024, cachesize/1024, time.Hour)
+	for i := 0; i < cachesize/2; i++ {
+		cache.Put(keys[i], i)
+	}
 
-  func hashStringXXHASH(s string) uint32 {
-    return uint32(xxhash.Sum64String(s))
-  }
+	b.SetParallelism(parallelism)
+	b.ResetTimer()
 
-  func BenchmarkFreelruGetSet(b *testing.B) {
-    cache, _ := freelru.NewSharded[string, int](cachesize, hashStringXXHASH)
-    for i := 0; i < cachesize/2; i++ {
-      cache.AddWithLifetime(keys[i], i, time.Hour)
-    }
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			if i := int(fastrandn(cachesize)); i <= threshold {
+				cache.Put(keys[i], i)
+			} else {
+				cache.Get(keys[i])
+			}
+		}
+	})
+}
 
-    b.SetParallelism(parallelism)
-    b.ResetTimer()
+func BenchmarkLxzanGetSet(b *testing.B) {
+	cache := lxzan.New[string, int](
+		lxzan.WithBucketNum(128),
+		lxzan.WithBucketSize(cachesize/128, cachesize/128),
+		lxzan.WithInterval(time.Hour, time.Hour),
+	)
+	for i := 0; i < cachesize/2; i++ {
+		cache.Set(keys[i], i, time.Hour)
+	}
 
-    b.RunParallel(func(pb *testing.PB) {
-      waterlevel := int(float32(cachesize) * writeradio)
-      for pb.Next() {
-        i := int(fastrandn(cachesize))
-        if i <= waterlevel {
-          cache.AddWithLifetime(keys[i], i, time.Hour)
-        } else {
-          cache.Get(keys[i])
-        }
-      }
-    })
-  }
+	b.SetParallelism(parallelism)
+	b.ResetTimer()
 
-  func BenchmarkRistrettoGetSet(b *testing.B) {
-  	cache, _ := ristretto.NewCache(&ristretto.Config{
-  		NumCounters: cachesize, // number of keys to track frequency of (10M).
-  		MaxCost:     2 << 30,   // maximum cost of cache (2GB).
-  		BufferItems: 64,        // number of keys per Get buffer.
-  	})
-  	for i := 0; i < cachesize/2; i++ {
-  		cache.SetWithTTL(keys[i], i, 1, time.Hour)
-  	}
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			if i := int(fastrandn(cachesize)); i <= threshold {
+				cache.Set(keys[i], i, time.Hour)
+			} else {
+				cache.Get(keys[i])
+			}
+		}
+	})
+}
 
-  	b.SetParallelism(parallelism)
-  	b.ResetTimer()
+func hashStringXXHASH(s string) uint32 {
+	return uint32(xxhash.Sum64String(s))
+}
 
-  	b.RunParallel(func(pb *testing.PB) {
-  		waterlevel := int(float32(cachesize) * writeradio)
-  		for pb.Next() {
-  			i := int(fastrandn(cachesize))
-  			if i <= waterlevel {
-  				cache.SetWithTTL(keys[i], i, 1, time.Hour)
-  			} else {
-  				cache.Get(keys[i])
-  			}
-  		}
-  	})
-  }
+func BenchmarkFreelruGetSet(b *testing.B) {
+	cache, _ := freelru.NewSharded[string, int](cachesize, hashStringXXHASH)
+	for i := 0; i < cachesize/2; i++ {
+		cache.AddWithLifetime(keys[i], i, time.Hour)
+	}
 
-  func BenchmarkTheineGetSet(b *testing.B) {
-  	cache, _ := theine.NewBuilder[string, int](cachesize).Build()
-  	for i := 0; i < cachesize/2; i++ {
-  		cache.SetWithTTL(keys[i], i, 1, time.Hour)
-  	}
+	b.SetParallelism(parallelism)
+	b.ResetTimer()
 
-  	b.SetParallelism(parallelism)
-  	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			if i := int(fastrandn(cachesize)); i <= threshold {
+				cache.AddWithLifetime(keys[i], i, time.Hour)
+			} else {
+				cache.Get(keys[i])
+			}
+		}
+	})
+}
 
-  	b.RunParallel(func(pb *testing.PB) {
-  		waterlevel := int(float32(cachesize) * writeradio)
-  		for pb.Next() {
-  			i := int(fastrandn(cachesize))
-  			if i <= waterlevel {
-  				cache.SetWithTTL(keys[i], i, 1, time.Hour)
-  			} else {
-  				cache.Get(keys[i])
-  			}
-  		}
-  	})
-  }
+func BenchmarkRistrettoGetSet(b *testing.B) {
+	cache, _ := ristretto.NewCache(&ristretto.Config{
+		NumCounters: cachesize, // number of keys to track frequency of (10M).
+		MaxCost:     2 << 30,   // maximum cost of cache (2GB).
+		BufferItems: 64,        // number of keys per Get buffer.
+	})
+	for i := 0; i < cachesize/2; i++ {
+		cache.SetWithTTL(keys[i], i, 1, time.Hour)
+	}
 
-  func BenchmarkOtterGetSet(b *testing.B) {
-  	cache, _ := otter.MustBuilder[string, int](cachesize).WithVariableTTL().Build()
-  	for i := 0; i < cachesize/2; i++ {
-  		cache.Set(keys[i], i, time.Hour)
-  	}
+	b.SetParallelism(parallelism)
+	b.ResetTimer()
 
-  	b.SetParallelism(parallelism)
-  	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			if i := int(fastrandn(cachesize)); i <= threshold {
+				cache.SetWithTTL(keys[i], i, 1, time.Hour)
+			} else {
+				cache.Get(keys[i])
+			}
+		}
+	})
+}
 
-  	b.RunParallel(func(pb *testing.PB) {
-  		waterlevel := int(float32(cachesize) * writeradio)
-  		for pb.Next() {
-  			i := int(fastrandn(cachesize))
-  			if i <= waterlevel {
-  				cache.Set(keys[i], i, time.Hour)
-  			} else {
-  				cache.Get(keys[i])
-  			}
-  		}
-  	})
-  }
+func BenchmarkTheineGetSet(b *testing.B) {
+	cache, _ := theine.NewBuilder[string, int](cachesize).Build()
+	for i := 0; i < cachesize/2; i++ {
+		cache.SetWithTTL(keys[i], i, 1, time.Hour)
+	}
 
-  func BenchmarkPhusluGetSet(b *testing.B) {
-  	cache := phuslu.New[string, int](cachesize)
-  	for i := 0; i < cachesize/2; i++ {
-  		cache.Set(keys[i], i, time.Hour)
-  	}
+	b.SetParallelism(parallelism)
+	b.ResetTimer()
 
-  	b.SetParallelism(parallelism)
-  	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			if i := int(fastrandn(cachesize)); i <= threshold {
+				cache.SetWithTTL(keys[i], i, 1, time.Hour)
+			} else {
+				cache.Get(keys[i])
+			}
+		}
+	})
+}
 
-  	b.RunParallel(func(pb *testing.PB) {
-  		waterlevel := int(float32(cachesize) * writeradio)
-  		for pb.Next() {
-  			i := int(fastrandn(cachesize))
-  			if i <= waterlevel {
-  				cache.Set(keys[i], i, time.Hour)
-  			} else {
-  				cache.Get(keys[i])
-  			}
-  		}
-  	})
-  }
-  ```
+func BenchmarkOtterGetSet(b *testing.B) {
+	cache, _ := otter.MustBuilder[string, int](cachesize).WithVariableTTL().Build()
+	for i := 0; i < cachesize/2; i++ {
+		cache.Set(keys[i], i, time.Hour)
+	}
+
+	b.SetParallelism(parallelism)
+	b.ResetTimer()
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			if i := int(fastrandn(cachesize)); i <= threshold {
+				cache.Set(keys[i], i, time.Hour)
+			} else {
+				cache.Get(keys[i])
+			}
+		}
+	})
+}
+
+func BenchmarkPhusluGetSet(b *testing.B) {
+	cache := phuslu.New[string, int](cachesize)
+	for i := 0; i < cachesize/2; i++ {
+		cache.Set(keys[i], i, time.Hour)
+	}
+
+	b.SetParallelism(parallelism)
+	b.ResetTimer()
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			if i := int(fastrandn(cachesize)); i <= threshold {
+				cache.Set(keys[i], i, time.Hour)
+			} else {
+				cache.Get(keys[i])
+			}
+		}
+	})
+}
+```
 </details>
 
 ```
@@ -334,23 +325,23 @@ goos: linux
 goarch: amd64
 cpu: AMD EPYC 7763 64-Core Processor                
 BenchmarkCloudflareGetSet
-BenchmarkCloudflareGetSet-8     37905620         156.7 ns/op        16 B/op        1 allocs/op
+BenchmarkCloudflareGetSet-8   	36585342	       160.6 ns/op	      16 B/op	       1 allocs/op
 BenchmarkEcacheGetSet
-BenchmarkEcacheGetSet-8         51791524         116.4 ns/op         2 B/op        0 allocs/op
+BenchmarkEcacheGetSet-8       	48895538	       121.5 ns/op	       2 B/op	       0 allocs/op
 BenchmarkLxzanGetSet
-BenchmarkLxzanGetSet-8          49494284         127.3 ns/op         0 B/op        0 allocs/op
+BenchmarkLxzanGetSet-8        	46955918	       135.4 ns/op	       0 B/op	       0 allocs/op
 BenchmarkFreelruGetSet
-BenchmarkFreelruGetSet-8        56382706         108.7 ns/op         0 B/op        0 allocs/op
+BenchmarkFreelruGetSet-8      	53018491	       115.0 ns/op	       0 B/op	       0 allocs/op
 BenchmarkRistrettoGetSet
-BenchmarkRistrettoGetSet-8      34761458         146.6 ns/op        27 B/op        1 allocs/op
+BenchmarkRistrettoGetSet-8    	37721185	       161.6 ns/op	      27 B/op	       1 allocs/op
 BenchmarkTheineGetSet
-BenchmarkTheineGetSet-8         37194024         166.1 ns/op         0 B/op        0 allocs/op
+BenchmarkTheineGetSet-8       	33867556	       180.9 ns/op	       0 B/op	       0 allocs/op
 BenchmarkOtterGetSet
-BenchmarkOtterGetSet-8          31980354         191.4 ns/op         6 B/op        0 allocs/op
+BenchmarkOtterGetSet-8        	30495187	       209.2 ns/op	       6 B/op	       0 allocs/op
 BenchmarkPhusluGetSet
-BenchmarkPhusluGetSet-8         67774108          84.88 ns/op        0 B/op        0 allocs/op
+BenchmarkPhusluGetSet-8       	55774137	       100.8 ns/op	       0 B/op	       0 allocs/op
 PASS
-ok    command-line-arguments  60.874s
+ok  	command-line-arguments	67.191s
 ```
 
 ### Memory usage
@@ -359,140 +350,140 @@ The Memory usage result as below. Check github [actions][actions] for more resul
 <details>
   <summary>memory usage on keysize=16(string), valuesize=8(int), itemsize=1000000(1M), cachesize=100%</summary>
 
-  ```go
-  // memusage.go
-  package main
+```go
+// memusage.go
+package main
 
-  import (
-  	"fmt"
-  	"os"
-  	"runtime"
-  	"time"
+import (
+	"fmt"
+	"os"
+	"runtime"
+	"time"
 
-  	theine "github.com/Yiling-J/theine-go"
-  	"github.com/cespare/xxhash/v2"
-  	cloudflare "github.com/cloudflare/golibs/lrucache"
-  	freelru "github.com/elastic/go-freelru"
-  	ristretto "github.com/dgraph-io/ristretto"
-  	lxzan "github.com/lxzan/memorycache"
-  	otter "github.com/maypok86/otter"
-  	ecache "github.com/orca-zhang/ecache"
-  	phuslu "github.com/phuslu/lru"
-  )
+	theine "github.com/Yiling-J/theine-go"
+	"github.com/cespare/xxhash/v2"
+	cloudflare "github.com/cloudflare/golibs/lrucache"
+	freelru "github.com/elastic/go-freelru"
+	ristretto "github.com/dgraph-io/ristretto"
+	lxzan "github.com/lxzan/memorycache"
+	otter "github.com/maypok86/otter"
+	ecache "github.com/orca-zhang/ecache"
+	phuslu "github.com/phuslu/lru"
+)
 
-  const (
-  	keysize   = 16
-  	cachesize = 1000000
-  )
+const (
+	keysize   = 16
+	cachesize = 1000000
+)
 
-  var keys []string 
+var keys []string 
 
-  func main() {
-  	keys = make([]string, cachesize)
-  	for i := 0; i < cachesize; i++ {
-  		keys[i] = fmt.Sprintf(fmt.Sprintf("%%0%dd", keysize), i)
-  	}
+func main() {
+	keys = make([]string, cachesize)
+	for i := 0; i < cachesize; i++ {
+		keys[i] = fmt.Sprintf(fmt.Sprintf("%%0%dd", keysize), i)
+	}
 
-  	var o runtime.MemStats
-  	runtime.ReadMemStats(&o)
+	var o runtime.MemStats
+	runtime.ReadMemStats(&o)
 
-  	name := os.Args[1]
-  	switch name {
-  	case "phuslu":
-  		SetupPhuslu()
-  	case "freelru":
-  		SetupFreelru()
-  	case "ristretto":
-  		SetupRistretto()
-  	case "otter":
-  		SetupOtter()
-  	case "lxzan":
-  		SetupLxzan()
-  	case "ecache":
-  		SetupEcache()
-  	case "cloudflare":
-  		SetupCloudflare()
-  	case "theine":
-  		SetupTheine()
-  	default:
-  		panic("no cache name")
-  	}
+	name := os.Args[1]
+	switch name {
+	case "phuslu":
+		SetupPhuslu()
+	case "freelru":
+		SetupFreelru()
+	case "ristretto":
+		SetupRistretto()
+	case "otter":
+		SetupOtter()
+	case "lxzan":
+		SetupLxzan()
+	case "ecache":
+		SetupEcache()
+	case "cloudflare":
+		SetupCloudflare()
+	case "theine":
+		SetupTheine()
+	default:
+		panic("no cache name")
+	}
 
-  	var m runtime.MemStats
-  	runtime.ReadMemStats(&m)
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
 
-  	fmt.Printf("%s\t%v MiB\t%v MiB\t%v MiB\n",
-  		name,
-  		(m.Alloc-o.Alloc)/1048576,
-  		(m.TotalAlloc-o.TotalAlloc)/1048576,
-  		(m.Sys-o.Sys)/1048576,
-  	)
-  }
+	fmt.Printf("%s\t%v MiB\t%v MiB\t%v MiB\n",
+		name,
+		(m.Alloc-o.Alloc)/1048576,
+		(m.TotalAlloc-o.TotalAlloc)/1048576,
+		(m.Sys-o.Sys)/1048576,
+	)
+}
 
-  func SetupPhuslu() {
-  	cache := phuslu.New[string, int](cachesize)
-  	for i := 0; i < cachesize; i++ {
-  		cache.Set(keys[i], i, time.Hour)
-  	}
-  }
+func SetupPhuslu() {
+	cache := phuslu.New[string, int](cachesize)
+	for i := 0; i < cachesize; i++ {
+		cache.Set(keys[i], i, time.Hour)
+	}
+}
 
-  func SetupFreelru() {
-  	cache, _ := freelru.NewSharded[string, int](cachesize, func(s string) uint32 { return uint32(xxhash.Sum64String(s)) })
-  	for i := 0; i < cachesize; i++ {
-  		cache.AddWithLifetime(keys[i], i, time.Hour)
-  	}
-  }
+func SetupFreelru() {
+	cache, _ := freelru.NewSharded[string, int](cachesize, func(s string) uint32 { return uint32(xxhash.Sum64String(s)) })
+	for i := 0; i < cachesize; i++ {
+		cache.AddWithLifetime(keys[i], i, time.Hour)
+	}
+}
 
-  func SetupOtter() {
-  	cache, _ := otter.MustBuilder[string, int](cachesize).WithVariableTTL().Build()
-  	for i := 0; i < cachesize; i++ {
-  		cache.Set(keys[i], i, time.Hour)
-  	}
-  }
+func SetupOtter() {
+	cache, _ := otter.MustBuilder[string, int](cachesize).WithVariableTTL().Build()
+	for i := 0; i < cachesize; i++ {
+		cache.Set(keys[i], i, time.Hour)
+	}
+}
 
-  func SetupEcache() {
-  	cache := ecache.NewLRUCache(1024, cachesize/1024, time.Hour)
-  	for i := 0; i < cachesize; i++ {
-  		cache.Put(keys[i], i)
-  	}
-  }
+func SetupEcache() {
+	cache := ecache.NewLRUCache(1024, cachesize/1024, time.Hour)
+	for i := 0; i < cachesize; i++ {
+		cache.Put(keys[i], i)
+	}
+}
 
-  func SetupRistretto() {
-  	cache, _ := ristretto.NewCache(&ristretto.Config{
-  		NumCounters: cachesize,
-  		MaxCost:     2 << 30,
-  		BufferItems: 64,
-  	})
-  	for i := 0; i < cachesize; i++ {
-  		cache.SetWithTTL(keys[i], i, 1, time.Hour)
-  	}
-  }
+func SetupRistretto() {
+	cache, _ := ristretto.NewCache(&ristretto.Config{
+		NumCounters: cachesize,
+		MaxCost:     2 << 30,
+		BufferItems: 64,
+	})
+	for i := 0; i < cachesize; i++ {
+		cache.SetWithTTL(keys[i], i, 1, time.Hour)
+	}
+}
 
-  func SetupLxzan() {
-  	cache := lxzan.New[string, int](
+func SetupLxzan() {
+	cache := lxzan.New[string, int](
 		lxzan.WithBucketNum(128),
 		lxzan.WithBucketSize(cachesize/128, cachesize/128),
 		lxzan.WithInterval(time.Hour, time.Hour),
 	)
-  	for i := 0; i < cachesize; i++ {
-  		cache.Set(keys[i], i, time.Hour)
-  	}
-  }
+	for i := 0; i < cachesize; i++ {
+		cache.Set(keys[i], i, time.Hour)
+	}
+}
 
-  func SetupTheine() {
-  	cache, _ := theine.NewBuilder[string, int](cachesize).Build()
-  	for i := 0; i < cachesize; i++ {
-  		cache.SetWithTTL(keys[i], i, 1, time.Hour)
-  	}
-  }
+func SetupTheine() {
+	cache, _ := theine.NewBuilder[string, int](cachesize).Build()
+	for i := 0; i < cachesize; i++ {
+		cache.SetWithTTL(keys[i], i, 1, time.Hour)
+	}
+}
 
-  func SetupCloudflare() {
-  	cache := cloudflare.NewMultiLRUCache(1024, cachesize/1024)
-  	for i := 0; i < cachesize; i++ {
-  		cache.Set(keys[i], i, time.Now().Add(time.Hour))
-  	}
-  }
-  ```
+func SetupCloudflare() {
+	cache := cloudflare.NewMultiLRUCache(1024, cachesize/1024)
+	for i := 0; i < cachesize; i++ {
+		cache.Set(keys[i], i, time.Now().Add(time.Hour))
+	}
+}
+```
 </details>
 
 | MemStats   | Alloc   | TotalAlloc | Sys     |
