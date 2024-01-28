@@ -334,23 +334,23 @@ goos: linux
 goarch: amd64
 cpu: AMD EPYC 7763 64-Core Processor                
 BenchmarkCloudflareGetSet
-BenchmarkCloudflareGetSet-8   	36585342	       160.6 ns/op	      16 B/op	       1 allocs/op
+BenchmarkCloudflareGetSet-8   	35852371	       166.6 ns/op	      16 B/op	       1 allocs/op
 BenchmarkEcacheGetSet
-BenchmarkEcacheGetSet-8       	48895538	       121.5 ns/op	       2 B/op	       0 allocs/op
+BenchmarkEcacheGetSet-8       	48152978	       124.2 ns/op	       2 B/op	       0 allocs/op
 BenchmarkLxzanGetSet
-BenchmarkLxzanGetSet-8        	46955918	       135.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkLxzanGetSet-8        	47174966	       135.2 ns/op	       0 B/op	       0 allocs/op
 BenchmarkFreelruGetSet
-BenchmarkFreelruGetSet-8      	53018491	       115.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkFreelruGetSet-8      	59502016	       103.0 ns/op	       0 B/op	       0 allocs/op
 BenchmarkRistrettoGetSet
-BenchmarkRistrettoGetSet-8    	37721185	       161.6 ns/op	      27 B/op	       1 allocs/op
+BenchmarkRistrettoGetSet-8    	47484507	       122.0 ns/op	      27 B/op	       1 allocs/op
 BenchmarkTheineGetSet
-BenchmarkTheineGetSet-8       	33867556	       180.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkTheineGetSet-8       	35164232	       172.3 ns/op	       0 B/op	       0 allocs/op
 BenchmarkOtterGetSet
-BenchmarkOtterGetSet-8        	30495187	       209.2 ns/op	       6 B/op	       0 allocs/op
+BenchmarkOtterGetSet-8        	32330173	       191.0 ns/op	       6 B/op	       0 allocs/op
 BenchmarkPhusluGetSet
-BenchmarkPhusluGetSet-8       	55774137	       100.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPhusluGetSet-8       	67637701	        91.05 ns/op	       0 B/op	       0 allocs/op
 PASS
-ok  	command-line-arguments	67.191s
+ok  	command-line-arguments	65.727s
 ```
 
 ### Memory usage
@@ -499,12 +499,12 @@ func SetupCloudflare() {
 | ---------- | ------- | ---------- | ------- |
 | phuslu     | 48 MiB  | 56 MiB     | 57 MiB  |
 | lxzan      | 95 MiB  | 103 MiB    | 106 MiB |
+| ristretto  | 107 MiB | 185 MiB    | 133 MiB |
 | freelru    | 112 MiB | 120 MiB    | 122 MiB |
 | ecache     | 123 MiB | 131 MiB    | 127 MiB |
-| ristretto  | 171 MiB | 253 MiB    | 181 MiB |
 | otter      | 137 MiB | 211 MiB    | 181 MiB |
-| theine     | 177 MiB | 223 MiB    | 194 MiB |
-| cloudflare | 183 MiB | 191 MiB    | 189 MiB |
+| theine     | 177 MiB | 223 MiB    | 193 MiB |
+| cloudflare | 183 MiB | 191 MiB    | 188 MiB |
 
 ### License
 LRU is licensed under the MIT License. See the LICENSE file for details.
