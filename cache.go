@@ -6,6 +6,7 @@ package lru
 import (
 	"errors"
 	"runtime"
+	"slices"
 	"sync/atomic"
 	"time"
 )
@@ -21,14 +22,55 @@ type Cache[K comparable, V any] struct {
 
 // New creates lru cache with size capacity.
 func New[K comparable, V any](size int, options ...Option[K, V]) *Cache[K, V] {
-	shardcount := nextPowOf2(runtime.GOMAXPROCS(0) * 16)
-	shardsize := nextPowOf2(size / shardcount)
-	return newWithShards[K, V](shardcount, shardsize, options...)
+	j := slices.IndexFunc(options, func(o Option[K, V]) (ok bool) {
+		_, ok = o.(*shardsOption[K, V])
+		return
+	})
+	switch {
+	case j < 0:
+		options = append([]Option[K, V]{WithShards[K, V](0)}, options...)
+	case j > 0:
+		options[0], options[j] = options[j], options[0]
+	}
+
+	c := new(Cache[K, V])
+	for _, o := range options {
+		o.ApplyToCache(c)
+	}
+
+	c.hasher = maphash_NewHasher[K]()
+
+	shardsize := nextPowOf2(uint32(size / len(c.shards)))
+	for i := range c.shards {
+		c.shards[i].Init(shardsize)
+	}
+	return c
 }
 
 // Options implements LRU Cache Option.
 type Option[K comparable, V any] interface {
 	ApplyToCache(*Cache[K, V])
+}
+
+// WithShards specifies the shards count of cache.
+func WithShards[K comparable, V any](count uint32) Option[K, V] {
+	return &shardsOption[K, V]{count: count}
+}
+
+type shardsOption[K comparable, V any] struct {
+	count uint32
+}
+
+func (o *shardsOption[K, V]) ApplyToCache(c *Cache[K, V]) {
+	var shardcount uint32
+	if o.count == 0 {
+		shardcount = nextPowOf2(uint32(runtime.GOMAXPROCS(0) * 16))
+	} else {
+		shardcount = nextPowOf2(o.count)
+	}
+
+	c.shards = make([]shard[K, V], shardcount)
+	c.mask = uint32(len(c.shards)) - 1
 }
 
 // WithLoader specifies that use sliding cache or not.
@@ -60,28 +102,12 @@ func (o *loaderOption[K, V]) ApplyToCache(c *Cache[K, V]) {
 	c.group = singleflight_Group[K, V]{}
 }
 
-func nextPowOf2(n int) int {
-	k := 1
+func nextPowOf2(n uint32) uint32 {
+	k := uint32(1)
 	for k < n {
 		k = k * 2
 	}
 	return k
-}
-
-func newWithShards[K comparable, V any](shardcount, shardsize int, options ...Option[K, V]) *Cache[K, V] {
-	c := &Cache[K, V]{
-		shards: make([]shard[K, V], shardcount),
-		mask:   uint32(shardcount) - 1,
-		hasher: maphash_NewHasher[K](),
-	}
-	for i := range c.shards {
-		c.shards[i].Init(uint32(shardsize))
-	}
-	for _, option := range options {
-		option.ApplyToCache(c)
-	}
-
-	return c
 }
 
 // Get returns value for key.

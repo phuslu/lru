@@ -43,7 +43,7 @@ type shard[K comparable, V any] struct {
 
 func (s *shard[K, V]) Init(size uint32) {
 	s.list_Init(size)
-	s.table_Init(int(float64(size) / (loadFactor - 0.05)))
+	s.table_Init(uint32(float64(size) / (loadFactor - 0.05)))
 }
 
 func (s *shard[K, V]) Get(hash uint32, key K) (value V, ok bool) {

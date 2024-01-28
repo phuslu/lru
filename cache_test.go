@@ -108,7 +108,7 @@ func TestCacheSetIfAbsent(t *testing.T) {
 }
 
 func TestCacheEviction(t *testing.T) {
-	l := newWithShards[int, *int](1, 256)
+	l := New[int, *int](256, WithShards[int, *int](1))
 
 	evictedCounter := 0
 	for i := 0; i < 512; i++ {
@@ -254,7 +254,7 @@ func TestCacheLoaderSingleflight(t *testing.T) {
 }
 
 func TestCacheSlidingGet(t *testing.T) {
-	l := newWithShards[string, int](1, 256, WithSliding[string, int](true))
+	l := New[string, int](256, WithSliding[string, int](true), WithShards[string, int](1))
 
 	l.Set("a", 1, 0)
 	l.Set("b", 2, 3*time.Second)

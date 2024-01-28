@@ -13,7 +13,7 @@ const (
 	maxDIB      = ^uint32(0) >> hashBitSize // max 255
 )
 
-func (s *shard[K, V]) table_Init(size int) {
+func (s *shard[K, V]) table_Init(size uint32) {
 	sz := max(nextPowOf2(size), 8)
 	s.table.buckets = make([]struct{ hdib, index uint32 }, sz)
 	s.table.mask = uint32(len(s.table.buckets) - 1)
