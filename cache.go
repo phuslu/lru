@@ -15,7 +15,7 @@ import (
 type Cache[K comparable, V any] struct {
 	shards []shard[K, V]
 	mask   uint32
-	hasher maphash_Hasher[K]
+	hasher func(K) uint64
 	loader func(key K) (value V, ttl time.Duration, err error)
 	group  singleflight_Group[K, V]
 }
@@ -38,7 +38,9 @@ func New[K comparable, V any](size int, options ...Option[K, V]) *Cache[K, V] {
 		o.ApplyToCache(c)
 	}
 
-	c.hasher = maphash_NewHasher[K]()
+	if c.hasher == nil {
+		c.hasher = maphash_NewHasher[K]().Hash
+	}
 
 	shardsize := nextPowOf2(uint32(size / len(c.shards)))
 	for i := range c.shards {
@@ -112,7 +114,7 @@ func nextPowOf2(n uint32) uint32 {
 
 // Get returns value for key.
 func (c *Cache[K, V]) Get(key K) (value V, ok bool) {
-	hash := uint32(c.hasher.Hash(key))
+	hash := uint32(c.hasher(key))
 	return c.shards[hash&c.mask].Get(hash, key)
 }
 
@@ -120,7 +122,7 @@ var ErrLoaderIsNil = errors.New("loader is nil")
 
 // GetOrLoad returns value for key, call loader function by singleflight if value was not in cache.
 func (c *Cache[K, V]) GetOrLoad(key K) (value V, err error, ok bool) {
-	hash := uint32(c.hasher.Hash(key))
+	hash := uint32(c.hasher(key))
 	value, ok = c.shards[hash&c.mask].Get(hash, key)
 	if !ok {
 		if c.loader == nil {
@@ -132,7 +134,7 @@ func (c *Cache[K, V]) GetOrLoad(key K) (value V, err error, ok bool) {
 			if err != nil {
 				return v, err
 			}
-			c.shards[hash&c.mask].Set(hash, c.hasher.Hash, key, v, ttl)
+			c.shards[hash&c.mask].Set(hash, c.hasher, key, v, ttl)
 			return v, nil
 		})
 	}
@@ -141,25 +143,25 @@ func (c *Cache[K, V]) GetOrLoad(key K) (value V, err error, ok bool) {
 
 // Peek returns value for key, but does not modify its recency.
 func (c *Cache[K, V]) Peek(key K) (value V, ok bool) {
-	hash := uint32(c.hasher.Hash(key))
+	hash := uint32(c.hasher(key))
 	return c.shards[hash&c.mask].Peek(hash, key)
 }
 
 // Set inserts key value pair and returns previous value.
 func (c *Cache[K, V]) Set(key K, value V, ttl time.Duration) (prev V, replaced bool) {
-	hash := uint32(c.hasher.Hash(key))
-	return c.shards[hash&c.mask].Set(hash, c.hasher.Hash, key, value, ttl)
+	hash := uint32(c.hasher(key))
+	return c.shards[hash&c.mask].Set(hash, c.hasher, key, value, ttl)
 }
 
 // SetIfAbsent inserts key value pair and returns previous value, if key is absent in the cache.
 func (c *Cache[K, V]) SetIfAbsent(key K, value V, ttl time.Duration) (prev V, replaced bool) {
-	hash := uint32(c.hasher.Hash(key))
-	return c.shards[hash&c.mask].SetIfAbsent(hash, c.hasher.Hash, key, value, ttl)
+	hash := uint32(c.hasher(key))
+	return c.shards[hash&c.mask].SetIfAbsent(hash, c.hasher, key, value, ttl)
 }
 
 // Delete method deletes value associated with key and returns deleted value (or empty value if key was not in cache).
 func (c *Cache[K, V]) Delete(key K) (prev V) {
-	hash := uint32(c.hasher.Hash(key))
+	hash := uint32(c.hasher(key))
 	return c.shards[hash&c.mask].Delete(hash, key)
 }
 
