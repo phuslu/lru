@@ -110,6 +110,7 @@ import (
 	"crypto/sha1"
 	"fmt"
 	"testing"
+	"runtime"
 	"time"
 	_ "unsafe"
 
@@ -144,9 +145,17 @@ var keys = func() (x []string) {
 func fastrandn(x uint32) uint32
 
 const threshold = cachesize * writepecent / 100
+var shardcount = func() int {
+	n := runtime.GOMAXPROCS(0) * 16
+	k := 1
+	for k < n {
+		k = k * 2
+	}
+	return k
+}()
 
 func BenchmarkCloudflareGetSet(b *testing.B) {
-	cache := cloudflare.NewMultiLRUCache(1024, cachesize/1024)
+	cache := cloudflare.NewMultiLRUCache(uint(shardcount), uint(cachesize/shardcount))
 	for i := 0; i < cachesize/2; i++ {
 		cache.Set(keys[i], i, time.Now().Add(time.Hour))
 	}
@@ -167,7 +176,7 @@ func BenchmarkCloudflareGetSet(b *testing.B) {
 }
 
 func BenchmarkEcacheGetSet(b *testing.B) {
-	cache := ecache.NewLRUCache(1024, cachesize/1024, time.Hour)
+	cache := ecache.NewLRUCache(uint16(shardcount), uint16(cachesize/shardcount), time.Hour)
 	for i := 0; i < cachesize/2; i++ {
 		cache.Put(keys[i], i)
 	}
@@ -188,8 +197,8 @@ func BenchmarkEcacheGetSet(b *testing.B) {
 
 func BenchmarkLxzanGetSet(b *testing.B) {
 	cache := lxzan.New[string, int](
-		lxzan.WithBucketNum(128),
-		lxzan.WithBucketSize(cachesize/128, cachesize/128),
+		lxzan.WithBucketNum(shardcount),
+		lxzan.WithBucketSize(cachesize/shardcount, cachesize/shardcount),
 		lxzan.WithInterval(time.Hour, time.Hour),
 	)
 	for i := 0; i < cachesize/2; i++ {
@@ -299,7 +308,7 @@ func BenchmarkOtterGetSet(b *testing.B) {
 }
 
 func BenchmarkPhusluGetSet(b *testing.B) {
-	cache := phuslu.New[string, int](cachesize)
+	cache := phuslu.New[string, int](cachesize, phuslu.WithShards[string, int](uint32(shardcount)))
 	for i := 0; i < cachesize/2; i++ {
 		cache.Set(keys[i], i, time.Hour)
 	}
