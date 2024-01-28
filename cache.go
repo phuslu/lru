@@ -75,6 +75,19 @@ func (o *shardsOption[K, V]) ApplyToCache(c *Cache[K, V]) {
 	c.mask = uint32(len(c.shards)) - 1
 }
 
+// WithHasher specifies the hasher function of cache.
+func WithHasher[K comparable, V any](hasher func(K) uint64) Option[K, V] {
+	return &hasherOption[K, V]{hasher: hasher}
+}
+
+type hasherOption[K comparable, V any] struct {
+	hasher func(K) uint64
+}
+
+func (o *hasherOption[K, V]) ApplyToCache(c *Cache[K, V]) {
+	c.hasher = o.hasher
+}
+
 // WithLoader specifies that use sliding cache or not.
 func WithSliding[K comparable, V any](sliding bool) Option[K, V] {
 	return &slidingOption[K, V]{sliding: sliding}
