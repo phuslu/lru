@@ -236,9 +236,9 @@ func BenchmarkFreelruGetSet(b *testing.B) {
 
 func BenchmarkRistrettoGetSet(b *testing.B) {
 	cache, _ := ristretto.NewCache(&ristretto.Config{
-		NumCounters: cachesize, // number of keys to track frequency of (10M).
-		MaxCost:     2 << 30,   // maximum cost of cache (2GB).
-		BufferItems: 64,        // number of keys per Get buffer.
+		NumCounters: 10 * cachesize, // number of keys to track frequency of (10M).
+		MaxCost:     cachesize,      // maximum cost of cache (1M).
+		BufferItems: 64,             // number of keys per Get buffer.
 	})
 	for i := 0; i < cachesize/2; i++ {
 		cache.SetWithTTL(keys[i], i, 1, time.Hour)
@@ -450,9 +450,9 @@ func SetupEcache() {
 
 func SetupRistretto() {
 	cache, _ := ristretto.NewCache(&ristretto.Config{
-		NumCounters: cachesize,
-		MaxCost:     2 << 30,
-		BufferItems: 64,
+		NumCounters: 10 * cachesize, // number of keys to track frequency of (10M).
+		MaxCost:     cachesize,      // maximum cost of cache (1M).
+		BufferItems: 64,             // number of keys per Get buffer.
 	})
 	for i := 0; i < cachesize; i++ {
 		cache.SetWithTTL(keys[i], i, 1, time.Hour)
