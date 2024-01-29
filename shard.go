@@ -187,7 +187,8 @@ func (s *shard[K, V]) Delete(hash uint32, key K) (v V) {
 
 func (s *shard[K, V]) Len() (n int) {
 	s.mu.Lock()
-	n = s.table_Len()
+	// inlining s.table_Len()
+	n = s.table.length
 	s.mu.Unlock()
 
 	return
