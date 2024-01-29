@@ -145,7 +145,7 @@ A Performance result as below. Check github [actions][actions] for more results 
   <summary>benchmark on keysize=16, itemsize=1000000, cachesize=50%, concurrency=8</summary>
 
 ```go
-// go test -v -cpu=8 -run=none -bench=. -benchtime=5s -benchmem bench_test.go
+// env writepecent=10 zipf=0 go test -v -cpu=8 -run=none -bench=. -benchtime=5s -benchmem bench_test.go
 package bench
 
 import (
@@ -154,6 +154,7 @@ import (
 	"math/rand"
 	"os"
 	"runtime"
+	"strconv"
 	"testing"
 	"time"
 	_ "unsafe"
@@ -170,28 +171,14 @@ import (
 )
 
 const (
-	keysize     = 16
-	cachesize   = 1000000
-	writepecent = 10
+	keysize   = 16
+	cachesize = 1000000
 )
 
-var keys = func() (x []string) {
-	x = make([]string, cachesize)
-	for i := 0; i < cachesize; i++ {
-		x[i] = fmt.Sprintf("%x", sha1.Sum([]byte(fmt.Sprint(i))))[:keysize]
-	}
-	return
+var threshold = func() uint32 {
+	writepecent, _ := strconv.Atoi(os.Getenv("writepecent"))
+	return ^uint32(0) / 100 * uint32(writepecent)
 }()
-
-//go:noescape
-//go:linkname fastrandn runtime.fastrandn
-func fastrandn(x uint32) uint32
-
-//go:noescape
-//go:linkname fastrand runtime.fastrand
-func fastrand() uint32
-
-const threshold = ^uint32(0) / 100 * writepecent
 
 var zipfian = func() (f func() uint64) {
 	if os.Getenv("zipf") == "1" {
@@ -208,6 +195,22 @@ var shardcount = func() int {
 	}
 	return k
 }()
+
+var keys = func() (x []string) {
+	x = make([]string, cachesize)
+	for i := 0; i < cachesize; i++ {
+		x[i] = fmt.Sprintf("%x", sha1.Sum([]byte(fmt.Sprint(i))))[:keysize]
+	}
+	return
+}()
+
+//go:noescape
+//go:linkname fastrandn runtime.fastrandn
+func fastrandn(x uint32) uint32
+
+//go:noescape
+//go:linkname fastrand runtime.fastrand
+func fastrand() uint32
 
 func BenchmarkCloudflareSetGet(b *testing.B) {
 	cache := cloudflare.NewMultiLRUCache(uint(shardcount), uint(cachesize/shardcount))

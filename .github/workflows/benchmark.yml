@@ -22,7 +22,7 @@ jobs:
         run: |
           mkdir bench
           cd bench
-          awk '{if($0 ~ "// go test -v"){a=1;b=1};if($0 ~ "```" && b=1){b=0};if (a&&b) {print}}' ../README.md | tee bench_test.go
+          awk '{if($0 ~ "// env writepecent="){a=1;b=1};if($0 ~ "```" && b=1){b=0};if (a&&b) {print}}' ../README.md | tee bench_test.go
           go mod tidy
           go mod edit -replace github.com/phuslu/lru=../
       - name: Tests
@@ -31,8 +31,8 @@ jobs:
       - name: Benchmark
         working-directory: ./bench
         run: |
-          go test -v -cpu=8 -run=none -bench=. -benchtime=5s -benchmem bench_test.go
-          env zipf=1 go test -v -cpu=8 -run=none -bench=. -benchtime=5s -benchmem bench_test.go
+          env writepecent=10 zipf=0 go test -v -cpu=8 -run=none -bench=. -benchtime=5s -benchmem bench_test.go
+          env writepecent=10 zipf=1 go test -v -cpu=8 -run=none -bench=. -benchtime=5s -benchmem bench_test.go
       - name: Memory Usage
         working-directory: ./bench
         run: |
