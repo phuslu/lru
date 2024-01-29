@@ -183,7 +183,11 @@ var keys = func() (x []string) {
 //go:linkname fastrandn runtime.fastrandn
 func fastrandn(x uint32) uint32
 
-const threshold = cachesize * writepecent / 100
+//go:noescape
+//go:linkname fastrand runtime.fastrand
+func fastrand() uint32
+
+const threshold = ^uint32(0) / 100 * writepecent
 var shardcount = func() int {
 	n := runtime.GOMAXPROCS(0) * 16
 	k := 1
@@ -205,7 +209,8 @@ func BenchmarkCloudflareGetSet(b *testing.B) {
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			if i := int(fastrandn(cachesize)); i <= threshold {
+			i := int(fastrandn(cachesize))
+			if fastrand() <= threshold {
 				cache.Set(keys[i], i, expires)
 			} else {
 				cache.Get(keys[i])
@@ -225,7 +230,8 @@ func BenchmarkEcacheGetSet(b *testing.B) {
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			if i := int(fastrandn(cachesize)); i <= threshold {
+			i := int(fastrandn(cachesize))
+			if fastrand() <= threshold {
 				cache.Put(keys[i], i)
 			} else {
 				cache.Get(keys[i])
@@ -249,7 +255,8 @@ func BenchmarkLxzanGetSet(b *testing.B) {
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			if i := int(fastrandn(cachesize)); i <= threshold {
+			i := int(fastrandn(cachesize))
+			if fastrand() <= threshold {
 				cache.Set(keys[i], i, time.Hour)
 			} else {
 				cache.Get(keys[i])
@@ -273,7 +280,8 @@ func BenchmarkFreelruGetSet(b *testing.B) {
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			if i := int(fastrandn(cachesize)); i <= threshold {
+			i := int(fastrandn(cachesize))
+			if fastrand() <= threshold {
 				cache.AddWithLifetime(keys[i], i, time.Hour)
 			} else {
 				cache.Get(keys[i])
@@ -297,7 +305,8 @@ func BenchmarkRistrettoGetSet(b *testing.B) {
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			if i := int(fastrandn(cachesize)); i <= threshold {
+			i := int(fastrandn(cachesize))
+			if fastrand() <= threshold {
 				cache.SetWithTTL(keys[i], i, 1, time.Hour)
 			} else {
 				cache.Get(keys[i])
@@ -317,7 +326,8 @@ func BenchmarkTheineGetSet(b *testing.B) {
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			if i := int(fastrandn(cachesize)); i <= threshold {
+			i := int(fastrandn(cachesize))
+			if fastrand() <= threshold {
 				cache.SetWithTTL(keys[i], i, 1, time.Hour)
 			} else {
 				cache.Get(keys[i])
@@ -337,7 +347,8 @@ func BenchmarkOtterGetSet(b *testing.B) {
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			if i := int(fastrandn(cachesize)); i <= threshold {
+			i := int(fastrandn(cachesize))
+			if fastrand() <= threshold {
 				cache.Set(keys[i], i, time.Hour)
 			} else {
 				cache.Get(keys[i])
@@ -357,7 +368,8 @@ func BenchmarkPhusluGetSet(b *testing.B) {
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			if i := int(fastrandn(cachesize)); i <= threshold {
+			i := int(fastrandn(cachesize))
+			if fastrand() <= threshold {
 				cache.Set(keys[i], i, time.Hour)
 			} else {
 				cache.Get(keys[i])
@@ -373,23 +385,23 @@ goos: linux
 goarch: amd64
 cpu: AMD EPYC 7763 64-Core Processor                
 BenchmarkCloudflareGetSet
-BenchmarkCloudflareGetSet-8   	35852371	       166.6 ns/op	      16 B/op	       1 allocs/op
+BenchmarkCloudflareGetSet-8   	33137439	       214.0 ns/op	      16 B/op	       1 allocs/op
 BenchmarkEcacheGetSet
-BenchmarkEcacheGetSet-8       	48152978	       124.2 ns/op	       2 B/op	       0 allocs/op
+BenchmarkEcacheGetSet-8       	42560864	       154.0 ns/op	       2 B/op	       0 allocs/op
 BenchmarkLxzanGetSet
-BenchmarkLxzanGetSet-8        	47174966	       135.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkLxzanGetSet-8        	36670929	       190.3 ns/op	       0 B/op	       0 allocs/op
 BenchmarkFreelruGetSet
-BenchmarkFreelruGetSet-8      	59502016	       103.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkFreelruGetSet-8      	54970399	       157.2 ns/op	       0 B/op	       0 allocs/op
 BenchmarkRistrettoGetSet
-BenchmarkRistrettoGetSet-8    	47484507	       122.0 ns/op	      27 B/op	       1 allocs/op
+BenchmarkRistrettoGetSet-8    	38773869	       144.2 ns/op	      27 B/op	       1 allocs/op
 BenchmarkTheineGetSet
-BenchmarkTheineGetSet-8       	35164232	       172.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkTheineGetSet-8       	25598589	       239.5 ns/op	       4 B/op	       0 allocs/op
 BenchmarkOtterGetSet
-BenchmarkOtterGetSet-8        	32330173	       191.0 ns/op	       6 B/op	       0 allocs/op
+BenchmarkOtterGetSet-8        	34046569	       226.7 ns/op	       9 B/op	       0 allocs/op
 BenchmarkPhusluGetSet
-BenchmarkPhusluGetSet-8       	67637701	        91.05 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPhusluGetSet-8       	48137439	       141.3 ns/op	       0 B/op	       0 allocs/op
 PASS
-ok  	command-line-arguments	65.727s
+ok  	command-line-arguments	71.219s
 ```
 
 ### Memory usage
@@ -536,12 +548,12 @@ func SetupCloudflare() {
 
 | MemStats   | Alloc   | TotalAlloc | Sys     |
 | ---------- | ------- | ---------- | ------- |
-| phuslu     | 48 MiB  | 56 MiB     | 57 MiB  |
+| phuslu     | 48 MiB  | 56 MiB     | 61 MiB  |
 | lxzan      | 95 MiB  | 103 MiB    | 106 MiB |
-| ristretto  | 107 MiB | 185 MiB    | 133 MiB |
+| ristretto  | 109 MiB | 186 MiB    | 128 MiB |
 | freelru    | 112 MiB | 120 MiB    | 122 MiB |
 | ecache     | 123 MiB | 131 MiB    | 127 MiB |
-| otter      | 137 MiB | 211 MiB    | 181 MiB |
+| otter      | 137 MiB | 211 MiB    | 177 MiB |
 | theine     | 177 MiB | 223 MiB    | 193 MiB |
 | cloudflare | 183 MiB | 191 MiB    | 188 MiB |
 
