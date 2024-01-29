@@ -32,6 +32,7 @@ jobs:
         working-directory: ./bench
         run: |
           go test -v -cpu=8 -run=none -bench=. -benchtime=5s -benchmem bench_test.go
+          env zipf=1 go test -v -cpu=8 -run=none -bench=. -benchtime=5s -benchmem bench_test.go
       - name: Memory Usage
         working-directory: ./bench
         run: |

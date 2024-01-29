@@ -139,7 +139,7 @@ func main() {
 
 A Performance result as below. Check github [actions][actions] for more results and details.
 <details>
-  <summary>benchmark on keysize=16, itemsize=1000000, cachesize=50%, concurrency=8 with randomly read (90%) / write(10%)</summary>
+  <summary>benchmark on keysize=16, itemsize=1000000, cachesize=50%, concurrency=8</summary>
 
 ```go
 // go test -v -cpu=8 -run=none -bench=. -benchtime=5s -benchmem bench_test.go
@@ -148,8 +148,10 @@ package bench
 import (
 	"crypto/sha1"
 	"fmt"
-	"testing"
+	"math/rand"
+	"os"
 	"runtime"
+	"testing"
 	"time"
 	_ "unsafe"
 
@@ -188,6 +190,14 @@ func fastrandn(x uint32) uint32
 func fastrand() uint32
 
 const threshold = ^uint32(0) / 100 * writepecent
+
+var zipfian = func() (f func() uint64) {
+	if os.Getenv("zipf") == "1" {
+		f = rand.NewZipf(rand.New(rand.NewSource(time.Now().UnixNano())), 1.0001, 10, cachesize-1).Uint64
+	}
+	return
+}
+
 var shardcount = func() int {
 	n := runtime.GOMAXPROCS(0) * 16
 	k := 1
@@ -197,50 +207,54 @@ var shardcount = func() int {
 	return k
 }()
 
-func BenchmarkCloudflareGetSet(b *testing.B) {
+func BenchmarkCloudflareSetGet(b *testing.B) {
 	cache := cloudflare.NewMultiLRUCache(uint(shardcount), uint(cachesize/shardcount))
 	for i := 0; i < cachesize/2; i++ {
 		cache.Set(keys[i], i, time.Now().Add(time.Hour))
 	}
 	expires := time.Now().Add(time.Hour)
 
-	// b.SetParallelism(parallelism)
 	b.ResetTimer()
 
 	b.RunParallel(func(pb *testing.PB) {
+		zipf := zipfian()
 		for pb.Next() {
-			i := int(fastrandn(cachesize))
 			if fastrand() <= threshold {
+				i := int(fastrandn(cachesize))
 				cache.Set(keys[i], i, expires)
+			} else if zipf == nil {
+				cache.Get(keys[fastrandn(cachesize)])
 			} else {
-				cache.Get(keys[i])
+				cache.Get(keys[zipf()])
 			}
 		}
 	})
 }
 
-func BenchmarkEcacheGetSet(b *testing.B) {
+func BenchmarkEcacheSetGet(b *testing.B) {
 	cache := ecache.NewLRUCache(uint16(shardcount), uint16(cachesize/shardcount), time.Hour)
 	for i := 0; i < cachesize/2; i++ {
 		cache.Put(keys[i], i)
 	}
 
-	// b.SetParallelism(parallelism)
 	b.ResetTimer()
 
 	b.RunParallel(func(pb *testing.PB) {
+		zipf := zipfian()
 		for pb.Next() {
-			i := int(fastrandn(cachesize))
 			if fastrand() <= threshold {
+				i := int(fastrandn(cachesize))
 				cache.Put(keys[i], i)
+			} else if zipf == nil {
+				cache.Get(keys[fastrandn(cachesize)])
 			} else {
-				cache.Get(keys[i])
+				cache.Get(keys[zipf()])
 			}
 		}
 	})
 }
 
-func BenchmarkLxzanGetSet(b *testing.B) {
+func BenchmarkLxzanSetGet(b *testing.B) {
 	cache := lxzan.New[string, int](
 		lxzan.WithBucketNum(shardcount),
 		lxzan.WithBucketSize(cachesize/shardcount, cachesize/shardcount),
@@ -250,16 +264,18 @@ func BenchmarkLxzanGetSet(b *testing.B) {
 		cache.Set(keys[i], i, time.Hour)
 	}
 
-	// b.SetParallelism(parallelism)
 	b.ResetTimer()
 
 	b.RunParallel(func(pb *testing.PB) {
+		zipf := zipfian()
 		for pb.Next() {
-			i := int(fastrandn(cachesize))
 			if fastrand() <= threshold {
+				i := int(fastrandn(cachesize))
 				cache.Set(keys[i], i, time.Hour)
+			} else if zipf == nil {
+				cache.Get(keys[fastrandn(cachesize)])
 			} else {
-				cache.Get(keys[i])
+				cache.Get(keys[zipf()])
 			}
 		}
 	})
@@ -269,28 +285,30 @@ func hashStringXXHASH(s string) uint32 {
 	return uint32(xxhash.Sum64String(s))
 }
 
-func BenchmarkFreelruGetSet(b *testing.B) {
+func BenchmarkFreelruSetGet(b *testing.B) {
 	cache, _ := freelru.NewSharded[string, int](cachesize, hashStringXXHASH)
 	for i := 0; i < cachesize/2; i++ {
 		cache.AddWithLifetime(keys[i], i, time.Hour)
 	}
 
-	// b.SetParallelism(parallelism)
 	b.ResetTimer()
 
 	b.RunParallel(func(pb *testing.PB) {
+		zipf := zipfian()
 		for pb.Next() {
-			i := int(fastrandn(cachesize))
 			if fastrand() <= threshold {
+				i := int(fastrandn(cachesize))
 				cache.AddWithLifetime(keys[i], i, time.Hour)
+			} else if zipf == nil {
+				cache.Get(keys[fastrandn(cachesize)])
 			} else {
-				cache.Get(keys[i])
+				cache.Get(keys[zipf()])
 			}
 		}
 	})
 }
 
-func BenchmarkRistrettoGetSet(b *testing.B) {
+func BenchmarkRistrettoSetGet(b *testing.B) {
 	cache, _ := ristretto.NewCache(&ristretto.Config{
 		NumCounters: 10 * cachesize, // number of keys to track frequency of (10M).
 		MaxCost:     cachesize,      // maximum cost of cache (1M).
@@ -300,79 +318,87 @@ func BenchmarkRistrettoGetSet(b *testing.B) {
 		cache.SetWithTTL(keys[i], i, 1, time.Hour)
 	}
 
-	// b.SetParallelism(parallelism)
 	b.ResetTimer()
 
 	b.RunParallel(func(pb *testing.PB) {
+		zipf := zipfian()
 		for pb.Next() {
-			i := int(fastrandn(cachesize))
 			if fastrand() <= threshold {
+				i := int(fastrandn(cachesize))
 				cache.SetWithTTL(keys[i], i, 1, time.Hour)
+			} else if zipf == nil {
+				cache.Get(keys[fastrandn(cachesize)])
 			} else {
-				cache.Get(keys[i])
+				cache.Get(keys[zipf()])
 			}
 		}
 	})
 }
 
-func BenchmarkTheineGetSet(b *testing.B) {
+func BenchmarkTheineSetGet(b *testing.B) {
 	cache, _ := theine.NewBuilder[string, int](cachesize).Build()
 	for i := 0; i < cachesize/2; i++ {
 		cache.SetWithTTL(keys[i], i, 1, time.Hour)
 	}
 
-	// b.SetParallelism(parallelism)
 	b.ResetTimer()
 
 	b.RunParallel(func(pb *testing.PB) {
+		zipf := zipfian()
 		for pb.Next() {
-			i := int(fastrandn(cachesize))
 			if fastrand() <= threshold {
+				i := int(fastrandn(cachesize))
 				cache.SetWithTTL(keys[i], i, 1, time.Hour)
+			} else if zipf == nil {
+				cache.Get(keys[fastrandn(cachesize)])
 			} else {
-				cache.Get(keys[i])
+				cache.Get(keys[zipf()])
 			}
 		}
 	})
 }
 
-func BenchmarkOtterGetSet(b *testing.B) {
+func BenchmarkOtterSetGet(b *testing.B) {
 	cache, _ := otter.MustBuilder[string, int](cachesize).WithVariableTTL().Build()
 	for i := 0; i < cachesize/2; i++ {
 		cache.Set(keys[i], i, time.Hour)
 	}
 
-	// b.SetParallelism(parallelism)
 	b.ResetTimer()
 
 	b.RunParallel(func(pb *testing.PB) {
+		zipf := zipfian()
 		for pb.Next() {
-			i := int(fastrandn(cachesize))
 			if fastrand() <= threshold {
+				i := int(fastrandn(cachesize))
 				cache.Set(keys[i], i, time.Hour)
+			} else if zipf == nil {
+				cache.Get(keys[fastrandn(cachesize)])
 			} else {
-				cache.Get(keys[i])
+				cache.Get(keys[zipf()])
 			}
 		}
 	})
 }
 
-func BenchmarkPhusluGetSet(b *testing.B) {
+func BenchmarkPhusluSetGet(b *testing.B) {
 	cache := phuslu.New[string, int](cachesize, phuslu.WithShards[string, int](uint32(shardcount)))
 	for i := 0; i < cachesize/2; i++ {
 		cache.Set(keys[i], i, time.Hour)
 	}
 
-	// b.SetParallelism(parallelism)
 	b.ResetTimer()
 
 	b.RunParallel(func(pb *testing.PB) {
+		zipf := zipfian()
 		for pb.Next() {
-			i := int(fastrandn(cachesize))
 			if fastrand() <= threshold {
+				i := int(fastrandn(cachesize))
 				cache.Set(keys[i], i, time.Hour)
+			} else if zipf == nil {
+				cache.Get(keys[fastrandn(cachesize)])
 			} else {
-				cache.Get(keys[i])
+				cache.Get(keys[zipf()])
 			}
 		}
 	})
@@ -380,28 +406,54 @@ func BenchmarkPhusluGetSet(b *testing.B) {
 ```
 </details>
 
+with randomly read (90%) and randomly write(10%)
 ```
 goos: linux
 goarch: amd64
 cpu: AMD EPYC 7763 64-Core Processor                
-BenchmarkCloudflareGetSet
-BenchmarkCloudflareGetSet-8   	28748667	       201.0 ns/op	      16 B/op	       1 allocs/op
-BenchmarkEcacheGetSet
-BenchmarkEcacheGetSet-8       	47030224	       136.9 ns/op	       2 B/op	       0 allocs/op
-BenchmarkLxzanGetSet
-BenchmarkLxzanGetSet-8        	41578171	       185.6 ns/op	       0 B/op	       0 allocs/op
-BenchmarkFreelruGetSet
-BenchmarkFreelruGetSet-8      	50779135	       150.2 ns/op	       0 B/op	       0 allocs/op
-BenchmarkRistrettoGetSet
-BenchmarkRistrettoGetSet-8    	35833273	       153.6 ns/op	      28 B/op	       1 allocs/op
-BenchmarkTheineGetSet
-BenchmarkTheineGetSet-8       	21233498	       309.6 ns/op	       5 B/op	       0 allocs/op
-BenchmarkOtterGetSet
-BenchmarkOtterGetSet-8        	45250232	       189.6 ns/op	       9 B/op	       0 allocs/op
-BenchmarkPhusluGetSet
-BenchmarkPhusluGetSet-8       	52676954	       128.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkCloudflareSetGet
+BenchmarkCloudflareSetGet-8   	27651621	       207.7 ns/op	      16 B/op	       1 allocs/op
+BenchmarkEcacheSetGet
+BenchmarkEcacheSetGet-8       	46985208	       140.6 ns/op	       2 B/op	       0 allocs/op
+BenchmarkLxzanSetGet
+BenchmarkLxzanSetGet-8        	38317650	       185.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkFreelruSetGet
+BenchmarkFreelruSetGet-8      	52158729	       153.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkRistrettoSetGet
+BenchmarkRistrettoSetGet-8    	32686410	       157.3 ns/op	      28 B/op	       1 allocs/op
+BenchmarkTheineSetGet
+BenchmarkTheineSetGet-8       	19726514	       328.0 ns/op	       5 B/op	       0 allocs/op
+BenchmarkOtterSetGet
+BenchmarkOtterSetGet-8        	39459361	       206.4 ns/op	       9 B/op	       0 allocs/op
+BenchmarkPhusluSetGet
+BenchmarkPhusluSetGet-8       	53310547	       144.9 ns/op	       0 B/op	       0 allocs/op
 PASS
-ok  	command-line-arguments	69.925s
+ok  	command-line-arguments	70.442s
+```
+
+with zipfian read (90%) and randomly write(10%)
+```
+goos: linux
+goarch: amd64
+cpu: AMD EPYC 7763 64-Core Processor                
+BenchmarkCloudflareSetGet
+BenchmarkCloudflareSetGet-8   	39904893	       165.5 ns/op	      16 B/op	       1 allocs/op
+BenchmarkEcacheSetGet
+BenchmarkEcacheSetGet-8       	50942992	       124.4 ns/op	       2 B/op	       0 allocs/op
+BenchmarkLxzanSetGet
+BenchmarkLxzanSetGet-8        	49043996	       140.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkFreelruSetGet
+BenchmarkFreelruSetGet-8      	51573556	       134.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkRistrettoSetGet
+BenchmarkRistrettoSetGet-8    	35716714	       149.6 ns/op	      30 B/op	       1 allocs/op
+BenchmarkTheineSetGet
+BenchmarkTheineSetGet-8       	21501159	       278.8 ns/op	       5 B/op	       0 allocs/op
+BenchmarkOtterSetGet
+BenchmarkOtterSetGet-8        	43633411	       172.0 ns/op	       9 B/op	       0 allocs/op
+BenchmarkPhusluSetGet
+BenchmarkPhusluSetGet-8       	54986559	       113.7 ns/op	       0 B/op	       0 allocs/op
+PASS
+ok  	command-line-arguments	67.107s
 ```
 
 ### Memory usage
