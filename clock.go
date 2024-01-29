@@ -11,11 +11,16 @@ import (
 // always use `atomic.LoadUint32(&clock)` for accessing clock value.
 var clock uint32
 
+var clockStop uint32
+
 func init() {
 	const clockBase = 1704067200 // 2024-01-01T00:00:00Z
 	atomic.StoreUint32(&clock, uint32(time.Now().Unix()-clockBase))
 	go func() {
 		for {
+			if atomic.LoadUint32(&clockStop) == 1 {
+				break
+			}
 			for i := 0; i < 9; i++ {
 				time.Sleep(100 * time.Millisecond)
 				atomic.StoreUint32(&clock, uint32(time.Now().Unix()-clockBase))
@@ -24,4 +29,9 @@ func init() {
 			atomic.StoreUint32(&clock, uint32(time.Now().Unix()-clockBase))
 		}
 	}()
+}
+
+// StopClock stops the internal global clocking.
+func StopClock() {
+	atomic.StoreUint32(&clockStop, 1)
 }
