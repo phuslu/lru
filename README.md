@@ -23,6 +23,9 @@
     - Using SlidingCache via `WithSilding(true)` option.
     - Create LoadingCache via `WithLoader(func(key K) (v V, ttl time.Duration, err error))` option.
 
+### Limitation
+TTL accuracy is seconds level, no active/background evication policy, expired items only be deleted when visit again or cache full.
+
 ### Getting Started
 
 An out of box example. https://go.dev/play/p/01hUdKwp2MC
@@ -169,7 +172,6 @@ import (
 const (
 	keysize     = 16
 	cachesize   = 1000000
-	parallelism = 8
 	writepecent = 10
 )
 
