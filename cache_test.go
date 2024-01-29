@@ -310,6 +310,8 @@ func TestCacheSlidingGet(t *testing.T) {
 		t.Errorf("c should be still set to 4: %v,", v)
 	}
 
+	time.Sleep(1 * time.Second)
+
 	if got, want := l.AppendKeys(nil), 2; len(got) != want {
 		t.Fatalf("curent cache keys %v length should be %v", got, want)
 	}
