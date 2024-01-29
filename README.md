@@ -204,7 +204,7 @@ func BenchmarkCloudflareGetSet(b *testing.B) {
 	}
 	expires := time.Now().Add(time.Hour)
 
-	b.SetParallelism(parallelism)
+	// b.SetParallelism(parallelism)
 	b.ResetTimer()
 
 	b.RunParallel(func(pb *testing.PB) {
@@ -225,7 +225,7 @@ func BenchmarkEcacheGetSet(b *testing.B) {
 		cache.Put(keys[i], i)
 	}
 
-	b.SetParallelism(parallelism)
+	// b.SetParallelism(parallelism)
 	b.ResetTimer()
 
 	b.RunParallel(func(pb *testing.PB) {
@@ -250,7 +250,7 @@ func BenchmarkLxzanGetSet(b *testing.B) {
 		cache.Set(keys[i], i, time.Hour)
 	}
 
-	b.SetParallelism(parallelism)
+	// b.SetParallelism(parallelism)
 	b.ResetTimer()
 
 	b.RunParallel(func(pb *testing.PB) {
@@ -275,7 +275,7 @@ func BenchmarkFreelruGetSet(b *testing.B) {
 		cache.AddWithLifetime(keys[i], i, time.Hour)
 	}
 
-	b.SetParallelism(parallelism)
+	// b.SetParallelism(parallelism)
 	b.ResetTimer()
 
 	b.RunParallel(func(pb *testing.PB) {
@@ -300,7 +300,7 @@ func BenchmarkRistrettoGetSet(b *testing.B) {
 		cache.SetWithTTL(keys[i], i, 1, time.Hour)
 	}
 
-	b.SetParallelism(parallelism)
+	// b.SetParallelism(parallelism)
 	b.ResetTimer()
 
 	b.RunParallel(func(pb *testing.PB) {
@@ -321,7 +321,7 @@ func BenchmarkTheineGetSet(b *testing.B) {
 		cache.SetWithTTL(keys[i], i, 1, time.Hour)
 	}
 
-	b.SetParallelism(parallelism)
+	// b.SetParallelism(parallelism)
 	b.ResetTimer()
 
 	b.RunParallel(func(pb *testing.PB) {
@@ -342,7 +342,7 @@ func BenchmarkOtterGetSet(b *testing.B) {
 		cache.Set(keys[i], i, time.Hour)
 	}
 
-	b.SetParallelism(parallelism)
+	// b.SetParallelism(parallelism)
 	b.ResetTimer()
 
 	b.RunParallel(func(pb *testing.PB) {
@@ -363,7 +363,7 @@ func BenchmarkPhusluGetSet(b *testing.B) {
 		cache.Set(keys[i], i, time.Hour)
 	}
 
-	b.SetParallelism(parallelism)
+	// b.SetParallelism(parallelism)
 	b.ResetTimer()
 
 	b.RunParallel(func(pb *testing.PB) {
@@ -385,23 +385,23 @@ goos: linux
 goarch: amd64
 cpu: AMD EPYC 7763 64-Core Processor                
 BenchmarkCloudflareGetSet
-BenchmarkCloudflareGetSet-8   	33137439	       214.0 ns/op	      16 B/op	       1 allocs/op
+BenchmarkCloudflareGetSet-8   	28748667	       201.0 ns/op	      16 B/op	       1 allocs/op
 BenchmarkEcacheGetSet
-BenchmarkEcacheGetSet-8       	42560864	       154.0 ns/op	       2 B/op	       0 allocs/op
+BenchmarkEcacheGetSet-8       	47030224	       136.9 ns/op	       2 B/op	       0 allocs/op
 BenchmarkLxzanGetSet
-BenchmarkLxzanGetSet-8        	36670929	       190.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkLxzanGetSet-8        	41578171	       185.6 ns/op	       0 B/op	       0 allocs/op
 BenchmarkFreelruGetSet
-BenchmarkFreelruGetSet-8      	54970399	       157.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkFreelruGetSet-8      	50779135	       150.2 ns/op	       0 B/op	       0 allocs/op
 BenchmarkRistrettoGetSet
-BenchmarkRistrettoGetSet-8    	38773869	       144.2 ns/op	      27 B/op	       1 allocs/op
+BenchmarkRistrettoGetSet-8    	35833273	       153.6 ns/op	      28 B/op	       1 allocs/op
 BenchmarkTheineGetSet
-BenchmarkTheineGetSet-8       	25598589	       239.5 ns/op	       4 B/op	       0 allocs/op
+BenchmarkTheineGetSet-8       	21233498	       309.6 ns/op	       5 B/op	       0 allocs/op
 BenchmarkOtterGetSet
-BenchmarkOtterGetSet-8        	34046569	       226.7 ns/op	       9 B/op	       0 allocs/op
+BenchmarkOtterGetSet-8        	45250232	       189.6 ns/op	       9 B/op	       0 allocs/op
 BenchmarkPhusluGetSet
-BenchmarkPhusluGetSet-8       	48137439	       141.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPhusluGetSet-8       	52676954	       128.9 ns/op	       0 B/op	       0 allocs/op
 PASS
-ok  	command-line-arguments	71.219s
+ok  	command-line-arguments	69.925s
 ```
 
 ### Memory usage
