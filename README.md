@@ -139,7 +139,7 @@ func main() {
 
 A Performance result as below. Check github [actions][actions] for more results and details.
 <details>
-  <summary>benchmark on keysize=16, itemsize=1000000, cachesize=50%, concurrency=32 with randomly read (90%) / write(10%)</summary>
+  <summary>benchmark on keysize=16, itemsize=1000000, cachesize=50%, concurrency=8 with randomly read (90%) / write(10%)</summary>
 
 ```go
 // go test -v -cpu=8 -run=none -bench=. -benchtime=5s -benchmem bench_test.go
@@ -167,7 +167,7 @@ import (
 const (
 	keysize     = 16
 	cachesize   = 1000000
-	parallelism = 32
+	parallelism = 8
 	writepecent = 10
 )
 
