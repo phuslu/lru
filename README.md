@@ -24,7 +24,8 @@
     - Create LoadingCache via `WithLoader(func(key K) (v V, ttl time.Duration, err error))` option.
 
 ### Limitation
-TTL accuracy is seconds level, and expired items only be deleted on access again or cache full.
+1. The TTL is accurate to the nearest second.
+2. Expired items are only deleted when accessed again or the cache is full.
 
 ### Getting Started
 
