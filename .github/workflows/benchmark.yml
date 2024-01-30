@@ -31,8 +31,8 @@ jobs:
       - name: Benchmark
         working-directory: ./bench
         run: |
-          env writepecent=25 zipf=0 go test -v -cpu=8 -run=none -bench=. -benchtime=5s -benchmem bench_test.go
-          env writepecent=25 zipf=1 go test -v -cpu=8 -run=none -bench=. -benchtime=5s -benchmem bench_test.go
+          env writepecent=10 zipf=0 go test -v -cpu=8 -run=none -bench=. -benchtime=5s -benchmem bench_test.go
+          env writepecent=1 zipf=1 go test -v -cpu=8 -run=none -bench=. -benchtime=5s -benchmem bench_test.go
       - name: Memory Usage
         working-directory: ./bench
         run: |

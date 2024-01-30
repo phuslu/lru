@@ -24,7 +24,7 @@
     - Create LoadingCache via `WithLoader(func(key K) (v V, ttl time.Duration, err error))` option.
 
 ### Limitation
-TTL accuracy is seconds level, no active/background evication policy, expired items only be deleted when visit again or cache full.
+TTL accuracy is seconds level, and expired items only be deleted on access again or cache full.
 
 ### Getting Started
 
@@ -138,7 +138,7 @@ func main() {
 }
 ```
 
-### Benchmarks
+### Throughput benchmarks
 
 A Performance result as below. Check github [actions][actions] for more results and details.
 <details>
@@ -224,7 +224,7 @@ func BenchmarkCloudflareSetGet(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		zipf := zipfian()
 		for pb.Next() {
-			if fastrand() <= threshold {
+			if threshold > 0 && fastrand() <= threshold {
 				i := int(fastrandn(cachesize))
 				cache.Set(keys[i], i, expires)
 			} else if zipf == nil {
@@ -247,7 +247,7 @@ func BenchmarkEcacheSetGet(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		zipf := zipfian()
 		for pb.Next() {
-			if fastrand() <= threshold {
+			if threshold > 0 && fastrand() <= threshold {
 				i := int(fastrandn(cachesize))
 				cache.Put(keys[i], i)
 			} else if zipf == nil {
@@ -274,7 +274,7 @@ func BenchmarkLxzanSetGet(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		zipf := zipfian()
 		for pb.Next() {
-			if fastrand() <= threshold {
+			if threshold > 0 && fastrand() <= threshold {
 				i := int(fastrandn(cachesize))
 				cache.Set(keys[i], i, time.Hour)
 			} else if zipf == nil {
@@ -301,7 +301,7 @@ func BenchmarkFreelruSetGet(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		zipf := zipfian()
 		for pb.Next() {
-			if fastrand() <= threshold {
+			if threshold > 0 && fastrand() <= threshold {
 				i := int(fastrandn(cachesize))
 				cache.AddWithLifetime(keys[i], i, time.Hour)
 			} else if zipf == nil {
@@ -328,7 +328,7 @@ func BenchmarkRistrettoSetGet(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		zipf := zipfian()
 		for pb.Next() {
-			if fastrand() <= threshold {
+			if threshold > 0 && fastrand() <= threshold {
 				i := int(fastrandn(cachesize))
 				cache.SetWithTTL(keys[i], i, 1, time.Hour)
 			} else if zipf == nil {
@@ -351,7 +351,7 @@ func BenchmarkTheineSetGet(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		zipf := zipfian()
 		for pb.Next() {
-			if fastrand() <= threshold {
+			if threshold > 0 && fastrand() <= threshold {
 				i := int(fastrandn(cachesize))
 				cache.SetWithTTL(keys[i], i, 1, time.Hour)
 			} else if zipf == nil {
@@ -374,7 +374,7 @@ func BenchmarkOtterSetGet(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		zipf := zipfian()
 		for pb.Next() {
-			if fastrand() <= threshold {
+			if threshold > 0 && fastrand() <= threshold {
 				i := int(fastrandn(cachesize))
 				cache.Set(keys[i], i, time.Hour)
 			} else if zipf == nil {
@@ -397,7 +397,7 @@ func BenchmarkPhusluSetGet(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		zipf := zipfian()
 		for pb.Next() {
-			if fastrand() <= threshold {
+			if threshold > 0 && fastrand() <= threshold {
 				i := int(fastrandn(cachesize))
 				cache.Set(keys[i], i, time.Hour)
 			} else if zipf == nil {
@@ -417,48 +417,48 @@ goos: linux
 goarch: amd64
 cpu: AMD EPYC 7763 64-Core Processor                
 BenchmarkCloudflareSetGet
-BenchmarkCloudflareSetGet-8   	27651621	       207.7 ns/op	      16 B/op	       1 allocs/op
+BenchmarkCloudflareSetGet-8   	34598762	       206.4 ns/op	      16 B/op	       1 allocs/op
 BenchmarkEcacheSetGet
-BenchmarkEcacheSetGet-8       	46985208	       140.6 ns/op	       2 B/op	       0 allocs/op
+BenchmarkEcacheSetGet-8       	46454938	       147.5 ns/op	       2 B/op	       0 allocs/op
 BenchmarkLxzanSetGet
-BenchmarkLxzanSetGet-8        	38317650	       185.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkLxzanSetGet-8        	43893195	       173.6 ns/op	       0 B/op	       0 allocs/op
 BenchmarkFreelruSetGet
-BenchmarkFreelruSetGet-8      	52158729	       153.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkFreelruSetGet-8      	56924848	       139.6 ns/op	       0 B/op	       0 allocs/op
 BenchmarkRistrettoSetGet
-BenchmarkRistrettoSetGet-8    	32686410	       157.3 ns/op	      28 B/op	       1 allocs/op
+BenchmarkRistrettoSetGet-8    	36782704	       152.5 ns/op	      29 B/op	       1 allocs/op
 BenchmarkTheineSetGet
-BenchmarkTheineSetGet-8       	19726514	       328.0 ns/op	       5 B/op	       0 allocs/op
+BenchmarkTheineSetGet-8       	21830850	       300.6 ns/op	       5 B/op	       0 allocs/op
 BenchmarkOtterSetGet
-BenchmarkOtterSetGet-8        	39459361	       206.4 ns/op	       9 B/op	       0 allocs/op
+BenchmarkOtterSetGet-8        	39539343	       184.0 ns/op	       9 B/op	       0 allocs/op
 BenchmarkPhusluSetGet
-BenchmarkPhusluSetGet-8       	53310547	       144.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPhusluSetGet-8       	55387010	       123.2 ns/op	       0 B/op	       0 allocs/op
 PASS
-ok  	command-line-arguments	70.442s
+ok  	command-line-arguments	70.269s
 ```
 
-with zipfian read (90%) and randomly write(10%)
+with zipfian read (99%) and randomly write(1%)
 ```
 goos: linux
 goarch: amd64
 cpu: AMD EPYC 7763 64-Core Processor                
 BenchmarkCloudflareSetGet
-BenchmarkCloudflareSetGet-8   	39904893	       165.5 ns/op	      16 B/op	       1 allocs/op
+BenchmarkCloudflareSetGet-8   	47345306	       124.7 ns/op	      16 B/op	       1 allocs/op
 BenchmarkEcacheSetGet
-BenchmarkEcacheSetGet-8       	50942992	       124.4 ns/op	       2 B/op	       0 allocs/op
+BenchmarkEcacheSetGet-8       	58728838	       100.6 ns/op	       0 B/op	       0 allocs/op
 BenchmarkLxzanSetGet
-BenchmarkLxzanSetGet-8        	49043996	       140.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkLxzanSetGet-8        	54314472	       109.3 ns/op	       0 B/op	       0 allocs/op
 BenchmarkFreelruSetGet
-BenchmarkFreelruSetGet-8      	51573556	       134.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkFreelruSetGet-8      	59885620	       107.8 ns/op	       0 B/op	       0 allocs/op
 BenchmarkRistrettoSetGet
-BenchmarkRistrettoSetGet-8    	35716714	       149.6 ns/op	      30 B/op	       1 allocs/op
+BenchmarkRistrettoSetGet-8    	42893275	       118.9 ns/op	      21 B/op	       1 allocs/op
 BenchmarkTheineSetGet
-BenchmarkTheineSetGet-8       	21501159	       278.8 ns/op	       5 B/op	       0 allocs/op
+BenchmarkTheineSetGet-8       	34156478	       176.0 ns/op	       0 B/op	       0 allocs/op
 BenchmarkOtterSetGet
-BenchmarkOtterSetGet-8        	43633411	       172.0 ns/op	       9 B/op	       0 allocs/op
+BenchmarkOtterSetGet-8        	77123524	        82.41 ns/op	       1 B/op	       0 allocs/op
 BenchmarkPhusluSetGet
-BenchmarkPhusluSetGet-8       	54986559	       113.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPhusluSetGet-8       	74548989	        87.81 ns/op	       0 B/op	       0 allocs/op
 PASS
-ok  	command-line-arguments	67.107s
+ok  	command-line-arguments	66.317s
 ```
 
 ### Memory usage
