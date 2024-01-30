@@ -54,88 +54,55 @@ func main() {
 
 Using a customized shards count.
 ```go
-package main
+cache := lru.New[string, int](8192, lru.WithShards[string, int](64))
 
-import (
-	"time"
-
-	"github.com/phuslu/lru"
-)
-
-func main() {
-	cache := lru.New[string, int](8192, lru.WithShards[string, int](64))
-
-	cache.Set("foobar", 42, 3*time.Second)
-	println(cache.Get("foobar"))
-}
+cache.Set("foobar", 42, 3*time.Second)
+println(cache.Get("foobar"))
 ```
 
 Using a customized hasher function.
 ```go
-package main
-
-import (
-	"time"
-
-	"github.com/phuslu/lru"
-	"github.com/zeebo/xxh3"
-)
-
-func main() {
-	cache := lru.New[string, int](8192, lru.WithHasher[string, int](xxh3.HashString))
-
-	cache.Set("foobar", 42, 3*time.Second)
-	println(cache.Get("foobar"))
+hasher := func(key string) (hash uint64) {
+	hash = 5381
+	for _, c := range []byte(key) {
+		hash = hash*33 + uint64(c)
+	}
+	return
 }
+
+cache := lru.New[string, int](8192, lru.WithHasher[string, int](hasher))
+
+cache.Set("foobar", 42, 3*time.Second)
+println(cache.Get("foobar"))
 ```
 
 Using as a sliding cache.
 ```go
-package main
+cache := lru.New[string, int](8192, lru.WithSilding(true))
 
-import (
-	"time"
+cache.Set("foobar", 42, 3*time.Second)
 
-	"github.com/phuslu/lru"
-)
+time.Sleep(2 * time.Second)
+println(cache.Get("foobar"))
 
-func main() {
-	cache := lru.New[string, int](8192, lru.WithSilding(true))
+time.Sleep(2 * time.Second)
+println(cache.Get("foobar"))
 
-	cache.Set("foobar", 42, 3*time.Second)
-
-	time.Sleep(2 * time.Second)
-	println(cache.Get("foobar"))
-
-	time.Sleep(2 * time.Second)
-	println(cache.Get("foobar"))
-
-	time.Sleep(2 * time.Second)
-	println(cache.Get("foobar"))
-}
+time.Sleep(2 * time.Second)
+println(cache.Get("foobar"))
 ```
 
 Create a loading cache.
 ```go
-package main
-
-import (
-	"time"
-
-	"github.com/phuslu/lru"
-)
-
-func main() {
-	loader := func(key string) (int, time.Duration, error) {
-		return 42, time.Hour, nil
-	}
-
-	cache := lru.New[string, int](8192, lru.WithLoader(loader))
-
-	println(cache.Get("b"))
-	println(cache.GetOrLoad("b"))
-	println(cache.Get("b"))
+loader := func(key string) (int, time.Duration, error) {
+	return 42, time.Hour, nil
 }
+
+cache := lru.New[string, int](8192, lru.WithLoader(loader))
+
+println(cache.Get("b"))
+println(cache.GetOrLoad("b"))
+println(cache.Get("b"))
 ```
 
 ### Throughput benchmarks
