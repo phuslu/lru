@@ -15,7 +15,7 @@
     - Pointerless data structs.
     - Continuous memory layout.
 * Memory efficient
-    - Adds only 26 extra bytes per cache object.
+    - Adds only 26 extra bytes per cache item.
     - Minimized memory usage compared to others.
 * Feature optional
     - Specifies shards count via `WithShards(count)` option.
@@ -573,10 +573,10 @@ func SetupCloudflare() {
 
 | MemStats   | Alloc   | TotalAlloc | Sys     |
 | ---------- | ------- | ---------- | ------- |
-| phuslu     | 48 MiB  | 56 MiB     | 61 MiB  |
+| phuslu     | 46 MiB  | 54 MiB     | 57 MiB  |
 | lxzan      | 95 MiB  | 103 MiB    | 106 MiB |
-| ristretto  | 109 MiB | 186 MiB    | 128 MiB |
 | freelru    | 112 MiB | 120 MiB    | 122 MiB |
+| ristretto  | 112 MiB | 186 MiB    | 124 MiB |
 | ecache     | 123 MiB | 131 MiB    | 127 MiB |
 | otter      | 137 MiB | 211 MiB    | 177 MiB |
 | theine     | 177 MiB | 223 MiB    | 193 MiB |
