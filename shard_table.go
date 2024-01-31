@@ -67,11 +67,6 @@ func (s *shard[K, V]) table_Get(hash uint32, key K) (prev uint32, ok bool) {
 	}
 }
 
-// Len returns the number of indexs in map.
-func (s *shard[K, V]) table_Len() int {
-	return s.table.length
-}
-
 // Delete deletes an index for a key.
 // Returns the deleted index, or false when no index was assigned.
 func (s *shard[K, V]) table_Delete(hash uint32, key K) (v uint32, ok bool) {
