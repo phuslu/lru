@@ -6,7 +6,6 @@ package lru
 import (
 	"errors"
 	"runtime"
-	"slices"
 	"sync/atomic"
 	"time"
 )
@@ -22,10 +21,12 @@ type Cache[K comparable, V any] struct {
 
 // New creates lru cache with size capacity.
 func New[K comparable, V any](size int, options ...Option[K, V]) *Cache[K, V] {
-	j := slices.IndexFunc(options, func(o Option[K, V]) (ok bool) {
-		_, ok = o.(*shardsOption[K, V])
-		return
-	})
+	j := -1
+	for i, o := range options {
+		if _, ok := o.(*shardsOption[K, V]); ok {
+			j = i
+		}
+	}
 	switch {
 	case j < 0:
 		options = append([]Option[K, V]{WithShards[K, V](0)}, options...)
