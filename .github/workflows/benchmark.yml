@@ -39,10 +39,10 @@ jobs:
           awk '{if($0 ~ "// memusage.go"){a=1;b=1};if($0 ~ "```" && b=1){b=0};if (a&&b) {print}}' ../README.md > memusage.go
           echo -e 'MemStats\tAlloc\tTotalAlloc\tSys' > memusage.txt
           go run memusage.go phuslu     >> memusage.txt
+          go run memusage.go ristretto  >> memusage.txt
           go run memusage.go lxzan      >> memusage.txt
           go run memusage.go freelru    >> memusage.txt
           go run memusage.go ecache     >> memusage.txt
-          go run memusage.go ristretto  >> memusage.txt
           go run memusage.go otter      >> memusage.txt
           go run memusage.go theine     >> memusage.txt
           go run memusage.go cloudflare >> memusage.txt
