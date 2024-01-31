@@ -42,7 +42,7 @@ func New[K comparable, V any](size int, options ...Option[K, V]) *Cache[K, V] {
 		c.hasher = maphash_NewHasher[K]().Hash
 	}
 
-	shardsize := uint32(size / len(c.shards))
+	shardsize := nextPowOf2(uint32(size / len(c.shards)))
 	for i := range c.shards {
 		c.shards[i].Init(shardsize)
 	}

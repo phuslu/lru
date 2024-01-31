@@ -28,7 +28,7 @@ type shard[K comparable, V any] struct {
 			hdib  uint32 // bitfield { hash:24 dib:8 }
 			index uint32 // node index
 		}
-		size   uint32
+		mask   uint32
 		length int
 	}
 

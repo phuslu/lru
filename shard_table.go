@@ -14,9 +14,9 @@ const (
 )
 
 func (s *shard[K, V]) table_Init(size uint32) {
-	size = max(size, 8)
-	s.table.buckets = make([]struct{ hdib, index uint32 }, size)
-	s.table.size = uint32(len(s.table.buckets))
+	sz := max(nextPowOf2(size), 8)
+	s.table.buckets = make([]struct{ hdib, index uint32 }, sz)
+	s.table.mask = uint32(len(s.table.buckets) - 1)
 	s.table.length = 0
 }
 
@@ -25,8 +25,7 @@ func (s *shard[K, V]) table_Init(size uint32) {
 func (s *shard[K, V]) table_Set(hash uint32, key K, index uint32) (prev uint32, ok bool) {
 	subhash := hash >> dibBitSize
 	hdib := subhash<<dibBitSize | uint32(1)&maxDIB
-	size := s.table.size
-	i := (hdib >> dibBitSize) % size
+	i := (hdib >> dibBitSize) & s.table.mask
 	for {
 		if s.table.buckets[i].hdib&maxDIB == 0 {
 			s.table.buckets[i].hdib = hdib
@@ -45,7 +44,7 @@ func (s *shard[K, V]) table_Set(hash uint32, key K, index uint32) (prev uint32, 
 			hdib, s.table.buckets[i].hdib = s.table.buckets[i].hdib, hdib
 			index, s.table.buckets[i].index = s.table.buckets[i].index, index
 		}
-		i = (i + 1) % size
+		i = (i + 1) & s.table.mask
 		hdib = hdib>>dibBitSize<<dibBitSize | (hdib&maxDIB+1)&maxDIB
 	}
 }
@@ -54,8 +53,8 @@ func (s *shard[K, V]) table_Set(hash uint32, key K, index uint32) (prev uint32, 
 // Returns false when no index has been assign for key.
 func (s *shard[K, V]) table_Get(hash uint32, key K) (prev uint32, ok bool) {
 	subhash := hash >> dibBitSize
-	size := s.table.size
-	i := subhash % size
+	mask := s.table.mask
+	i := subhash & mask
 	for {
 		if s.table.buckets[i].hdib&maxDIB == 0 {
 			return
@@ -63,7 +62,7 @@ func (s *shard[K, V]) table_Get(hash uint32, key K) (prev uint32, ok bool) {
 		if s.table.buckets[i].hdib>>dibBitSize == subhash && s.list[s.table.buckets[i].index].key == key {
 			return s.table.buckets[i].index, true
 		}
-		i = (i + 1) % size
+		i = (i + 1) & mask
 	}
 }
 
@@ -76,8 +75,7 @@ func (s *shard[K, V]) table_Len() int {
 // Returns the deleted index, or false when no index was assigned.
 func (s *shard[K, V]) table_Delete(hash uint32, key K) (v uint32, ok bool) {
 	subhash := hash >> dibBitSize
-	size := s.table.size
-	i := subhash % size
+	i := subhash & s.table.mask
 	for {
 		if s.table.buckets[i].hdib&maxDIB == 0 {
 			return
@@ -87,16 +85,15 @@ func (s *shard[K, V]) table_Delete(hash uint32, key K) (v uint32, ok bool) {
 			s.table_delete(i)
 			return old, true
 		}
-		i = (i + 1) % size
+		i = (i + 1) & s.table.mask
 	}
 }
 
 func (s *shard[K, V]) table_delete(i uint32) {
 	s.table.buckets[i].hdib = s.table.buckets[i].hdib>>dibBitSize<<dibBitSize | uint32(0)&maxDIB
-	size := s.table.size
 	for {
 		pi := i
-		i = (i + 1) % size
+		i = (i + 1) & s.table.mask
 		if s.table.buckets[i].hdib&maxDIB <= 1 {
 			s.table.buckets[pi].index = 0
 			s.table.buckets[pi].hdib = 0
