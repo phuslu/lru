@@ -14,12 +14,15 @@ const (
 )
 
 func (s *shard[K, V]) table_Init(size uint32) {
-	size = nextPowOf2(size)
-	if size < 8 {
-		size = 8
+	newsize := nextPowOf2(size)
+	if float64(newsize) < float64(size/(loadFactor-0.05)) {
+		newsize = nextPowOf2(newsize + 1)
 	}
-	s.table.buckets = make([]struct{ hdib, index uint32 }, size)
-	s.table.mask = size - 1
+	if newsize < 8 {
+		newsize = 8
+	}
+	s.table.buckets = make([]struct{ hdib, index uint32 }, newsize)
+	s.table.mask = newsize - 1
 	s.table.length = 0
 }
 

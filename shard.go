@@ -22,7 +22,7 @@ type node[K comparable, V any] struct {
 type shard[K comparable, V any] struct {
 	mu sync.Mutex
 
-	// the hash table, with 25% extra space than the list for fewer conflicts.
+	// the hash table, with 20% extra space than the list for fewer conflicts.
 	table struct {
 		buckets []struct {
 			hdib  uint32 // bitfield { hash:24 dib:8 }
@@ -43,7 +43,7 @@ type shard[K comparable, V any] struct {
 
 func (s *shard[K, V]) Init(size uint32) {
 	s.list_Init(size)
-	s.table_Init(uint32(float64(size) / (loadFactor - 0.05)))
+	s.table_Init(size)
 }
 
 func (s *shard[K, V]) Get(hash uint32, key K) (value V, ok bool) {
