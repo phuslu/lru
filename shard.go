@@ -11,11 +11,11 @@ import (
 // node is a list node of LRU, storing key-value pairs and related information
 type node[K comparable, V any] struct {
 	key     K
-	value   V
 	expires uint32
 	next    uint32
 	prev    uint32
 	ttl     uint32
+	value   V
 }
 
 // shard is a LRU partition contains a list and a hash table.
@@ -32,13 +32,16 @@ type shard[K comparable, V any] struct {
 		length int
 	}
 
+	// padding
+	_ [16]byte
+
 	// the list of nodes
 	list []node[K, V]
 
 	sliding bool
 
 	// padding
-	_ [48]byte
+	_ [32]byte
 }
 
 func (s *shard[K, V]) Init(size uint32) {

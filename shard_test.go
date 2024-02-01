@@ -2,7 +2,17 @@ package lru
 
 import (
 	"testing"
+	"unsafe"
 )
+
+func TestShardPadding(t *testing.T) {
+	var s shard[string, int]
+
+	if n := unsafe.Sizeof(s); n != 128 {
+		t.Errorf("shard size is %d, not 128", n)
+	}
+
+}
 
 func TestShardTableSet(t *testing.T) {
 	var s shard[string, uint32]
