@@ -129,6 +129,7 @@ import (
 
 	theine "github.com/Yiling-J/theine-go"
 	"github.com/cespare/xxhash/v2"
+	hashicorp "github.com/hashicorp/golang-lru/v2/expirable"
 	cloudflare "github.com/cloudflare/golibs/lrucache"
 	ristretto "github.com/dgraph-io/ristretto"
 	freelru "github.com/elastic/go-freelru"
@@ -179,6 +180,29 @@ func fastrandn(x uint32) uint32
 //go:noescape
 //go:linkname fastrand runtime.fastrand
 func fastrand() uint32
+
+func BenchmarkHashicorpSetGet(b *testing.B) {
+	cache := hashicorp.NewLRU[string, int](cachesize, nil, time.Hour)
+	for i := 0; i < cachesize/2; i++ {
+		cache.Add(keys[i], i)
+	}
+
+	b.ResetTimer()
+
+	b.RunParallel(func(pb *testing.PB) {
+		zipf := zipfian()
+		for pb.Next() {
+			if threshold > 0 && fastrand() <= threshold {
+				i := int(fastrandn(cachesize))
+				cache.Add(keys[i], i)
+			} else if zipf == nil {
+				cache.Get(keys[fastrandn(cachesize)])
+			} else {
+				cache.Get(keys[zipf()])
+			}
+		}
+	})
+}
 
 func BenchmarkCloudflareSetGet(b *testing.B) {
 	cache := cloudflare.NewMultiLRUCache(uint(shardcount), uint(cachesize/shardcount))
@@ -384,24 +408,26 @@ with randomly read (90%) and randomly write(10%)
 goos: linux
 goarch: amd64
 cpu: AMD EPYC 7763 64-Core Processor                
+BenchmarkHashicorpSetGet
+BenchmarkHashicorpSetGet-8    	13397827	       556.6 ns/op	      11 B/op	       0 allocs/op
 BenchmarkCloudflareSetGet
-BenchmarkCloudflareSetGet-8   	34598762	       206.4 ns/op	      16 B/op	       1 allocs/op
+BenchmarkCloudflareSetGet-8   	36744186	       203.5 ns/op	      16 B/op	       1 allocs/op
 BenchmarkEcacheSetGet
-BenchmarkEcacheSetGet-8       	46454938	       147.5 ns/op	       2 B/op	       0 allocs/op
+BenchmarkEcacheSetGet-8       	45918138	       144.3 ns/op	       2 B/op	       0 allocs/op
 BenchmarkLxzanSetGet
-BenchmarkLxzanSetGet-8        	43893195	       173.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkLxzanSetGet-8        	46131553	       163.6 ns/op	       0 B/op	       0 allocs/op
 BenchmarkFreelruSetGet
-BenchmarkFreelruSetGet-8      	56924848	       139.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkFreelruSetGet-8      	54157987	       136.7 ns/op	       0 B/op	       0 allocs/op
 BenchmarkRistrettoSetGet
-BenchmarkRistrettoSetGet-8    	36782704	       152.5 ns/op	      29 B/op	       1 allocs/op
+BenchmarkRistrettoSetGet-8    	36123840	       144.0 ns/op	      28 B/op	       1 allocs/op
 BenchmarkTheineSetGet
-BenchmarkTheineSetGet-8       	21830850	       300.6 ns/op	       5 B/op	       0 allocs/op
+BenchmarkTheineSetGet-8       	22808450	       295.6 ns/op	       4 B/op	       0 allocs/op
 BenchmarkOtterSetGet
-BenchmarkOtterSetGet-8        	39539343	       184.0 ns/op	       9 B/op	       0 allocs/op
+BenchmarkOtterSetGet-8        	39550353	       176.4 ns/op	       9 B/op	       0 allocs/op
 BenchmarkPhusluSetGet
-BenchmarkPhusluSetGet-8       	55387010	       123.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPhusluSetGet-8       	64300864	       123.0 ns/op	       0 B/op	       0 allocs/op
 PASS
-ok  	command-line-arguments	70.269s
+ok  	command-line-arguments	90.217s
 ```
 
 with zipfian read (99%) and randomly write(1%)
@@ -409,24 +435,26 @@ with zipfian read (99%) and randomly write(1%)
 goos: linux
 goarch: amd64
 cpu: AMD EPYC 7763 64-Core Processor                
+BenchmarkHashicorpSetGet
+BenchmarkHashicorpSetGet-8    	14883876	       404.0 ns/op	       0 B/op	       0 allocs/op
 BenchmarkCloudflareSetGet
-BenchmarkCloudflareSetGet-8   	47345306	       124.7 ns/op	      16 B/op	       1 allocs/op
+BenchmarkCloudflareSetGet-8   	51935983	       124.6 ns/op	      16 B/op	       1 allocs/op
 BenchmarkEcacheSetGet
-BenchmarkEcacheSetGet-8       	58728838	       100.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkEcacheSetGet-8       	62620203	        96.70 ns/op	       0 B/op	       0 allocs/op
 BenchmarkLxzanSetGet
-BenchmarkLxzanSetGet-8        	54314472	       109.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkLxzanSetGet-8        	65998576	        95.72 ns/op	       0 B/op	       0 allocs/op
 BenchmarkFreelruSetGet
-BenchmarkFreelruSetGet-8      	59885620	       107.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkFreelruSetGet-8      	59447082	       103.7 ns/op	       0 B/op	       0 allocs/op
 BenchmarkRistrettoSetGet
-BenchmarkRistrettoSetGet-8    	42893275	       118.9 ns/op	      21 B/op	       1 allocs/op
+BenchmarkRistrettoSetGet-8    	44582882	       116.0 ns/op	      21 B/op	       1 allocs/op
 BenchmarkTheineSetGet
-BenchmarkTheineSetGet-8       	34156478	       176.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkTheineSetGet-8       	32880466	       171.6 ns/op	       0 B/op	       0 allocs/op
 BenchmarkOtterSetGet
-BenchmarkOtterSetGet-8        	77123524	        82.41 ns/op	       1 B/op	       0 allocs/op
+BenchmarkOtterSetGet-8        	85051764	        79.06 ns/op	       1 B/op	       0 allocs/op
 BenchmarkPhusluSetGet
-BenchmarkPhusluSetGet-8       	74548989	        87.81 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPhusluSetGet-8       	75368127	        82.65 ns/op	       0 B/op	       0 allocs/op
 PASS
-ok  	command-line-arguments	66.317s
+ok  	command-line-arguments	78.301s
 ```
 
 ### Memory usage
@@ -447,6 +475,7 @@ import (
 
 	theine "github.com/Yiling-J/theine-go"
 	"github.com/cespare/xxhash/v2"
+	hashicorp "github.com/hashicorp/golang-lru/v2/expirable"
 	cloudflare "github.com/cloudflare/golibs/lrucache"
 	freelru "github.com/elastic/go-freelru"
 	ristretto "github.com/dgraph-io/ristretto"
@@ -488,6 +517,8 @@ func main() {
 		SetupEcache()
 	case "cloudflare":
 		SetupCloudflare()
+	case "hashicorp":
+		SetupHashicorp()
 	case "theine":
 		SetupTheine()
 	default:
@@ -568,6 +599,13 @@ func SetupCloudflare() {
 		cache.Set(keys[i], i, time.Now().Add(time.Hour))
 	}
 }
+
+func SetupHashicorp() {
+	cache := hashicorp.NewLRU[string, int](cachesize, nil, time.Hour)
+	for i := 0; i < cachesize; i++ {
+		cache.Add(keys[i], i)
+	}
+}
 ```
 </details>
 
@@ -575,12 +613,13 @@ func SetupCloudflare() {
 | ---------- | ------- | ---------- | ------- |
 | phuslu     | 46 MiB  | 54 MiB     | 57 MiB  |
 | lxzan      | 95 MiB  | 103 MiB    | 106 MiB |
+| ristretto  | 107 MiB | 185 MiB    | 132 MiB |
 | freelru    | 112 MiB | 120 MiB    | 122 MiB |
-| ristretto  | 112 MiB | 186 MiB    | 124 MiB |
 | ecache     | 123 MiB | 131 MiB    | 127 MiB |
 | otter      | 137 MiB | 211 MiB    | 177 MiB |
-| theine     | 177 MiB | 223 MiB    | 193 MiB |
+| theine     | 177 MiB | 223 MiB    | 194 MiB |
 | cloudflare | 183 MiB | 191 MiB    | 188 MiB |
+| hashicorp  | 238 MiB | 306 MiB    | 270 MiB |
 
 ### License
 LRU is licensed under the MIT License. See the LICENSE file for details.
