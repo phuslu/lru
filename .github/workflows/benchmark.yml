@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Install packages
-        run: sudo apt-get install -y csvkit
+        run: sudo apt update -y && sudo apt-get install -y csvkit
       - uses: actions/setup-go@v4
         with:
           go-version: '1.21'
@@ -28,7 +28,7 @@ jobs:
       - name: Tests
         run: |
           go test -v -bench=. -race -count=1 -coverprofile=coverage.txt
-      - name: Benchmark
+      - name: Throughput benchmarks
         working-directory: ./bench
         run: |
           env writepecent=10 zipf=0 go test -v -cpu=8 -run=none -bench=. -benchtime=5s -benchmem bench_test.go
@@ -39,8 +39,8 @@ jobs:
           awk '{if($0 ~ "// memusage.go"){a=1;b=1};if($0 ~ "```" && b=1){b=0};if (a&&b) {print}}' ../README.md > memusage.go
           echo -e 'MemStats\tAlloc\tTotalAlloc\tSys' > memusage.txt
           go run memusage.go phuslu     >> memusage.txt
-          go run memusage.go ristretto  >> memusage.txt
           go run memusage.go lxzan      >> memusage.txt
+          go run memusage.go ristretto  >> memusage.txt
           go run memusage.go freelru    >> memusage.txt
           go run memusage.go ecache     >> memusage.txt
           go run memusage.go otter      >> memusage.txt
