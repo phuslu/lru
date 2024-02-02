@@ -155,7 +155,9 @@ func (s *shard[K, V]) Set(hash uint32, hashfun func(K) uint64, key K, value V, t
 	index := s.list_Back()
 	node := &s.list[index]
 	evictedValue := node.value
-	s.table_Delete(uint32(hashfun(node.key)), node.key)
+	if key != node.key {
+		s.table_Delete(uint32(hashfun(node.key)), node.key)
+	}
 
 	node.key = key
 	node.value = value
