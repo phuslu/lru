@@ -77,7 +77,7 @@ func (o *shardsOption[K, V]) ApplyToCache(c *Cache[K, V]) {
 }
 
 // WithHasher specifies the hasher function of cache.
-func WithHasher[K comparable, V any](hasher func(K) uint64) Option[K, V] {
+func WithHasher[K comparable, V any](hasher func(key K) (hash uint64)) Option[K, V] {
 	return &hasherOption[K, V]{hasher: hasher}
 }
 
@@ -105,7 +105,7 @@ func (o *slidingOption[K, V]) ApplyToCache(c *Cache[K, V]) {
 }
 
 // WithLoader specifies that loader function of LoadingCache.
-func WithLoader[K comparable, V any](loader func(K) (V, time.Duration, error)) Option[K, V] {
+func WithLoader[K comparable, V any](loader func(key K) (value V, ttl time.Duration, err error)) Option[K, V] {
 	return &loaderOption[K, V]{loader: loader}
 }
 

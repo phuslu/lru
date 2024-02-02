@@ -25,7 +25,7 @@
 
 ### Limitation
 1. The TTL is accurate to the nearest second.
-2. Expired items are only deleted when accessed again or the cache is full.
+2. Expired items are only removed when accessed again or the cache is full.
 
 ### Getting Started
 
