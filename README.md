@@ -113,7 +113,7 @@ A Performance result as below. Check github [actions][actions] for more results 
   <summary>benchmark on keysize=16, itemsize=1000000, cachesize=50%, concurrency=8</summary>
 
 ```go
-// env writepecent=10 zipf=0 go test -v -cpu=8 -run=none -bench=. -benchtime=5s -benchmem bench_test.go
+// env writeratio=0.1 zipf=false go test -v -cpu=8 -run=none -bench=. -benchtime=5s -benchmem bench_test.go
 package bench
 
 import (
@@ -129,10 +129,10 @@ import (
 
 	theine "github.com/Yiling-J/theine-go"
 	"github.com/cespare/xxhash/v2"
-	hashicorp "github.com/hashicorp/golang-lru/v2/expirable"
 	cloudflare "github.com/cloudflare/golibs/lrucache"
 	ristretto "github.com/dgraph-io/ristretto"
 	freelru "github.com/elastic/go-freelru"
+	hashicorp "github.com/hashicorp/golang-lru/v2/expirable"
 	lxzan "github.com/lxzan/memorycache"
 	otter "github.com/maypok86/otter"
 	ecache "github.com/orca-zhang/ecache"
@@ -145,15 +145,16 @@ const (
 )
 
 var threshold = func() uint32 {
-	writepecent, _ := strconv.Atoi(os.Getenv("writepecent"))
-	return ^uint32(0) / 100 * uint32(writepecent)
+	writeratio, _ := strconv.ParseFloat(os.Getenv("writeratio"), 64)
+	return uint32(float64(^uint32(0)) * writeratio)
 }()
 
-var zipfian = func() (f func() uint64) {
-	if os.Getenv("zipf") == "1" {
-		f = rand.NewZipf(rand.New(rand.NewSource(time.Now().UnixNano())), 1.0001, 10, cachesize-1).Uint64
+var zipfian = func() (zipf func() uint64) {
+	ok, _ := strconv.ParseBool(os.Getenv("zipf"))
+	if !ok {
+		return nil
 	}
-	return
+	return rand.NewZipf(rand.New(rand.NewSource(time.Now().UnixNano())), 1.0001, 10, cachesize-1).Uint64
 }
 
 var shardcount = func() int {
