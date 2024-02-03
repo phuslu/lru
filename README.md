@@ -475,10 +475,10 @@ import (
 
 	theine "github.com/Yiling-J/theine-go"
 	"github.com/cespare/xxhash/v2"
-	hashicorp "github.com/hashicorp/golang-lru/v2/expirable"
 	cloudflare "github.com/cloudflare/golibs/lrucache"
-	freelru "github.com/elastic/go-freelru"
 	ristretto "github.com/dgraph-io/ristretto"
+	freelru "github.com/elastic/go-freelru"
+	hashicorp "github.com/hashicorp/golang-lru/v2/expirable"
 	lxzan "github.com/lxzan/memorycache"
 	otter "github.com/maypok86/otter"
 	ecache "github.com/orca-zhang/ecache"
@@ -490,7 +490,7 @@ const (
 	cachesize = 1000000
 )
 
-var keys []string 
+var keys []string
 
 func main() {
 	keys = make([]string, cachesize)
@@ -502,28 +502,18 @@ func main() {
 	runtime.ReadMemStats(&o)
 
 	name := os.Args[1]
-	switch name {
-	case "phuslu":
-		SetupPhuslu()
-	case "freelru":
-		SetupFreelru()
-	case "ristretto":
-		SetupRistretto()
-	case "otter":
-		SetupOtter()
-	case "lxzan":
-		SetupLxzan()
-	case "ecache":
-		SetupEcache()
-	case "cloudflare":
-		SetupCloudflare()
-	case "hashicorp":
-		SetupHashicorp()
-	case "theine":
-		SetupTheine()
-	default:
-		panic("no cache name")
-	}
+	setup := map[string]func(){
+		"phuslu":     SetupPhuslu,
+		"freelru":    SetupFreelru,
+		"ristretto":  SetupRistretto,
+		"otter":      SetupOtter,
+		"lxzan":      SetupLxzan,
+		"ecache":     SetupEcache,
+		"cloudflare": SetupCloudflare,
+		"hashicorp":  SetupHashicorp,
+		"theine":     SetupTheine,
+	}[name]
+	setup()
 
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
