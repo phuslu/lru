@@ -181,11 +181,11 @@ func (c *Cache[K, V]) Delete(key K) (prev V) {
 
 // Len returns number of cached nodes.
 func (c *Cache[K, V]) Len() int {
-	n := 0
+	var n uint32
 	for i := range c.shards {
 		n += c.shards[i].Len()
 	}
-	return n
+	return int(n)
 }
 
 // AppendKeys appends all keys to keys and return the keys.

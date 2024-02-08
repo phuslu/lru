@@ -29,18 +29,18 @@ type shard[K comparable, V any] struct {
 			index uint32 // node index
 		}
 		mask   uint32
-		length int
+		length uint32
 	}
 
 	// the list of nodes
 	list []node[K, V]
 
-	stats Stats
-
 	sliding bool
 
+	stats Stats
+
 	// padding
-	_ [24]byte
+	_ [32]byte
 }
 
 func (s *shard[K, V]) Init(size uint32) {
@@ -198,7 +198,7 @@ func (s *shard[K, V]) Delete(hash uint32, key K) (v V) {
 	return
 }
 
-func (s *shard[K, V]) Len() (n int) {
+func (s *shard[K, V]) Len() (n uint32) {
 	s.mu.Lock()
 	// inlining s.table_Len()
 	n = s.table.length
