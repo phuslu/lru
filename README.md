@@ -29,7 +29,7 @@
 
 ### Getting Started
 
-An out of box example. https://go.dev/play/p/01hUdKwp2MC
+An out of box example. https://go.dev/play/p/VdufWuwo4lE
 ```go
 package main
 
@@ -44,12 +44,16 @@ func main() {
 
 	cache.Set("a", 1, 2*time.Second)
 	println(cache.Get("a"))
+	println(cache.Get("b"))
 
 	time.Sleep(1 * time.Second)
 	println(cache.Get("a"))
 
 	time.Sleep(2 * time.Second)
 	println(cache.Get("a"))
+
+	stats := cache.Stats()
+	println("GetCalls", stats.GetCalls, "SetCalls", stats.SetCalls, "Misses", stats.Misses)
 }
 ```
 
