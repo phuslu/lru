@@ -211,14 +211,13 @@ type Stats struct {
 
 // Stats returns cache stats.
 func (c *Cache[K, V]) Stats() (stats Stats) {
-	var s Stats
 	for i := range c.shards {
 		c.shards[i].mu.Lock()
-		s = c.shards[i].stats
+		s := c.shards[i].stats
 		c.shards[i].mu.Unlock()
-		stats.GetCalls += s.GetCalls
-		stats.SetCalls += s.SetCalls
-		stats.Misses += s.Misses
+		stats.GetCalls += s.getcalls
+		stats.SetCalls += s.setcalls
+		stats.Misses += s.misses
 	}
 	return
 }

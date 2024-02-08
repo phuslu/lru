@@ -37,7 +37,11 @@ type shard[K comparable, V any] struct {
 
 	sliding bool
 
-	stats Stats
+	stats struct {
+		getcalls uint64
+		setcalls uint64
+		misses   uint64
+	}
 
 	// padding
 	_ [32]byte
@@ -51,7 +55,7 @@ func (s *shard[K, V]) Init(size uint32) {
 func (s *shard[K, V]) Get(hash uint32, key K) (value V, ok bool) {
 	s.mu.Lock()
 
-	s.stats.GetCalls++
+	s.stats.getcalls++
 
 	if index, exists := s.table_Get(hash, key); exists {
 		if expires := s.list[index].expires; expires == 0 {
@@ -69,10 +73,10 @@ func (s *shard[K, V]) Get(hash uint32, key K) (value V, ok bool) {
 			s.list_MoveToBack(index)
 			s.list[index].value = value
 			s.table_Delete(hash, key)
-			s.stats.Misses++
+			s.stats.misses++
 		}
 	} else {
-		s.stats.Misses++
+		s.stats.misses++
 	}
 
 	s.mu.Unlock()
@@ -96,8 +100,6 @@ func (s *shard[K, V]) Peek(hash uint32, key K) (value V, ok bool) {
 func (s *shard[K, V]) SetIfAbsent(hash uint32, hashfun func(K) uint64, key K, value V, ttl time.Duration) (prev V, replaced bool) {
 	s.mu.Lock()
 
-	s.stats.SetCalls++
-
 	if index, exists := s.table_Get(hash, key); exists {
 		node := &s.list[index]
 		prev = node.value
@@ -105,6 +107,8 @@ func (s *shard[K, V]) SetIfAbsent(hash uint32, hashfun func(K) uint64, key K, va
 			s.mu.Unlock()
 			return
 		}
+
+		s.stats.setcalls++
 
 		node.value = value
 		if ttl > 0 {
@@ -119,6 +123,8 @@ func (s *shard[K, V]) SetIfAbsent(hash uint32, hashfun func(K) uint64, key K, va
 		s.mu.Unlock()
 		return
 	}
+
+	s.stats.setcalls++
 
 	index := s.list_Back()
 	node := &s.list[index]
@@ -142,7 +148,7 @@ func (s *shard[K, V]) SetIfAbsent(hash uint32, hashfun func(K) uint64, key K, va
 func (s *shard[K, V]) Set(hash uint32, hashfun func(K) uint64, key K, value V, ttl time.Duration) (prev V, replaced bool) {
 	s.mu.Lock()
 
-	s.stats.SetCalls++
+	s.stats.setcalls++
 
 	if index, exists := s.table_Get(hash, key); exists {
 		node := &s.list[index]
