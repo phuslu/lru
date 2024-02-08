@@ -318,6 +318,44 @@ func TestCacheSlidingGet(t *testing.T) {
 
 }
 
+func TestCacheStats(t *testing.T) {
+	l := New[string, int](256, WithShards[string, int](1))
+
+	l.Set("a", 1, 0)
+	l.Set("b", 2, 3*time.Second)
+	l.Set("c", 3, 3*time.Second)
+	l.Set("d", 3, 2*time.Second)
+
+	stats := l.Stats()
+	if got, want := stats.GetCalls, uint64(0); got != want {
+		t.Fatalf("cache get calls should be %v: %v", want, got)
+	}
+	if got, want := stats.SetCalls, uint64(4); got != want {
+		t.Fatalf("cache set calls should be %v: %v", want, got)
+	}
+	if got, want := stats.Misses, uint64(0); got != want {
+		t.Fatalf("cache misses should be %v: %v", want, got)
+	}
+
+	l.Get("a")
+	l.Get("b")
+	l.Get("x")
+	l.Get("y")
+	l.Get("z")
+	l.Set("c", 13, 3*time.Second)
+
+	stats = l.Stats()
+	if got, want := stats.GetCalls, uint64(5); got != want {
+		t.Fatalf("cache get calls should be %v: %v", want, got)
+	}
+	if got, want := stats.SetCalls, uint64(5); got != want {
+		t.Fatalf("cache set calls should be %v: %v", want, got)
+	}
+	if got, want := stats.Misses, uint64(3); got != want {
+		t.Fatalf("cache misses should be %v: %v", want, got)
+	}
+}
+
 func BenchmarkCacheRand(b *testing.B) {
 	l := New[int64, int64](8192)
 

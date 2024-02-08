@@ -196,3 +196,29 @@ func (c *Cache[K, V]) AppendKeys(keys []K) []K {
 	}
 	return keys
 }
+
+// Stats represents cache stats.
+type Stats struct {
+	// GetCalls is the number of Get calls.
+	GetCalls uint64
+
+	// SetCalls is the number of Set calls.
+	SetCalls uint64
+
+	// Misses is the number of cache misses.
+	Misses uint64
+}
+
+// Stats returns cache stats.
+func (c *Cache[K, V]) Stats() (stats Stats) {
+	var s Stats
+	for i := range c.shards {
+		c.shards[i].mu.Lock()
+		s = c.shards[i].stats
+		c.shards[i].mu.Unlock()
+		stats.GetCalls += s.GetCalls
+		stats.SetCalls += s.SetCalls
+		stats.Misses += s.Misses
+	}
+	return
+}
