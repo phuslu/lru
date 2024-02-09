@@ -61,12 +61,13 @@ func (s *shard[K, V]) table_Set(hash uint32, key K, index uint32) (prev uint32, 
 func (s *shard[K, V]) table_Get(hash uint32, key K) (prev uint32, ok bool) {
 	subhash := hash >> dibBitSize
 	mask := s.table.mask
+	buckets := s.table.buckets
 	i := subhash & mask
 	for {
-		if s.table.buckets[i].hdib&maxDIB == 0 {
+		if buckets[i].hdib&maxDIB == 0 {
 			return
 		}
-		if s.table.buckets[i].hdib>>dibBitSize == subhash && s.list[s.table.buckets[i].index].key == key {
+		if buckets[i].hdib>>dibBitSize == subhash && s.list[buckets[i].index].key == key {
 			return s.table.buckets[i].index, true
 		}
 		i = (i + 1) & mask
