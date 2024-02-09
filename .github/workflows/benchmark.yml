@@ -23,6 +23,7 @@ jobs:
           mkdir bench
           cd bench
           awk '{if($0 ~ "// env writeratio="){a=1;b=1};if($0 ~ "```" && b=1){b=0};if (a&&b) {print}}' ../README.md | tee bench_test.go
+          go mod init bench
           go mod tidy
           go mod edit -replace github.com/phuslu/lru=../
       - name: Tests
