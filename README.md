@@ -137,6 +137,7 @@ import (
 	ristretto "github.com/dgraph-io/ristretto"
 	freelru "github.com/elastic/go-freelru"
 	hashicorp "github.com/hashicorp/golang-lru/v2/expirable"
+	ccache "github.com/karlseguin/ccache/v3"
 	lxzan "github.com/lxzan/memorycache"
 	otter "github.com/maypok86/otter"
 	ecache "github.com/orca-zhang/ecache"
@@ -200,6 +201,29 @@ func BenchmarkHashicorpSetGet(b *testing.B) {
 			if threshold > 0 && fastrand() <= threshold {
 				i := int(fastrandn(cachesize))
 				cache.Add(keys[i], i)
+			} else if zipf == nil {
+				cache.Get(keys[fastrandn(cachesize)])
+			} else {
+				cache.Get(keys[zipf()])
+			}
+		}
+	})
+}
+
+func BenchmarkCcacheSetGet(b *testing.B) {
+	cache := ccache.New(ccache.Configure[int]().MaxSize(cachesize).ItemsToPrune(100))
+	for i := 0; i < cachesize/2; i++ {
+		cache.Set(keys[i], i, time.Hour)
+	}
+
+	b.ResetTimer()
+
+	b.RunParallel(func(pb *testing.PB) {
+		zipf := zipfian()
+		for pb.Next() {
+			if threshold > 0 && fastrand() <= threshold {
+				i := int(fastrandn(cachesize))
+				cache.Set(keys[i], i, time.Hour)
 			} else if zipf == nil {
 				cache.Get(keys[fastrandn(cachesize)])
 			} else {
@@ -414,25 +438,27 @@ goos: linux
 goarch: amd64
 cpu: AMD EPYC 7763 64-Core Processor                
 BenchmarkHashicorpSetGet
-BenchmarkHashicorpSetGet-8    	11738282	       592.6 ns/op	       3 B/op	       0 allocs/op
+BenchmarkHashicorpSetGet-8    	11671027	       568.4 ns/op	       3 B/op	       0 allocs/op
+BenchmarkCcacheSetGet
+BenchmarkCcacheSetGet-8       	20729126	       378.0 ns/op	      34 B/op	       2 allocs/op
 BenchmarkCloudflareSetGet
-BenchmarkCloudflareSetGet-8   	35005489	       207.6 ns/op	      16 B/op	       1 allocs/op
+BenchmarkCloudflareSetGet-8   	36007413	       202.9 ns/op	      16 B/op	       1 allocs/op
 BenchmarkEcacheSetGet
-BenchmarkEcacheSetGet-8       	42161024	       153.7 ns/op	       2 B/op	       0 allocs/op
+BenchmarkEcacheSetGet-8       	39059876	       157.0 ns/op	       2 B/op	       0 allocs/op
 BenchmarkLxzanSetGet
-BenchmarkLxzanSetGet-8        	43635694	       164.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkLxzanSetGet-8        	42916293	       181.6 ns/op	       0 B/op	       0 allocs/op
 BenchmarkFreelruSetGet
-BenchmarkFreelruSetGet-8      	50669486	       149.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkFreelruSetGet-8      	51016066	       148.5 ns/op	       0 B/op	       0 allocs/op
 BenchmarkRistrettoSetGet
-BenchmarkRistrettoSetGet-8    	35706106	       149.0 ns/op	      28 B/op	       1 allocs/op
+BenchmarkRistrettoSetGet-8    	35261835	       152.4 ns/op	      29 B/op	       1 allocs/op
 BenchmarkTheineSetGet
-BenchmarkTheineSetGet-8       	21670340	       307.0 ns/op	       5 B/op	       0 allocs/op
+BenchmarkTheineSetGet-8       	20273437	       323.6 ns/op	       5 B/op	       0 allocs/op
 BenchmarkOtterSetGet
-BenchmarkOtterSetGet-8        	38382798	       193.2 ns/op	       9 B/op	       0 allocs/op
+BenchmarkOtterSetGet-8        	34421589	       183.6 ns/op	       9 B/op	       0 allocs/op
 BenchmarkPhusluSetGet
-BenchmarkPhusluSetGet-8       	54541606	       136.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPhusluSetGet-8       	55259649	       136.1 ns/op	       0 B/op	       0 allocs/op
 PASS
-ok  	command-line-arguments	89.902s
+ok  	command-line-arguments	111.486s
 ```
 
 with zipfian read (99%) and randomly write(1%)
@@ -441,25 +467,27 @@ goos: linux
 goarch: amd64
 cpu: AMD EPYC 7763 64-Core Processor                
 BenchmarkHashicorpSetGet
-BenchmarkHashicorpSetGet-8    	13264689	       450.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHashicorpSetGet-8    	13504021	       447.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkCcacheSetGet
+BenchmarkCcacheSetGet-8       	20874184	       278.0 ns/op	      21 B/op	       2 allocs/op
 BenchmarkCloudflareSetGet
-BenchmarkCloudflareSetGet-8   	48489825	       133.0 ns/op	      16 B/op	       1 allocs/op
+BenchmarkCloudflareSetGet-8   	49169988	       131.0 ns/op	      16 B/op	       1 allocs/op
 BenchmarkEcacheSetGet
-BenchmarkEcacheSetGet-8       	57804170	       106.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkEcacheSetGet-8       	53384443	       102.5 ns/op	       0 B/op	       0 allocs/op
 BenchmarkLxzanSetGet
-BenchmarkLxzanSetGet-8        	58993784	       104.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkLxzanSetGet-8        	62551029	       100.3 ns/op	       0 B/op	       0 allocs/op
 BenchmarkFreelruSetGet
-BenchmarkFreelruSetGet-8      	56670991	       114.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkFreelruSetGet-8      	57220970	       109.6 ns/op	       0 B/op	       0 allocs/op
 BenchmarkRistrettoSetGet
-BenchmarkRistrettoSetGet-8    	43527901	       117.2 ns/op	      21 B/op	       1 allocs/op
+BenchmarkRistrettoSetGet-8    	46041409	       117.3 ns/op	      20 B/op	       1 allocs/op
 BenchmarkTheineSetGet
-BenchmarkTheineSetGet-8       	35049133	       180.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkTheineSetGet-8       	32443028	       182.3 ns/op	       0 B/op	       0 allocs/op
 BenchmarkOtterSetGet
-BenchmarkOtterSetGet-8        	78244587	        85.93 ns/op	       1 B/op	       0 allocs/op
+BenchmarkOtterSetGet-8        	71480184	        83.52 ns/op	       1 B/op	       0 allocs/op
 BenchmarkPhusluSetGet
-BenchmarkPhusluSetGet-8       	66832192	        93.07 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPhusluSetGet-8       	69003474	        91.94 ns/op	       0 B/op	       0 allocs/op
 PASS
-ok  	command-line-arguments	79.951s
+ok  	command-line-arguments	95.821s
 ```
 
 ### Memory usage
@@ -485,6 +513,7 @@ import (
 	ristretto "github.com/dgraph-io/ristretto"
 	freelru "github.com/elastic/go-freelru"
 	hashicorp "github.com/hashicorp/golang-lru/v2/expirable"
+	ccache "github.com/karlseguin/ccache/v3"
 	lxzan "github.com/lxzan/memorycache"
 	otter "github.com/maypok86/otter"
 	ecache "github.com/orca-zhang/ecache"
@@ -515,6 +544,7 @@ func main() {
 		"lxzan":      SetupLxzan,
 		"ecache":     SetupEcache,
 		"cloudflare": SetupCloudflare,
+		"ccache":     SetupCcache,
 		"hashicorp":  SetupHashicorp,
 		"theine":     SetupTheine,
 	}[name](cachesize)
@@ -595,6 +625,13 @@ func SetupCloudflare(cachesize int) {
 	}
 }
 
+func SetupCcache(cachesize int) {
+	cache := ccache.New(ccache.Configure[int]().MaxSize(int64(cachesize)).ItemsToPrune(100))
+	for i := 0; i < cachesize; i++ {
+		cache.Set(keys[i], i, time.Hour)
+	}
+}
+
 func SetupHashicorp(cachesize int) {
 	cache := hashicorp.NewLRU[string, int](cachesize, nil, time.Hour)
 	for i := 0; i < cachesize; i++ {
@@ -604,17 +641,18 @@ func SetupHashicorp(cachesize int) {
 ```
 </details>
 
-|            | 100000 | 250000 | 500000  | 1000000 | 2000000 |
-| ---------- | ------ | ------ | ------- | ------- | ------- |
-| phuslu     | 4 MB  | 12 MB | 23 MB  | 46 MB  | 93 MB  |
-| lxzan      | 8 MB  | 25 MB | 48 MB  | 95 MB  | 191 MB |
-| ristretto  | 14 MB | 24 MB | 46 MB  | 89 MB  | 207 MB |
-| freelru    | 6 MB  | 28 MB | 56 MB  | 112 MB | 224 MB |
-| ecache     | 11 MB | 31 MB | 61 MB  | 123 MB | 238 MB |
-| otter      | 15 MB | 41 MB | 68 MB  | 137 MB | 274 MB |
-| theine     | 15 MB | 46 MB | 89 MB  | 178 MB | 357 MB |
-| cloudflare | 15 MB | 46 MB | 96 MB  | 183 MB | 358 MB |
-| hashicorp  | 18 MB | 60 MB | 121 MB | 242 MB | 484 MB |
+|            | 100000 | 250000 | 500000 | 1000000 | 2000000 |
+| ---------- | ------ | ------ | ------ | ------- | ------- |
+| phuslu     | 4 MB   | 12 MB  | 23 MB  | 47 MB   | 93 MB   |
+| ristretto  | 8 MB   | 25 MB  | 46 MB  | 90 MB   | 177 MB  |
+| lxzan      | 8 MB   | 25 MB  | 48 MB  | 95 MB   | 190 MB  |
+| freelru    | 6 MB   | 28 MB  | 56 MB  | 112 MB  | 224 MB  |
+| ecache     | 11 MB  | 31 MB  | 62 MB  | 123 MB  | 238 MB  |
+| otter      | 15 MB  | 41 MB  | 83 MB  | 137 MB  | 274 MB  |
+| theine     | 14 MB  | 46 MB  | 89 MB  | 178 MB  | 357 MB  |
+| cloudflare | 16 MB  | 46 MB  | 95 MB  | 183 MB  | 358 MB  |
+| ccache     | 16 MB  | 46 MB  | 91 MB  | 183 MB  | 365 MB  |
+| hashicorp  | 18 MB  | 60 MB  | 121 MB | 242 MB  | 484 MB  |
 
 ### License
 LRU is licensed under the MIT License. See the LICENSE file for details.
