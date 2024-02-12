@@ -466,7 +466,7 @@ ok  	command-line-arguments	79.951s
 
 The Memory usage result as below. Check github [actions][actions] for more results and details.
 <details>
-  <summary>memory usage on keysize=16(string), valuesize=8(int), itemsize=1000000(1M), cachesize=100%</summary>
+  <summary>memory usage on keysize=16(string), valuesize=8(int), cachesize in (100000,250000,500000,1000000,2000000)</summary>
 
 ```go
 // memusage.go
@@ -477,6 +477,7 @@ import (
 	"os"
 	"runtime"
 	"time"
+	"strconv"
 
 	theine "github.com/Yiling-J/theine-go"
 	"github.com/cespare/xxhash/v2"
@@ -490,14 +491,14 @@ import (
 	phuslu "github.com/phuslu/lru"
 )
 
-const (
-	keysize   = 16
-	cachesize = 1000000
-)
+const keysize = 16
 
 var keys []string
 
 func main() {
+	name := os.Args[1]
+	cachesize, _ := strconv.Atoi(os.Args[2])
+
 	keys = make([]string, cachesize)
 	for i := 0; i < cachesize; i++ {
 		keys[i] = fmt.Sprintf(fmt.Sprintf("%%0%dd", keysize), i)
@@ -506,8 +507,7 @@ func main() {
 	var o runtime.MemStats
 	runtime.ReadMemStats(&o)
 
-	name := os.Args[1]
-	setup := map[string]func(){
+	map[string]func(int){
 		"phuslu":     SetupPhuslu,
 		"freelru":    SetupFreelru,
 		"ristretto":  SetupRistretto,
@@ -517,52 +517,52 @@ func main() {
 		"cloudflare": SetupCloudflare,
 		"hashicorp":  SetupHashicorp,
 		"theine":     SetupTheine,
-	}[name]
-	setup()
+	}[name](cachesize)
 
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
 
-	fmt.Printf("%s\t%v MiB\t%v MiB\t%v MiB\n",
+	fmt.Printf("%s\t%d\t%v MB\t%v MB\t%v MB\n",
 		name,
+		cachesize,
 		(m.Alloc-o.Alloc)/1048576,
 		(m.TotalAlloc-o.TotalAlloc)/1048576,
 		(m.Sys-o.Sys)/1048576,
 	)
 }
 
-func SetupPhuslu() {
+func SetupPhuslu(cachesize int) {
 	cache := phuslu.New[string, int](cachesize)
 	for i := 0; i < cachesize; i++ {
 		cache.Set(keys[i], i, time.Hour)
 	}
 }
 
-func SetupFreelru() {
-	cache, _ := freelru.NewSharded[string, int](cachesize, func(s string) uint32 { return uint32(xxhash.Sum64String(s)) })
+func SetupFreelru(cachesize int) {
+	cache, _ := freelru.NewSharded[string, int](uint32(cachesize), func(s string) uint32 { return uint32(xxhash.Sum64String(s)) })
 	for i := 0; i < cachesize; i++ {
 		cache.AddWithLifetime(keys[i], i, time.Hour)
 	}
 }
 
-func SetupOtter() {
+func SetupOtter(cachesize int) {
 	cache, _ := otter.MustBuilder[string, int](cachesize).WithVariableTTL().Build()
 	for i := 0; i < cachesize; i++ {
 		cache.Set(keys[i], i, time.Hour)
 	}
 }
 
-func SetupEcache() {
-	cache := ecache.NewLRUCache(1024, cachesize/1024, time.Hour)
+func SetupEcache(cachesize int) {
+	cache := ecache.NewLRUCache(1024, uint16(cachesize/1024), time.Hour)
 	for i := 0; i < cachesize; i++ {
 		cache.Put(keys[i], i)
 	}
 }
 
-func SetupRistretto() {
+func SetupRistretto(cachesize int) {
 	cache, _ := ristretto.NewCache(&ristretto.Config{
-		NumCounters: 10 * cachesize, // number of keys to track frequency of (10M).
-		MaxCost:     cachesize,      // maximum cost of cache (1M).
+		NumCounters: int64(10 * cachesize), // number of keys to track frequency of (10M).
+		MaxCost:     int64(cachesize),      // maximum cost of cache (1M).
 		BufferItems: 64,             // number of keys per Get buffer.
 	})
 	for i := 0; i < cachesize; i++ {
@@ -570,7 +570,7 @@ func SetupRistretto() {
 	}
 }
 
-func SetupLxzan() {
+func SetupLxzan(cachesize int) {
 	cache := lxzan.New[string, int](
 		lxzan.WithBucketNum(128),
 		lxzan.WithBucketSize(cachesize/128, cachesize/128),
@@ -581,21 +581,21 @@ func SetupLxzan() {
 	}
 }
 
-func SetupTheine() {
-	cache, _ := theine.NewBuilder[string, int](cachesize).Build()
+func SetupTheine(cachesize int) {
+	cache, _ := theine.NewBuilder[string, int](int64(cachesize)).Build()
 	for i := 0; i < cachesize; i++ {
 		cache.SetWithTTL(keys[i], i, 1, time.Hour)
 	}
 }
 
-func SetupCloudflare() {
-	cache := cloudflare.NewMultiLRUCache(1024, cachesize/1024)
+func SetupCloudflare(cachesize int) {
+	cache := cloudflare.NewMultiLRUCache(1024, uint(cachesize/1024))
 	for i := 0; i < cachesize; i++ {
 		cache.Set(keys[i], i, time.Now().Add(time.Hour))
 	}
 }
 
-func SetupHashicorp() {
+func SetupHashicorp(cachesize int) {
 	cache := hashicorp.NewLRU[string, int](cachesize, nil, time.Hour)
 	for i := 0; i < cachesize; i++ {
 		cache.Add(keys[i], i)
@@ -604,17 +604,17 @@ func SetupHashicorp() {
 ```
 </details>
 
-| MemStats   | Alloc   | TotalAlloc | Sys     |
-| ---------- | ------- | ---------- | ------- |
-| phuslu     | 47 MiB  | 54 MiB     | 56 MiB  |
-| lxzan      | 95 MiB  | 103 MiB    | 104 MiB |
-| ristretto  | 90 MiB  | 185 MiB    | 143 MiB |
-| freelru    | 112 MiB | 120 MiB    | 120 MiB |
-| ecache     | 123 MiB | 131 MiB    | 125 MiB |
-| otter      | 137 MiB | 211 MiB    | 174 MiB |
-| theine     | 178 MiB | 226 MiB    | 199 MiB |
-| cloudflare | 183 MiB | 191 MiB    | 185 MiB |
-| hashicorp  | 242 MiB | 312 MiB    | 278 MiB |
+|            | 100000 | 250000 | 500000  | 1000000 | 2000000 |
+| ---------- | ------ | ------ | ------- | ------- | ------- |
+| phuslu     | 4 MB  | 12 MB | 23 MB  | 46 MB  | 93 MB  |
+| lxzan      | 8 MB  | 25 MB | 48 MB  | 95 MB  | 191 MB |
+| ristretto  | 14 MB | 24 MB | 46 MB  | 89 MB  | 207 MB |
+| freelru    | 6 MB  | 28 MB | 56 MB  | 112 MB | 224 MB |
+| ecache     | 11 MB | 31 MB | 61 MB  | 123 MB | 238 MB |
+| otter      | 15 MB | 41 MB | 68 MB  | 137 MB | 274 MB |
+| theine     | 15 MB | 46 MB | 89 MB  | 178 MB | 357 MB |
+| cloudflare | 15 MB | 46 MB | 96 MB  | 183 MB | 358 MB |
+| hashicorp  | 18 MB | 60 MB | 121 MB | 242 MB | 484 MB |
 
 ### License
 LRU is licensed under the MIT License. See the LICENSE file for details.

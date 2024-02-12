@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Install packages
-        run: sudo apt update -y && sudo apt-get install -y csvkit
+        run: sudo apt update -y && sudo apt-get install -y csvkit datamash
       - uses: actions/setup-go@v4
         with:
           go-version: '1.22'
@@ -38,17 +38,13 @@ jobs:
         working-directory: ./bench
         run: |
           awk '{if($0 ~ "// memusage.go"){a=1;b=1};if($0 ~ "```" && b=1){b=0};if (a&&b) {print}}' ../README.md > memusage.go
-          echo -e 'MemStats\tAlloc\tTotalAlloc\tSys' > memusage.txt
-          go run memusage.go phuslu     >> memusage.txt
-          go run memusage.go lxzan      >> memusage.txt
-          go run memusage.go ristretto  >> memusage.txt
-          go run memusage.go freelru    >> memusage.txt
-          go run memusage.go ecache     >> memusage.txt
-          go run memusage.go otter      >> memusage.txt
-          go run memusage.go theine     >> memusage.txt
-          go run memusage.go cloudflare >> memusage.txt
-          go run memusage.go hashicorp  >> memusage.txt
-          cat memusage.txt | csvlook
+          echo -e 'MemStats\tCacheSize\tAlloc\tTotalAlloc\tSys' > memusage.txt
+          for name in phuslu lxzan ristretto freelru ecache otter theine cloudflare hashicorp; do
+            for cachesize in 100000 250000 500000 1000000 2000000; do
+              go run memusage.go $name $cachesize >> memusage.txt
+            done
+          done
+          cat memusage.txt | datamash --header-in crosstab 1,2 unique 3 | tee >(head -1) | tail -n +2 | sort -k6 -n | csvlook
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v3
         with:
