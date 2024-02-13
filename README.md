@@ -494,7 +494,7 @@ ok  	command-line-arguments	95.821s
 
 The Memory usage result as below. Check github [actions][actions] for more results and details.
 <details>
-  <summary>memory usage on keysize=16(string), valuesize=8(int), cachesize in (100000,250000,500000,1000000,2000000)</summary>
+  <summary>memory usage on keysize=16(string), valuesize=8(int), cachesize in (100000,500000,1000000,2000000)</summary>
 
 ```go
 // memusage.go
@@ -641,18 +641,18 @@ func SetupHashicorp(cachesize int) {
 ```
 </details>
 
-|            | 100000 | 250000 | 500000 | 1000000 | 2000000 |
-| ---------- | ------ | ------ | ------ | ------- | ------- |
-| phuslu     | 4 MB   | 12 MB  | 23 MB  | 47 MB   | 93 MB   |
-| ristretto  | 8 MB   | 25 MB  | 46 MB  | 90 MB   | 177 MB  |
-| lxzan      | 8 MB   | 25 MB  | 48 MB  | 95 MB   | 190 MB  |
-| freelru    | 6 MB   | 28 MB  | 56 MB  | 112 MB  | 224 MB  |
-| ecache     | 11 MB  | 31 MB  | 62 MB  | 123 MB  | 238 MB  |
-| otter      | 15 MB  | 41 MB  | 83 MB  | 137 MB  | 274 MB  |
-| theine     | 14 MB  | 46 MB  | 89 MB  | 178 MB  | 357 MB  |
-| cloudflare | 16 MB  | 46 MB  | 95 MB  | 183 MB  | 358 MB  |
-| ccache     | 16 MB  | 46 MB  | 91 MB  | 183 MB  | 365 MB  |
-| hashicorp  | 18 MB  | 60 MB  | 121 MB | 242 MB  | 484 MB  |
+|            | 100000 | 500000 | 1000000 | 2000000 |
+| ---------- | ------ | ------ | ------- | ------- |
+| phuslu     | 4 MB   | 23 MB  | 47 MB   | 93 MB   |
+| ristretto  | 10 MB  | 46 MB  | 90 MB   | 176 MB  |
+| lxzan      | 8 MB   | 48 MB  | 95 MB   | 191 MB  |
+| freelru    | 6 MB   | 56 MB  | 112 MB  | 224 MB  |
+| ecache     | 11 MB  | 62 MB  | 123 MB  | 238 MB  |
+| otter      | 15 MB  | 69 MB  | 166 MB  | 274 MB  |
+| theine     | 15 MB  | 89 MB  | 178 MB  | 357 MB  |
+| cloudflare | 16 MB  | 96 MB  | 183 MB  | 358 MB  |
+| ccache     | 16 MB  | 91 MB  | 182 MB  | 365 MB  |
+| hashicorp  | 18 MB  | 121 MB | 242 MB  | 483 MB  |
 
 ### License
 LRU is licensed under the MIT License. See the LICENSE file for details.
