@@ -4,7 +4,9 @@ package lru
 
 func (s *shard[K, V]) list_Init(size uint32) {
 	size += 1
-	s.list = make([]node[K, V], size)
+	if len(s.list) == 0 {
+		s.list = make([]node[K, V], size)
+	}
 	for i := uint32(0); i < size; i++ {
 		s.list[i].next = (i + 1) % size
 		s.list[i].prev = (i + size - 1) % size
