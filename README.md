@@ -6,8 +6,7 @@
 
 * Simple
     - No Dependencies.
-    - 100% code coverage.
-    - Less than 1000 lines of Go code.
+    - Straightforward API and codes.
 * Fast
     - Outperforms well-known *LRU* caches.
     - Zero memory allocations .
