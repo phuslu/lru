@@ -12,7 +12,7 @@ import (
 
 // Cache implements LRU Cache with least recent used eviction policy.
 type Cache[K comparable, V any] struct {
-	shards []shard[K, V]
+	shards [512]shard[K, V]
 	mask   uint32
 	hasher func(K) uint64
 	loader func(key K) (value V, ttl time.Duration, err error)
@@ -44,15 +44,15 @@ func New[K comparable, V any](size int, options ...Option[K, V]) *Cache[K, V] {
 	}
 
 	// pre-alloc lists and tables for compactness
-	shardsize := (size + len(c.shards) - 1) / len(c.shards)
-	shardlists := make([]node[K, V], (shardsize+1)*len(c.shards))
-	tablesize := int(newTableSize(uint32(shardsize)))
-	tablebuckets := make([]struct{ hdib, index uint32 }, tablesize*len(c.shards))
+	shardsize := (uint32(size) + c.mask) / (c.mask + 1)
+	shardlists := make([]node[K, V], (shardsize+1)*(c.mask+1))
+	tablesize := newTableSize(uint32(shardsize))
+	tablebuckets := make([]struct{ hdib, index uint32 }, tablesize*(c.mask+1))
 
-	for i := range c.shards {
+	for i := uint32(0); i <= c.mask; i++ {
 		c.shards[i].list = shardlists[i*(shardsize+1) : (i+1)*(shardsize+1)]
 		c.shards[i].table.buckets = tablebuckets[i*tablesize : (i+1)*tablesize]
-		c.shards[i].Init(uint32(shardsize))
+		c.shards[i].Init(shardsize)
 	}
 	return c
 }
@@ -78,9 +78,11 @@ func (o *shardsOption[K, V]) ApplyToCache(c *Cache[K, V]) {
 	} else {
 		shardcount = nextPowOf2(o.count)
 	}
+	if maxcount := uint32(len(c.shards)); shardcount > maxcount {
+		shardcount = maxcount
+	}
 
-	c.shards = make([]shard[K, V], shardcount)
-	c.mask = uint32(len(c.shards)) - 1
+	c.mask = uint32(shardcount) - 1
 }
 
 // WithHasher specifies the hasher function of cache.
@@ -106,7 +108,7 @@ type slidingOption[K comparable, V any] struct {
 }
 
 func (o *slidingOption[K, V]) ApplyToCache(c *Cache[K, V]) {
-	for i := range c.shards {
+	for i := uint32(0); i <= c.mask; i++ {
 		c.shards[i].sliding = o.sliding
 	}
 }
@@ -189,7 +191,7 @@ func (c *Cache[K, V]) Delete(key K) (prev V) {
 // Len returns number of cached nodes.
 func (c *Cache[K, V]) Len() int {
 	var n uint32
-	for i := range c.shards {
+	for i := uint32(0); i <= c.mask; i++ {
 		n += c.shards[i].Len()
 	}
 	return int(n)
@@ -198,7 +200,7 @@ func (c *Cache[K, V]) Len() int {
 // AppendKeys appends all keys to keys and return the keys.
 func (c *Cache[K, V]) AppendKeys(keys []K) []K {
 	now := atomic.LoadUint32(&clock)
-	for i := range c.shards {
+	for i := uint32(0); i <= c.mask; i++ {
 		keys = c.shards[i].AppendKeys(keys, now)
 	}
 	return keys
@@ -218,7 +220,7 @@ type Stats struct {
 
 // Stats returns cache stats.
 func (c *Cache[K, V]) Stats() (stats Stats) {
-	for i := range c.shards {
+	for i := uint32(0); i <= c.mask; i++ {
 		c.shards[i].mu.Lock()
 		s := c.shards[i].stats
 		c.shards[i].mu.Unlock()

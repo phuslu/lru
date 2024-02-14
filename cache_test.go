@@ -108,7 +108,12 @@ func TestCacheSetIfAbsent(t *testing.T) {
 }
 
 func TestCacheEviction(t *testing.T) {
-	l := New[int, *int](256, WithShards[int, *int](1))
+	l := New[int, *int](256, WithShards[int, *int](1024))
+	if l.mask+1 != uint32(cap(l.shards)) {
+		t.Fatalf("bad shard mask: %v", l.mask)
+	}
+
+	l = New[int, *int](256, WithShards[int, *int](1))
 
 	evictedCounter := 0
 	for i := 0; i < 512; i++ {
