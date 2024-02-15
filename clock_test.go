@@ -1,16 +1,22 @@
 package lru
 
 import (
-	"sync/atomic"
+	"runtime"
 	"testing"
 	"time"
 )
 
-func TestClockStop(t *testing.T) {
-	StopClock()
-	now := atomic.LoadUint32(&clock)
-	time.Sleep(3 * time.Second)
-	if atomic.LoadUint32(&clock)-now >= 2 {
-		t.Error("stop clock failed")
+func TestClocking(t *testing.T) {
+	for i := 0; i < 10000; i++ {
+		go func() {
+			time.Sleep(100 * time.Millisecond)
+			clocking()
+		}()
+	}
+
+	time.Sleep(time.Second)
+
+	if n := runtime.NumGoroutine(); n > 10 {
+		t.Errorf("bad clocking, too many gorouinte number: %v", n)
 	}
 }

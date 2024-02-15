@@ -21,6 +21,8 @@ type Cache[K comparable, V any] struct {
 
 // New creates lru cache with size capacity.
 func New[K comparable, V any](size int, options ...Option[K, V]) *Cache[K, V] {
+	clocking()
+
 	j := -1
 	for i, o := range options {
 		if _, ok := o.(*shardsOption[K, V]); ok {
