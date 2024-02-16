@@ -653,6 +653,9 @@ func SetupHashicorp(cachesize int) {
 | ccache     | 16 MB  | 91 MB  | 182 MB  | 365 MB  | 852 MB  |
 | hashicorp  | 18 MB  | 121 MB | 242 MB  | 484 MB  | 1034 MB |
 
+### Hit ratio
+It is a classic sharded LRU implementation, so the hit ratio is comparable to or slightly lower than a regular LRU.
+
 ### License
 LRU is licensed under the MIT License. See the LICENSE file for details.
 
