@@ -17,8 +17,6 @@
     - Adds only 26 extra bytes per cache item.
     - Minimized memory usage compared to others.
 * Feature optional
-    - Specifies shards count via `WithShards(count)` option.
-    - Customize hasher function via `WithHasher(func(key K) (hash uint64))` option.
     - Using SlidingCache via `WithSilding(true)` option.
     - Create LoadingCache via `WithLoader(func(key K) (v V, ttl time.Duration, err error))` option.
 
@@ -54,59 +52,6 @@ func main() {
 	stats := cache.Stats()
 	println("GetCalls", stats.GetCalls, "SetCalls", stats.SetCalls, "Misses", stats.Misses)
 }
-```
-
-Using a customized shards count.
-```go
-cache := lru.New[string, int](8192, lru.WithShards[string, int](64))
-
-cache.Set("foobar", 42, 3*time.Second)
-println(cache.Get("foobar"))
-```
-
-Using a customized hasher function.
-```go
-hasher := func(key string) (hash uint64) {
-	hash = 5381
-	for _, c := range []byte(key) {
-		hash = hash*33 + uint64(c)
-	}
-	return
-}
-
-cache := lru.New[string, int](8192, lru.WithHasher[string, int](hasher))
-
-cache.Set("foobar", 42, 3*time.Second)
-println(cache.Get("foobar"))
-```
-
-Using as a sliding cache.
-```go
-cache := lru.New[string, int](8192, lru.WithSilding(true))
-
-cache.Set("foobar", 42, 3*time.Second)
-
-time.Sleep(2 * time.Second)
-println(cache.Get("foobar"))
-
-time.Sleep(2 * time.Second)
-println(cache.Get("foobar"))
-
-time.Sleep(2 * time.Second)
-println(cache.Get("foobar"))
-```
-
-Create a loading cache.
-```go
-loader := func(key string) (int, time.Duration, error) {
-	return 42, time.Hour, nil
-}
-
-cache := lru.New[string, int](8192, lru.WithLoader(loader))
-
-println(cache.Get("b"))
-println(cache.GetOrLoad("b"))
-println(cache.Get("b"))
 ```
 
 ### Throughput benchmarks
