@@ -19,6 +19,8 @@ type Cache[K comparable, V any] struct {
 	group  singleflight_Group[K, V]
 }
 
+var compactCache = runtime.GOARCH == "amd64"
+
 // New creates lru cache with size capacity.
 func New[K comparable, V any](size int, options ...Option[K, V]) *Cache[K, V] {
 	clocking()
@@ -45,17 +47,24 @@ func New[K comparable, V any](size int, options ...Option[K, V]) *Cache[K, V] {
 		c.hasher = maphash_NewHasher[K]().Hash
 	}
 
-	// pre-alloc lists and tables for compactness
-	shardsize := (uint32(size) + c.mask) / (c.mask + 1)
-	shardlists := make([]node[K, V], (shardsize+1)*(c.mask+1))
-	tablesize := newTableSize(uint32(shardsize))
-	tablebuckets := make([]struct{ hdib, index uint32 }, tablesize*(c.mask+1))
-
-	for i := uint32(0); i <= c.mask; i++ {
-		c.shards[i].list = shardlists[i*(shardsize+1) : (i+1)*(shardsize+1)]
-		c.shards[i].table.buckets = tablebuckets[i*tablesize : (i+1)*tablesize]
-		c.shards[i].Init(shardsize)
+	if compactCache {
+		// pre-alloc lists and tables for compactness
+		shardsize := (uint32(size) + c.mask) / (c.mask + 1)
+		shardlists := make([]node[K, V], (shardsize+1)*(c.mask+1))
+		tablesize := newTableSize(uint32(shardsize))
+		tablebuckets := make([]struct{ hdib, index uint32 }, tablesize*(c.mask+1))
+		for i := uint32(0); i <= c.mask; i++ {
+			c.shards[i].list = shardlists[i*(shardsize+1) : (i+1)*(shardsize+1)]
+			c.shards[i].table.buckets = tablebuckets[i*tablesize : (i+1)*tablesize]
+			c.shards[i].Init(shardsize)
+		}
+	} else {
+		shardsize := (uint32(size) + c.mask) / (c.mask + 1)
+		for i := uint32(0); i <= c.mask; i++ {
+			c.shards[i].Init(shardsize)
+		}
 	}
+
 	return c
 }
 

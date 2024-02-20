@@ -9,6 +9,21 @@ import (
 	"time"
 )
 
+func TestCacheCompactness(t *testing.T) {
+	compact := compactCache
+	defer func() {
+		compactCache = compact
+	}()
+
+	for _, b := range []bool{true, false} {
+		compactCache = b
+		cache := New[string, []byte](32 * 1024)
+		if length := cache.Len(); length != 0 {
+			t.Fatalf("bad cache length: %v", length)
+		}
+	}
+}
+
 func TestCacheDefaultkey(t *testing.T) {
 	cache := New[string, int](1)
 	var k string
