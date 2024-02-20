@@ -17,7 +17,7 @@
     - Adds only 26 extra bytes per cache item.
     - Minimized memory usage compared to others.
 * Feature optional
-    - Using SlidingCache via `WithSilding(true)` option.
+    - Using SlidingCache via `WithSliding(true)` option.
     - Create LoadingCache via `WithLoader(func(key K) (v V, ttl time.Duration, err error))` option.
 
 ### Limitation
