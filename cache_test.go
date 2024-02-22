@@ -185,26 +185,26 @@ func TestCachePeek(t *testing.T) {
 	cache := New[int, int](64)
 
 	cache.Set(10, 10, 0)
-	cache.Set(20, 20, 0)
-	if v, ok := cache.Peek(10); !ok || v != 10 {
-		t.Errorf("10 should be set to 10: %v,", v)
+	cache.Set(20, 20, time.Hour)
+	if v, expires, ok := cache.Peek(10); !ok || v != 10 || expires != 0 {
+		t.Errorf("10 should be set to 10: %v, %v", v, expires)
 	}
 
-	if v, ok := cache.Peek(20); !ok || v != 20 {
+	if v, expires, ok := cache.Peek(20); !ok || v != 20 || expires == 0 {
 		t.Errorf("20 should be set to 20: %v,", v)
 	}
 
-	if v, ok := cache.Peek(30); ok || v != 0 {
+	if v, expires, ok := cache.Peek(30); ok || v != 0 || expires != 0 {
 		t.Errorf("30 should be set to 0: %v,", v)
 	}
 
 	for k := 3; k < 1024; k++ {
 		cache.Set(k, k, 0)
 	}
-	if v, ok := cache.Peek(10); ok || v == 10 {
+	if v, _, ok := cache.Peek(10); ok || v == 10 {
 		t.Errorf("%v should not have updated recent-ness of 10", v)
 	}
-	if v, ok := cache.Peek(30); ok || v != 0 {
+	if v, _, ok := cache.Peek(30); ok || v != 0 {
 		t.Errorf("%v should have updated recent-ness of 30", v)
 	}
 }

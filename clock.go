@@ -11,9 +11,9 @@ import (
 // always use `atomic.LoadUint32(&clock)` for accessing clock value.
 var clock uint32
 
-func clocking() {
-	const clockBase = 1704067200 // 2024-01-01T00:00:00Z
+const clockBase = 1704067200 // 2024-01-01T00:00:00Z
 
+func clocking() {
 	if atomic.LoadUint32(&clock) > 0 {
 		return
 	}

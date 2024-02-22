@@ -175,8 +175,8 @@ func (c *Cache[K, V]) GetOrLoad(key K) (value V, err error, ok bool) {
 	return
 }
 
-// Peek returns value for key, but does not modify its recency.
-func (c *Cache[K, V]) Peek(key K) (value V, ok bool) {
+// Peek returns value and expires nanoseconds for key, but does not modify its recency.
+func (c *Cache[K, V]) Peek(key K) (value V, expires int64, ok bool) {
 	hash := uint32(c.hasher(key))
 	return c.shards[hash&c.mask].Peek(hash, key)
 }

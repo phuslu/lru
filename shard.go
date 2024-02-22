@@ -104,11 +104,14 @@ func (s *shard[K, V]) Get(hash uint32, key K) (value V, ok bool) {
 	return
 }
 
-func (s *shard[K, V]) Peek(hash uint32, key K) (value V, ok bool) {
+func (s *shard[K, V]) Peek(hash uint32, key K) (value V, expires int64, ok bool) {
 	s.mu.Lock()
 
 	if index, exists := s.table_Get(hash, key); exists {
 		value = s.list[index].value
+		if e := s.list[index].expires; e > 0 {
+			expires = (int64(e) + clockBase) * int64(time.Second)
+		}
 		ok = true
 	}
 
