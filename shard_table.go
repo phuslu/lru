@@ -5,6 +5,10 @@
 
 package lru
 
+import (
+	"unsafe"
+)
+
 const (
 	loadFactor  = 0.85                      // must be above 50%
 	dibBitSize  = 8                         // 0xFF
@@ -13,13 +17,15 @@ const (
 	maxDIB      = ^uint32(0) >> hashBitSize // max 255
 )
 
-func (s *shard[K, V]) table_Init(size uint32) {
+func (s *shard[K, V]) table_Init(size uint32, hasher func(K unsafe.Pointer, seed uintptr) uintptr, seed uintptr) {
 	newsize := newTableSize(size)
 	if len(s.table.buckets) == 0 {
 		s.table.buckets = make([]struct{ hdib, index uint32 }, newsize)
 	}
 	s.table.mask = newsize - 1
 	s.table.length = 0
+	s.table.hasher = hasher
+	s.table.seed = seed
 }
 
 func newTableSize(size uint32) (newsize uint32) {

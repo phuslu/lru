@@ -6,6 +6,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+	"unsafe"
 )
 
 // node is a list node of LRU, storing key-value pairs and related information
@@ -30,6 +31,8 @@ type shard[K comparable, V any] struct {
 		}
 		mask   uint32
 		length uint32
+		hasher func(K unsafe.Pointer, seed uintptr) uintptr
+		seed   uintptr
 	}
 
 	// the list of nodes
@@ -44,12 +47,12 @@ type shard[K comparable, V any] struct {
 	}
 
 	// padding
-	_ [32]byte
+	_ [16]byte
 }
 
-func (s *shard[K, V]) Init(size uint32) {
+func (s *shard[K, V]) Init(size uint32, hasher func(K unsafe.Pointer, seed uintptr) uintptr, seed uintptr) {
 	s.list_Init(size)
-	s.table_Init(size)
+	s.table_Init(size, hasher, seed)
 }
 
 func (s *shard[K, V]) Get(hash uint32, key K) (value V, ok bool) {
@@ -120,7 +123,7 @@ func (s *shard[K, V]) Peek(hash uint32, key K) (value V, expires int64, ok bool)
 	return
 }
 
-func (s *shard[K, V]) SetIfAbsent(hash uint32, hashfun func(K) uint64, key K, value V, ttl time.Duration) (prev V, replaced bool) {
+func (s *shard[K, V]) SetIfAbsent(hash uint32, key K, value V, ttl time.Duration) (prev V, replaced bool) {
 	s.mu.Lock()
 
 	if index, exists := s.table_Get(hash, key); exists {
@@ -152,7 +155,7 @@ func (s *shard[K, V]) SetIfAbsent(hash uint32, hashfun func(K) uint64, key K, va
 	index := s.list_Back()
 	node := &s.list[index]
 	evictedValue := node.value
-	s.table_Delete(uint32(hashfun(node.key)), node.key)
+	s.table_Delete(uint32(s.table.hasher(noescape(unsafe.Pointer(&node.key)), s.table.seed)), node.key)
 
 	node.key = key
 	node.value = value
@@ -168,7 +171,7 @@ func (s *shard[K, V]) SetIfAbsent(hash uint32, hashfun func(K) uint64, key K, va
 	return
 }
 
-func (s *shard[K, V]) Set(hash uint32, hashfun func(K) uint64, key K, value V, ttl time.Duration) (prev V, replaced bool) {
+func (s *shard[K, V]) Set(hash uint32, key K, value V, ttl time.Duration) (prev V, replaced bool) {
 	s.mu.Lock()
 
 	s.stats.setcalls++
@@ -193,7 +196,7 @@ func (s *shard[K, V]) Set(hash uint32, hashfun func(K) uint64, key K, value V, t
 	node := &s.list[index]
 	evictedValue := node.value
 	if key != node.key {
-		s.table_Delete(uint32(hashfun(node.key)), node.key)
+		s.table_Delete(uint32(s.table.hasher(noescape(unsafe.Pointer(&node.key)), s.table.seed)), node.key)
 	}
 
 	node.key = key

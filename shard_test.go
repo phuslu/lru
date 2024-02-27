@@ -16,19 +16,14 @@ func TestShardPadding(t *testing.T) {
 
 func TestShardTableSet(t *testing.T) {
 	var s shard[string, uint32]
-	s.Init(1024)
+	s.Init(1024, getRuntimeHasher[string](), 0)
 
-	hashfun := func(key string) (x uint64) {
-		x = 5381
-		for _, c := range []byte(key) {
-			x = x*33 + uint64(c)
-		}
-		return
-	}
+	key := "foobar"
+	hash := uint32(s.table.hasher(noescape(unsafe.Pointer(&key)), s.table.seed))
 
-	s.Set(uint32(hashfun("foobar")), hashfun, "foobar", 42, 0)
+	s.Set(hash, key, 42, 0)
 
-	i, ok := s.table_Set(uint32(hashfun("foobar")), "foobar", 123)
+	i, ok := s.table_Set(hash, key, 123)
 	if v := s.list[i].value; !ok || v != 42 {
 		t.Errorf("foobar should be set to 42: %v %v", i, ok)
 	}

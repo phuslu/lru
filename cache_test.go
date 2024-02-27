@@ -209,28 +209,6 @@ func TestCachePeek(t *testing.T) {
 	}
 }
 
-func TestCacheHasher(t *testing.T) {
-	cache := New[string, int](1024, WithHasher[string, int](func(key string) (x uint64) {
-		x = 5381
-		for _, c := range []byte(key) {
-			x = x*33 + uint64(c)
-		}
-		return
-	}))
-
-	if v, ok := cache.Get("abcde"); ok {
-		t.Fatalf("bad returned value: %v", v)
-	}
-
-	if _, replaced := cache.Set("abcde", 10, 0); replaced {
-		t.Fatal("should not have replaced")
-	}
-
-	if v, ok := cache.Get("abcde"); !ok || v != 10 {
-		t.Fatalf("bad returned value: %v != %v", v, 10)
-	}
-}
-
 func TestCacheLoader(t *testing.T) {
 	cache := New[string, int](1024)
 	if v, err, ok := cache.GetOrLoad("a"); ok || err == nil || v != 0 {
