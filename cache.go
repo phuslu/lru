@@ -45,8 +45,12 @@ func New[K comparable, V any](size int, options ...Option[K, V]) *Cache[K, V] {
 		o.ApplyToCache(c)
 	}
 
-	c.hasher = getRuntimeHasher[K]()
-	c.seed = uintptr(fastrand64())
+	if c.hasher == nil {
+		c.hasher = getRuntimeHasher[K]()
+	}
+	if c.seed == 0 {
+		c.seed = uintptr(fastrand64())
+	}
 
 	if compactCache {
 		// pre-alloc lists and tables for compactness
@@ -95,6 +99,19 @@ func (o *shardsOption[K, V]) ApplyToCache(c *Cache[K, V]) {
 	}
 
 	c.mask = uint32(shardcount) - 1
+}
+
+// WithHasher specifies the hasher function of cache.
+func WithHasher[K comparable, V any](hasher func(key unsafe.Pointer, seed uintptr) (hash uintptr)) Option[K, V] {
+	return &hasherOption[K, V]{hasher: hasher}
+}
+
+type hasherOption[K comparable, V any] struct {
+	hasher func(key unsafe.Pointer, seed uintptr) (hash uintptr)
+}
+
+func (o *hasherOption[K, V]) ApplyToCache(c *Cache[K, V]) {
+	c.hasher = o.hasher
 }
 
 // WithLoader specifies that use sliding cache or not.

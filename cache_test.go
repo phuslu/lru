@@ -7,6 +7,7 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+	"unsafe"
 )
 
 func TestCacheCompactness(t *testing.T) {
@@ -206,6 +207,28 @@ func TestCachePeek(t *testing.T) {
 	}
 	if v, _, ok := cache.Peek(30); ok || v != 0 {
 		t.Errorf("%v should have updated recent-ness of 30", v)
+	}
+}
+
+func TestCacheHasher(t *testing.T) {
+	cache := New[string, int](1024, WithHasher[string, int](func(key unsafe.Pointer, seed uintptr) (x uintptr) {
+		x = 5381
+		for _, c := range []byte(*(*string)(key)) {
+			x = x*33 + uintptr(c)
+		}
+		return
+	}))
+
+	if v, ok := cache.Get("abcde"); ok {
+		t.Fatalf("bad returned value: %v", v)
+	}
+
+	if _, replaced := cache.Set("abcde", 10, 0); replaced {
+		t.Fatal("should not have replaced")
+	}
+
+	if v, ok := cache.Get("abcde"); !ok || v != 10 {
+		t.Fatalf("bad returned value: %v != %v", v, 10)
 	}
 }
 
