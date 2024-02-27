@@ -86,6 +86,7 @@ import (
 	otter "github.com/maypok86/otter"
 	ecache "github.com/orca-zhang/ecache"
 	phuslu "github.com/phuslu/lru"
+	"github.com/aclements/go-perfevent/perfbench"
 )
 
 const (
@@ -132,13 +133,14 @@ func fastrandn(x uint32) uint32
 func fastrand() uint32
 
 func BenchmarkHashicorpSetGet(b *testing.B) {
+	c := perfbench.Open(b)
 	cache := hashicorp.NewLRU[string, int](cachesize, nil, time.Hour)
 	for i := 0; i < cachesize/2; i++ {
 		cache.Add(keys[i], i)
 	}
 
 	b.ResetTimer()
-
+	c.Reset()
 	b.RunParallel(func(pb *testing.PB) {
 		zipf := zipfian()
 		for pb.Next() {
@@ -155,13 +157,14 @@ func BenchmarkHashicorpSetGet(b *testing.B) {
 }
 
 func BenchmarkCcacheSetGet(b *testing.B) {
+	c := perfbench.Open(b)
 	cache := ccache.New(ccache.Configure[int]().MaxSize(cachesize).ItemsToPrune(100))
 	for i := 0; i < cachesize/2; i++ {
 		cache.Set(keys[i], i, time.Hour)
 	}
 
 	b.ResetTimer()
-
+	c.Reset()
 	b.RunParallel(func(pb *testing.PB) {
 		zipf := zipfian()
 		for pb.Next() {
@@ -178,6 +181,7 @@ func BenchmarkCcacheSetGet(b *testing.B) {
 }
 
 func BenchmarkCloudflareSetGet(b *testing.B) {
+	c := perfbench.Open(b)
 	cache := cloudflare.NewMultiLRUCache(uint(shardcount), uint(cachesize/shardcount))
 	for i := 0; i < cachesize/2; i++ {
 		cache.Set(keys[i], i, time.Now().Add(time.Hour))
@@ -185,7 +189,7 @@ func BenchmarkCloudflareSetGet(b *testing.B) {
 	expires := time.Now().Add(time.Hour)
 
 	b.ResetTimer()
-
+	c.Reset()
 	b.RunParallel(func(pb *testing.PB) {
 		zipf := zipfian()
 		for pb.Next() {
@@ -202,13 +206,14 @@ func BenchmarkCloudflareSetGet(b *testing.B) {
 }
 
 func BenchmarkEcacheSetGet(b *testing.B) {
+	c := perfbench.Open(b)
 	cache := ecache.NewLRUCache(uint16(shardcount), uint16(cachesize/shardcount), time.Hour)
 	for i := 0; i < cachesize/2; i++ {
 		cache.Put(keys[i], i)
 	}
 
 	b.ResetTimer()
-
+	c.Reset()
 	b.RunParallel(func(pb *testing.PB) {
 		zipf := zipfian()
 		for pb.Next() {
@@ -225,6 +230,7 @@ func BenchmarkEcacheSetGet(b *testing.B) {
 }
 
 func BenchmarkLxzanSetGet(b *testing.B) {
+	c := perfbench.Open(b)
 	cache := lxzan.New[string, int](
 		lxzan.WithBucketNum(shardcount),
 		lxzan.WithBucketSize(cachesize/shardcount, cachesize/shardcount),
@@ -235,7 +241,7 @@ func BenchmarkLxzanSetGet(b *testing.B) {
 	}
 
 	b.ResetTimer()
-
+	c.Reset()
 	b.RunParallel(func(pb *testing.PB) {
 		zipf := zipfian()
 		for pb.Next() {
@@ -256,13 +262,14 @@ func hashStringXXHASH(s string) uint32 {
 }
 
 func BenchmarkFreelruSetGet(b *testing.B) {
+	c := perfbench.Open(b)
 	cache, _ := freelru.NewSharded[string, int](cachesize, hashStringXXHASH)
 	for i := 0; i < cachesize/2; i++ {
 		cache.AddWithLifetime(keys[i], i, time.Hour)
 	}
 
 	b.ResetTimer()
-
+	c.Reset()
 	b.RunParallel(func(pb *testing.PB) {
 		zipf := zipfian()
 		for pb.Next() {
@@ -279,6 +286,7 @@ func BenchmarkFreelruSetGet(b *testing.B) {
 }
 
 func BenchmarkRistrettoSetGet(b *testing.B) {
+	c := perfbench.Open(b)
 	cache, _ := ristretto.NewCache(&ristretto.Config{
 		NumCounters: 10 * cachesize, // number of keys to track frequency of (10M).
 		MaxCost:     cachesize,      // maximum cost of cache (1M).
@@ -289,7 +297,7 @@ func BenchmarkRistrettoSetGet(b *testing.B) {
 	}
 
 	b.ResetTimer()
-
+	c.Reset()
 	b.RunParallel(func(pb *testing.PB) {
 		zipf := zipfian()
 		for pb.Next() {
@@ -306,13 +314,14 @@ func BenchmarkRistrettoSetGet(b *testing.B) {
 }
 
 func BenchmarkTheineSetGet(b *testing.B) {
+	c := perfbench.Open(b)
 	cache, _ := theine.NewBuilder[string, int](cachesize).Build()
 	for i := 0; i < cachesize/2; i++ {
 		cache.SetWithTTL(keys[i], i, 1, time.Hour)
 	}
 
 	b.ResetTimer()
-
+	c.Reset()
 	b.RunParallel(func(pb *testing.PB) {
 		zipf := zipfian()
 		for pb.Next() {
@@ -329,13 +338,14 @@ func BenchmarkTheineSetGet(b *testing.B) {
 }
 
 func BenchmarkOtterSetGet(b *testing.B) {
+	c := perfbench.Open(b)
 	cache, _ := otter.MustBuilder[string, int](cachesize).WithVariableTTL().Build()
 	for i := 0; i < cachesize/2; i++ {
 		cache.Set(keys[i], i, time.Hour)
 	}
 
 	b.ResetTimer()
-
+	c.Reset()
 	b.RunParallel(func(pb *testing.PB) {
 		zipf := zipfian()
 		for pb.Next() {
@@ -352,13 +362,14 @@ func BenchmarkOtterSetGet(b *testing.B) {
 }
 
 func BenchmarkPhusluSetGet(b *testing.B) {
+	c := perfbench.Open(b)
 	cache := phuslu.New[string, int](cachesize, phuslu.WithShards[string, int](uint32(shardcount)))
 	for i := 0; i < cachesize/2; i++ {
 		cache.Set(keys[i], i, time.Hour)
 	}
 
 	b.ResetTimer()
-
+	c.Reset()
 	b.RunParallel(func(pb *testing.PB) {
 		zipf := zipfian()
 		for pb.Next() {
