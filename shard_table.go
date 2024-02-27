@@ -20,7 +20,7 @@ const (
 func (s *shard[K, V]) table_Init(size uint32, hasher func(K unsafe.Pointer, seed uintptr) uintptr, seed uintptr) {
 	newsize := newTableSize(size)
 	if len(s.table.buckets) == 0 {
-		s.table.buckets = make([]struct{ hdib, index uint32 }, newsize)
+		s.table.buckets = make([]bucket, newsize)
 	}
 	s.table.mask = newsize - 1
 	s.table.length = 0
@@ -46,23 +46,26 @@ func (s *shard[K, V]) table_Set(hash uint32, key K, index uint32) (prev uint32, 
 	hdib := subhash<<dibBitSize | uint32(1)&maxDIB
 	mask := s.table.mask
 	i := (hdib >> dibBitSize) & mask
+	b0 := unsafe.Pointer(&s.table.buckets[0])
+	l0 := unsafe.Pointer(&s.list[0])
 	for {
-		if s.table.buckets[i].hdib&maxDIB == 0 {
-			s.table.buckets[i].hdib = hdib
-			s.table.buckets[i].index = index
+		b := (*bucket)(unsafe.Add(b0, uintptr(i)*8))
+		if b.hdib&maxDIB == 0 {
+			b.hdib = hdib
+			b.index = index
 			s.table.length++
 			return
 		}
-		if hdib>>dibBitSize == s.table.buckets[i].hdib>>dibBitSize && key == s.list[s.table.buckets[i].index].key {
-			prev = s.table.buckets[i].index
-			s.table.buckets[i].hdib = hdib
-			s.table.buckets[i].index = index
+		if hdib>>dibBitSize == b.hdib>>dibBitSize && (*node[K, V])(unsafe.Add(l0, uintptr(b.index)*unsafe.Sizeof(s.list[0]))).key == key {
+			prev = b.index
+			b.hdib = hdib
+			b.index = index
 			ok = true
 			return
 		}
-		if s.table.buckets[i].hdib&maxDIB < hdib&maxDIB {
-			hdib, s.table.buckets[i].hdib = s.table.buckets[i].hdib, hdib
-			index, s.table.buckets[i].index = s.table.buckets[i].index, index
+		if b.hdib&maxDIB < hdib&maxDIB {
+			hdib, b.hdib = b.hdib, hdib
+			index, b.index = b.index, index
 		}
 		i = (i + 1) & mask
 		hdib = hdib>>dibBitSize<<dibBitSize | (hdib&maxDIB+1)&maxDIB
@@ -74,14 +77,16 @@ func (s *shard[K, V]) table_Set(hash uint32, key K, index uint32) (prev uint32, 
 func (s *shard[K, V]) table_Get(hash uint32, key K) (prev uint32, ok bool) {
 	subhash := hash >> dibBitSize
 	mask := s.table.mask
-	buckets := s.table.buckets
 	i := subhash & mask
+	b0 := unsafe.Pointer(&s.table.buckets[0])
+	l0 := unsafe.Pointer(&s.list[0])
 	for {
-		if buckets[i].hdib&maxDIB == 0 {
+		b := (*bucket)(unsafe.Add(b0, uintptr(i)*8))
+		if b.hdib&maxDIB == 0 {
 			return
 		}
-		if buckets[i].hdib>>dibBitSize == subhash && s.list[buckets[i].index].key == key {
-			return s.table.buckets[i].index, true
+		if b.hdib>>dibBitSize == subhash && (*node[K, V])(unsafe.Add(l0, uintptr(b.index)*unsafe.Sizeof(s.list[0]))).key == key {
+			return b.index, true
 		}
 		i = (i + 1) & mask
 	}
@@ -93,12 +98,15 @@ func (s *shard[K, V]) table_Delete(hash uint32, key K) (v uint32, ok bool) {
 	subhash := hash >> dibBitSize
 	mask := s.table.mask
 	i := subhash & mask
+	b0 := unsafe.Pointer(&s.table.buckets[0])
+	l0 := unsafe.Pointer(&s.list[0])
 	for {
-		if s.table.buckets[i].hdib&maxDIB == 0 {
+		b := (*bucket)(unsafe.Add(b0, uintptr(i)*8))
+		if b.hdib&maxDIB == 0 {
 			return
 		}
-		if s.table.buckets[i].hdib>>dibBitSize == subhash && s.list[s.table.buckets[i].index].key == key {
-			old := s.table.buckets[i].index
+		if b.hdib>>dibBitSize == subhash && (*node[K, V])(unsafe.Add(l0, uintptr(b.index)*unsafe.Sizeof(s.list[0]))).key == key {
+			old := b.index
 			s.table_delete(i)
 			return old, true
 		}
@@ -108,17 +116,21 @@ func (s *shard[K, V]) table_Delete(hash uint32, key K) (v uint32, ok bool) {
 
 func (s *shard[K, V]) table_delete(i uint32) {
 	mask := s.table.mask
-	s.table.buckets[i].hdib = s.table.buckets[i].hdib>>dibBitSize<<dibBitSize | uint32(0)&maxDIB
+	b0 := unsafe.Pointer(&s.table.buckets[0])
+	bi := (*bucket)(unsafe.Add(b0, uintptr(i)*8))
+	bi.hdib = bi.hdib>>dibBitSize<<dibBitSize | uint32(0)&maxDIB
 	for {
 		pi := i
 		i = (i + 1) & mask
-		if s.table.buckets[i].hdib&maxDIB <= 1 {
-			s.table.buckets[pi].index = 0
-			s.table.buckets[pi].hdib = 0
+		bpi := (*bucket)(unsafe.Add(b0, uintptr(pi)*8))
+		bi = (*bucket)(unsafe.Add(b0, uintptr(i)*8))
+		if bi.hdib&maxDIB <= 1 {
+			bpi.index = 0
+			bpi.hdib = 0
 			break
 		}
-		s.table.buckets[pi].index = s.table.buckets[i].index
-		s.table.buckets[pi].hdib = s.table.buckets[i].hdib>>dibBitSize<<dibBitSize | (s.table.buckets[i].hdib&maxDIB-1)&maxDIB
+		bpi.index = bi.index
+		bpi.hdib = bi.hdib>>dibBitSize<<dibBitSize | (bi.hdib&maxDIB-1)&maxDIB
 	}
 	s.table.length--
 }

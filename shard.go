@@ -19,20 +19,22 @@ type node[K comparable, V any] struct {
 	value   V
 }
 
+type bucket struct {
+	hdib  uint32 // bitfield { hash:24 dib:8 }
+	index uint32 // node index
+}
+
 // shard is a LRU partition contains a list and a hash table.
 type shard[K comparable, V any] struct {
 	mu sync.Mutex
 
 	// the hash table, with 20% extra space than the list for fewer conflicts.
 	table struct {
-		buckets []struct {
-			hdib  uint32 // bitfield { hash:24 dib:8 }
-			index uint32 // node index
-		}
-		mask   uint32
-		length uint32
-		hasher func(K unsafe.Pointer, seed uintptr) uintptr
-		seed   uintptr
+		buckets []bucket
+		mask    uint32
+		length  uint32
+		hasher  func(K unsafe.Pointer, seed uintptr) uintptr
+		seed    uintptr
 	}
 
 	// the list of nodes

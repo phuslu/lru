@@ -57,7 +57,7 @@ func New[K comparable, V any](size int, options ...Option[K, V]) *Cache[K, V] {
 		shardsize := (uint32(size) + c.mask) / (c.mask + 1)
 		shardlists := make([]node[K, V], (shardsize+1)*(c.mask+1))
 		tablesize := newTableSize(uint32(shardsize))
-		tablebuckets := make([]struct{ hdib, index uint32 }, tablesize*(c.mask+1))
+		tablebuckets := make([]bucket, tablesize*(c.mask+1))
 		for i := uint32(0); i <= c.mask; i++ {
 			c.shards[i].list = shardlists[i*(shardsize+1) : (i+1)*(shardsize+1)]
 			c.shards[i].table.buckets = tablebuckets[i*tablesize : (i+1)*tablesize]
