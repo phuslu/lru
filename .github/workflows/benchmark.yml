@@ -40,12 +40,12 @@ jobs:
           awk '{if($0 ~ "// memusage.go"){a=1;b=1};if($0 ~ "```" && b=1){b=0};if (a&&b) {print}}' ../README.md > memusage.go
           echo -e 'MemStats\tCacheSize\tAlloc\tTotalAlloc\tSys' > memusage.txt
           for name in phuslu lxzan ristretto freelru ecache otter theine cloudflare ccache hashicorp; do
-            for cachesize in 100000 500000 1000000 2000000 5000000; do
+            for cachesize in 100000 200000 400000 1000000 2000000 4000000; do
               go run memusage.go $name $cachesize >> memusage.txt
             done
           done
           cat memusage.txt
-          cat memusage.txt | datamash --header-in crosstab 1,2 unique 3 | tee >(head -1) | tail -n +2 | sort -k6 -n | datamash transpose | tee >(head -1) | tail -n +2 | sort -n | datamash transpose | csvlook
+          cat memusage.txt | datamash --header-in crosstab 1,2 unique 3 | tee >(head -1) | tail -n +2 | sort -k12 -n | datamash transpose | tee >(head -1) | tail -n +2 | sort -n | datamash transpose | csvlook
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v3
         with:

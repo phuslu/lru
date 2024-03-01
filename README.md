@@ -393,25 +393,25 @@ goos: linux
 goarch: amd64
 cpu: AMD EPYC 7763 64-Core Processor                
 BenchmarkHashicorpSetGet
-BenchmarkHashicorpSetGet-8    	12476664	       564.4 ns/op	      12 B/op	       0 allocs/op
+BenchmarkHashicorpSetGet-8    	13186024	       543.2 ns/op	      11 B/op	       0 allocs/op
 BenchmarkCcacheSetGet
-BenchmarkCcacheSetGet-8       	20660959	       366.7 ns/op	      34 B/op	       2 allocs/op
+BenchmarkCcacheSetGet-8       	22536788	       374.5 ns/op	      34 B/op	       2 allocs/op
 BenchmarkCloudflareSetGet
-BenchmarkCloudflareSetGet-8   	35890790	       207.4 ns/op	      16 B/op	       1 allocs/op
+BenchmarkCloudflareSetGet-8   	36669295	       202.2 ns/op	      16 B/op	       1 allocs/op
 BenchmarkEcacheSetGet
-BenchmarkEcacheSetGet-8       	41787247	       161.9 ns/op	       2 B/op	       0 allocs/op
+BenchmarkEcacheSetGet-8       	44461400	       150.2 ns/op	       2 B/op	       0 allocs/op
 BenchmarkLxzanSetGet
-BenchmarkLxzanSetGet-8        	42087907	       175.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkLxzanSetGet-8        	44095033	       170.6 ns/op	       0 B/op	       0 allocs/op
 BenchmarkFreelruSetGet
-BenchmarkFreelruSetGet-8      	54093354	       146.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkFreelruSetGet-8      	56736787	       139.0 ns/op	       0 B/op	       0 allocs/op
 BenchmarkRistrettoSetGet
-BenchmarkRistrettoSetGet-8    	33582938	       154.7 ns/op	      29 B/op	       1 allocs/op
+BenchmarkRistrettoSetGet-8    	36815023	       150.2 ns/op	      29 B/op	       1 allocs/op
 BenchmarkTheineSetGet
-BenchmarkTheineSetGet-8       	21173698	       323.9 ns/op	       5 B/op	       0 allocs/op
+BenchmarkTheineSetGet-8       	21676150	       306.9 ns/op	       5 B/op	       0 allocs/op
 BenchmarkOtterSetGet
-BenchmarkOtterSetGet-8        	37362757	       181.5 ns/op	       9 B/op	       0 allocs/op
+BenchmarkOtterSetGet-8        	46066177	       178.8 ns/op	       9 B/op	       0 allocs/op
 BenchmarkPhusluSetGet
-BenchmarkPhusluSetGet-8       	62270532	       123.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPhusluSetGet-8       	64747912	       119.2 ns/op	       0 B/op	       0 allocs/op
 PASS
 ok  	command-line-arguments	112.573s
 ```
@@ -422,25 +422,25 @@ goos: linux
 goarch: amd64
 cpu: AMD EPYC 7763 64-Core Processor                
 BenchmarkHashicorpSetGet
-BenchmarkHashicorpSetGet-8    	14484404	       414.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHashicorpSetGet-8    	15516982	       389.8 ns/op	       0 B/op	       0 allocs/op
 BenchmarkCcacheSetGet
-BenchmarkCcacheSetGet-8       	22326830	       254.1 ns/op	      21 B/op	       2 allocs/op
+BenchmarkCcacheSetGet-8       	25424391	       246.5 ns/op	      21 B/op	       2 allocs/op
 BenchmarkCloudflareSetGet
-BenchmarkCloudflareSetGet-8   	51409087	       135.2 ns/op	      16 B/op	       1 allocs/op
+BenchmarkCloudflareSetGet-8   	54334915	       123.3 ns/op	      16 B/op	       1 allocs/op
 BenchmarkEcacheSetGet
-BenchmarkEcacheSetGet-8       	58375735	       103.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkEcacheSetGet-8       	63883920	        94.72 ns/op	       0 B/op	       0 allocs/op
 BenchmarkLxzanSetGet
-BenchmarkLxzanSetGet-8        	62971538	       100.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkLxzanSetGet-8        	67750672	       102.4 ns/op	       0 B/op	       0 allocs/op
 BenchmarkFreelruSetGet
-BenchmarkFreelruSetGet-8      	59140359	       106.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkFreelruSetGet-8      	59845863	       101.9 ns/op	       0 B/op	       0 allocs/op
 BenchmarkRistrettoSetGet
-BenchmarkRistrettoSetGet-8    	45222032	       117.4 ns/op	      21 B/op	       1 allocs/op
+BenchmarkRistrettoSetGet-8    	46677678	       114.0 ns/op	      21 B/op	       1 allocs/op
 BenchmarkTheineSetGet
-BenchmarkTheineSetGet-8       	33927813	       177.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkTheineSetGet-8       	35919529	       170.0 ns/op	       0 B/op	       0 allocs/op
 BenchmarkOtterSetGet
-BenchmarkOtterSetGet-8        	72553767	        82.45 ns/op	       1 B/op	       0 allocs/op
+BenchmarkOtterSetGet-8        	74384974	        78.80 ns/op	       1 B/op	       0 allocs/op
 BenchmarkPhusluSetGet
-BenchmarkPhusluSetGet-8       	76701847	        84.06 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPhusluSetGet-8       	83168322	        77.69 ns/op	       0 B/op	       0 allocs/op
 PASS
 ok  	command-line-arguments	95.788s
 ```
@@ -596,18 +596,18 @@ func SetupHashicorp(cachesize int) {
 ```
 </details>
 
-|            | 100000 | 500000 | 1000000 | 2000000 | 5000000 |
-| ---------- | ------ | ------ | ------- | ------- | ------- |
-| phuslu     | 4 MB   | 23 MB  | 46 MB   | 92 MB   | 215 MB  |
-| ristretto  | 10 MB  | 46 MB  | 90 MB   | 177 MB  | 408 MB  |
-| lxzan      | 8 MB   | 48 MB  | 95 MB   | 190 MB  | 444 MB  |
-| freelru    | 6 MB   | 56 MB  | 112 MB  | 224 MB  | 441 MB  |
-| ecache     | 11 MB  | 62 MB  | 123 MB  | 238 MB  | 543 MB  |
-| otter      | 14 MB  | 68 MB  | 137 MB  | 274 MB  | 846 MB  |
-| theine     | 13 MB  | 89 MB  | 178 MB  | 357 MB  | 704 MB  |
-| cloudflare | 16 MB  | 96 MB  | 183 MB  | 358 MB  | 835 MB  |
-| ccache     | 16 MB  | 91 MB  | 182 MB  | 365 MB  | 852 MB  |
-| hashicorp  | 18 MB  | 121 MB | 242 MB  | 484 MB  | 1034 MB |
+|            | 100000 | 200000 | 400000 | 1000000 | 2000000 | 4000000 |
+| ---------- | ------ | ------ | ------ | ------- | ------- | ------- |
+| phuslu     | 4 MB   | 8 MB   | 16 MB  | 46 MB   | 92 MB   | 186 MB  |
+| lxzan      | 8 MB   | 17 MB  | 35 MB  | 95 MB   | 190 MB  | 379 MB  |
+| ristretto  | 8 MB   | 14 MB  | 35 MB  | 89 MB   | 178 MB  | 413 MB  |
+| freelru    | 6 MB   | 13 MB  | 27 MB  | 112 MB  | 224 MB  | 448 MB  |
+| ecache     | 11 MB  | 22 MB  | 44 MB  | 123 MB  | 238 MB  | 468 MB  |
+| otter      | 14 MB  | 29 MB  | 62 MB  | 137 MB  | 274 MB  | 547 MB  |
+| theine     | 14 MB  | 27 MB  | 62 MB  | 178 MB  | 357 MB  | 714 MB  |
+| cloudflare | 16 MB  | 33 MB  | 64 MB  | 183 MB  | 358 MB  | 717 MB  |
+| ccache     | 16 MB  | 33 MB  | 65 MB  | 182 MB  | 365 MB  | 730 MB  |
+| hashicorp  | 18 MB  | 37 MB  | 58 MB  | 242 MB  | 484 MB  | 968 MB  |
 
 ### Hit ratio
 It is a classic sharded LRU implementation, so the hit ratio is comparable to or slightly lower than a regular LRU.
