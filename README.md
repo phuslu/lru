@@ -156,30 +156,6 @@ func BenchmarkHashicorpSetGet(b *testing.B) {
 	})
 }
 
-func BenchmarkCcacheSetGet(b *testing.B) {
-	c := perfbench.Open(b)
-	cache := ccache.New(ccache.Configure[int]().MaxSize(cachesize).ItemsToPrune(100))
-	for i := 0; i < cachesize/2; i++ {
-		cache.Set(keys[i], i, time.Hour)
-	}
-
-	b.ResetTimer()
-	c.Reset()
-	b.RunParallel(func(pb *testing.PB) {
-		zipf := zipfian()
-		for pb.Next() {
-			if threshold > 0 && fastrand() <= threshold {
-				i := int(fastrandn(cachesize))
-				cache.Set(keys[i], i, time.Hour)
-			} else if zipf == nil {
-				cache.Get(keys[fastrandn(cachesize)])
-			} else {
-				cache.Get(keys[zipf()])
-			}
-		}
-	})
-}
-
 func BenchmarkCloudflareSetGet(b *testing.B) {
 	c := perfbench.Open(b)
 	cache := cloudflare.NewMultiLRUCache(uint(shardcount), uint(cachesize/shardcount))
@@ -285,6 +261,54 @@ func BenchmarkFreelruSetGet(b *testing.B) {
 	})
 }
 
+func BenchmarkPhusluSetGet(b *testing.B) {
+	c := perfbench.Open(b)
+	cache := phuslu.New[string, int](cachesize, phuslu.WithShards[string, int](uint32(shardcount)))
+	for i := 0; i < cachesize/2; i++ {
+		cache.Set(keys[i], i, time.Hour)
+	}
+
+	b.ResetTimer()
+	c.Reset()
+	b.RunParallel(func(pb *testing.PB) {
+		zipf := zipfian()
+		for pb.Next() {
+			if threshold > 0 && fastrand() <= threshold {
+				i := int(fastrandn(cachesize))
+				cache.Set(keys[i], i, time.Hour)
+			} else if zipf == nil {
+				cache.Get(keys[fastrandn(cachesize)])
+			} else {
+				cache.Get(keys[zipf()])
+			}
+		}
+	})
+}
+
+func BenchmarkCcacheSetGet(b *testing.B) {
+	c := perfbench.Open(b)
+	cache := ccache.New(ccache.Configure[int]().MaxSize(cachesize).ItemsToPrune(100))
+	for i := 0; i < cachesize/2; i++ {
+		cache.Set(keys[i], i, time.Hour)
+	}
+
+	b.ResetTimer()
+	c.Reset()
+	b.RunParallel(func(pb *testing.PB) {
+		zipf := zipfian()
+		for pb.Next() {
+			if threshold > 0 && fastrand() <= threshold {
+				i := int(fastrandn(cachesize))
+				cache.Set(keys[i], i, time.Hour)
+			} else if zipf == nil {
+				cache.Get(keys[fastrandn(cachesize)])
+			} else {
+				cache.Get(keys[zipf()])
+			}
+		}
+	})
+}
+
 func BenchmarkRistrettoSetGet(b *testing.B) {
 	c := perfbench.Open(b)
 	cache, _ := ristretto.NewCache(&ristretto.Config{
@@ -360,30 +384,6 @@ func BenchmarkOtterSetGet(b *testing.B) {
 		}
 	})
 }
-
-func BenchmarkPhusluSetGet(b *testing.B) {
-	c := perfbench.Open(b)
-	cache := phuslu.New[string, int](cachesize, phuslu.WithShards[string, int](uint32(shardcount)))
-	for i := 0; i < cachesize/2; i++ {
-		cache.Set(keys[i], i, time.Hour)
-	}
-
-	b.ResetTimer()
-	c.Reset()
-	b.RunParallel(func(pb *testing.PB) {
-		zipf := zipfian()
-		for pb.Next() {
-			if threshold > 0 && fastrand() <= threshold {
-				i := int(fastrandn(cachesize))
-				cache.Set(keys[i], i, time.Hour)
-			} else if zipf == nil {
-				cache.Get(keys[fastrandn(cachesize)])
-			} else {
-				cache.Get(keys[zipf()])
-			}
-		}
-	})
-}
 ```
 </details>
 
@@ -393,25 +393,25 @@ goos: linux
 goarch: amd64
 cpu: AMD EPYC 7763 64-Core Processor                
 BenchmarkHashicorpSetGet
-BenchmarkHashicorpSetGet-8    	13186024	       543.2 ns/op	      11 B/op	       0 allocs/op
-BenchmarkCcacheSetGet
-BenchmarkCcacheSetGet-8       	22536788	       374.5 ns/op	      34 B/op	       2 allocs/op
+BenchmarkHashicorpSetGet-8    	11607430	       574.4 ns/op	       3 B/op	       0 allocs/op
 BenchmarkCloudflareSetGet
-BenchmarkCloudflareSetGet-8   	36669295	       202.2 ns/op	      16 B/op	       1 allocs/op
+BenchmarkCloudflareSetGet-8   	34291885	       211.7 ns/op	      16 B/op	       1 allocs/op
 BenchmarkEcacheSetGet
-BenchmarkEcacheSetGet-8       	44461400	       150.2 ns/op	       2 B/op	       0 allocs/op
+BenchmarkEcacheSetGet-8       	42259825	       159.2 ns/op	       2 B/op	       0 allocs/op
 BenchmarkLxzanSetGet
-BenchmarkLxzanSetGet-8        	44095033	       170.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkLxzanSetGet-8        	43999303	       169.3 ns/op	       0 B/op	       0 allocs/op
 BenchmarkFreelruSetGet
-BenchmarkFreelruSetGet-8      	56736787	       139.0 ns/op	       0 B/op	       0 allocs/op
-BenchmarkRistrettoSetGet
-BenchmarkRistrettoSetGet-8    	36815023	       150.2 ns/op	      29 B/op	       1 allocs/op
-BenchmarkTheineSetGet
-BenchmarkTheineSetGet-8       	21676150	       306.9 ns/op	       5 B/op	       0 allocs/op
-BenchmarkOtterSetGet
-BenchmarkOtterSetGet-8        	46066177	       178.8 ns/op	       9 B/op	       0 allocs/op
+BenchmarkFreelruSetGet-8      	47874778	       156.1 ns/op	       0 B/op	       0 allocs/op
 BenchmarkPhusluSetGet
-BenchmarkPhusluSetGet-8       	64747912	       119.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPhusluSetGet-8       	56541656	       130.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkCcacheSetGet
+BenchmarkCcacheSetGet-8       	20182213	       369.2 ns/op	      34 B/op	       2 allocs/op
+BenchmarkRistrettoSetGet
+BenchmarkRistrettoSetGet-8    	33954415	       160.3 ns/op	      29 B/op	       1 allocs/op
+BenchmarkTheineSetGet
+BenchmarkTheineSetGet-8       	20122734	       322.5 ns/op	       5 B/op	       0 allocs/op
+BenchmarkOtterSetGet
+BenchmarkOtterSetGet-8        	36713918	       193.1 ns/op	       9 B/op	       0 allocs/op
 PASS
 ok  	command-line-arguments	112.573s
 ```
@@ -422,25 +422,25 @@ goos: linux
 goarch: amd64
 cpu: AMD EPYC 7763 64-Core Processor                
 BenchmarkHashicorpSetGet
-BenchmarkHashicorpSetGet-8    	15516982	       389.8 ns/op	       0 B/op	       0 allocs/op
-BenchmarkCcacheSetGet
-BenchmarkCcacheSetGet-8       	25424391	       246.5 ns/op	      21 B/op	       2 allocs/op
+BenchmarkHashicorpSetGet-8    	13828234	       448.4 ns/op	       0 B/op	       0 allocs/op
 BenchmarkCloudflareSetGet
-BenchmarkCloudflareSetGet-8   	54334915	       123.3 ns/op	      16 B/op	       1 allocs/op
+BenchmarkCloudflareSetGet-8   	49162429	       130.9 ns/op	      16 B/op	       1 allocs/op
 BenchmarkEcacheSetGet
-BenchmarkEcacheSetGet-8       	63883920	        94.72 ns/op	       0 B/op	       0 allocs/op
+BenchmarkEcacheSetGet-8       	58933701	       104.8 ns/op	       0 B/op	       0 allocs/op
 BenchmarkLxzanSetGet
-BenchmarkLxzanSetGet-8        	67750672	       102.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkLxzanSetGet-8        	58731279	       102.9 ns/op	       0 B/op	       0 allocs/op
 BenchmarkFreelruSetGet
-BenchmarkFreelruSetGet-8      	59845863	       101.9 ns/op	       0 B/op	       0 allocs/op
-BenchmarkRistrettoSetGet
-BenchmarkRistrettoSetGet-8    	46677678	       114.0 ns/op	      21 B/op	       1 allocs/op
-BenchmarkTheineSetGet
-BenchmarkTheineSetGet-8       	35919529	       170.0 ns/op	       0 B/op	       0 allocs/op
-BenchmarkOtterSetGet
-BenchmarkOtterSetGet-8        	74384974	        78.80 ns/op	       1 B/op	       0 allocs/op
+BenchmarkFreelruSetGet-8      	55033344	       114.0 ns/op	       0 B/op	       0 allocs/op
 BenchmarkPhusluSetGet
-BenchmarkPhusluSetGet-8       	83168322	        77.69 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPhusluSetGet-8       	72054231	        86.48 ns/op	       0 B/op	       0 allocs/op
+BenchmarkCcacheSetGet
+BenchmarkCcacheSetGet-8       	23310871	       270.9 ns/op	      21 B/op	       2 allocs/op
+BenchmarkRistrettoSetGet
+BenchmarkRistrettoSetGet-8    	48681564	       114.9 ns/op	      20 B/op	       1 allocs/op
+BenchmarkTheineSetGet
+BenchmarkTheineSetGet-8       	34271067	       176.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkOtterSetGet
+BenchmarkOtterSetGet-8        	62846517	        85.34 ns/op	       1 B/op	       0 allocs/op
 PASS
 ok  	command-line-arguments	95.788s
 ```
@@ -449,7 +449,7 @@ ok  	command-line-arguments	95.788s
 
 The Memory usage result as below. Check github [actions][actions] for more results and details.
 <details>
-  <summary>memory usage on keysize=16(string), valuesize=8(int), cachesize in (100000,500000,1000000,2000000,5000000)</summary>
+  <summary>memory usage on keysize=16(string), valuesize=8(int), cachesize in (100000,200000,400000,1000000,2000000,4000000)</summary>
 
 ```go
 // memusage.go
@@ -600,14 +600,16 @@ func SetupHashicorp(cachesize int) {
 | ---------- | ------ | ------ | ------ | ------- | ------- | ------- |
 | phuslu     | 4 MB   | 8 MB   | 16 MB  | 46 MB   | 92 MB   | 186 MB  |
 | lxzan      | 8 MB   | 17 MB  | 35 MB  | 95 MB   | 190 MB  | 379 MB  |
-| ristretto  | 8 MB   | 14 MB  | 35 MB  | 89 MB   | 178 MB  | 413 MB  |
-| freelru    | 6 MB   | 13 MB  | 27 MB  | 112 MB  | 224 MB  | 448 MB  |
+| ristretto* | 8 MB   | 14 MB  | 35 MB  | 89 MB   | 178 MB  | 413 MB  |
+| freelru*   | 6 MB   | 13 MB  | 27 MB  | 112 MB  | 224 MB  | 448 MB  |
 | ecache     | 11 MB  | 22 MB  | 44 MB  | 123 MB  | 238 MB  | 468 MB  |
 | otter      | 14 MB  | 29 MB  | 62 MB  | 137 MB  | 274 MB  | 547 MB  |
 | theine     | 14 MB  | 27 MB  | 62 MB  | 178 MB  | 357 MB  | 714 MB  |
 | cloudflare | 16 MB  | 33 MB  | 64 MB  | 183 MB  | 358 MB  | 717 MB  |
 | ccache     | 16 MB  | 33 MB  | 65 MB  | 182 MB  | 365 MB  | 730 MB  |
 | hashicorp  | 18 MB  | 37 MB  | 58 MB  | 242 MB  | 484 MB  | 968 MB  |
+- ristretto's usage is questionable, it rejects items by bloom filter and appears lower hit ratio.
+- freelru overcommits the cache size to the next power of 2, leads to higher usage on larger sizes.
 
 ### Hit ratio
 It is a classic sharded LRU implementation, so the hit ratio is comparable to or slightly lower than a regular LRU.
