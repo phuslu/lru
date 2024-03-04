@@ -64,34 +64,14 @@ func (s *shard[K, V]) Get(hash uint32, key K) (value V, ok bool) {
 
 	if index, exists := s.table_Get(hash, key); exists {
 		if expires := s.list[index].expires; expires == 0 {
-			// s.list_MoveToFront(index)
-			root := &s.list[0]
-			if root.next != index {
-				node := &s.list[index]
-				s.list[node.prev].next = node.next
-				s.list[node.next].prev = node.prev
-				node.prev = 0
-				node.next = root.next
-				root.next = index
-				s.list[node.next].prev = index
-			}
+			s.list_MoveToFront(index)
 			value = s.list[index].value
 			ok = true
 		} else if now := atomic.LoadUint32(&clock); now < expires {
 			if s.sliding {
 				s.list[index].expires = now + s.list[index].ttl
 			}
-			//s.list_MoveToFront(index)
-			root := &s.list[0]
-			if root.next != index {
-				node := &s.list[index]
-				s.list[node.prev].next = node.next
-				s.list[node.next].prev = node.prev
-				node.prev = 0
-				node.next = root.next
-				root.next = index
-				s.list[node.next].prev = index
-			}
+			s.list_MoveToFront(index)
 			value = s.list[index].value
 			ok = true
 		} else {

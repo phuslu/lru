@@ -2,6 +2,10 @@
 
 package lru
 
+import (
+	"unsafe"
+)
+
 func (s *shard[K, V]) list_Init(size uint32) {
 	size += 1
 	if len(s.list) == 0 {
@@ -23,16 +27,17 @@ func (s *shard[K, V]) list_MoveToFront(i uint32) {
 		return
 	}
 
-	node := &s.list[i]
+	base := unsafe.Pointer(root)
+	nodei := (*node[K, V])(unsafe.Add(base, uintptr(i)*unsafe.Sizeof(s.list[0])))
 
-	s.list[node.prev].next = node.next
-	s.list[node.next].prev = node.prev
+	((*node[K, V])(unsafe.Add(base, uintptr(nodei.prev)*unsafe.Sizeof(s.list[0])))).next = nodei.next
+	((*node[K, V])(unsafe.Add(base, uintptr(nodei.next)*unsafe.Sizeof(s.list[0])))).prev = nodei.prev
 
-	node.prev = 0
-	node.next = root.next
+	nodei.prev = 0
+	nodei.next = root.next
 
 	root.next = i
-	s.list[node.next].prev = i
+	((*node[K, V])(unsafe.Add(base, uintptr(nodei.next)*unsafe.Sizeof(s.list[0])))).prev = i
 }
 
 func (s *shard[K, V]) list_MoveToBack(i uint32) {
@@ -41,14 +46,16 @@ func (s *shard[K, V]) list_MoveToBack(i uint32) {
 		return
 	}
 
-	node, at := &s.list[i], &s.list[j]
+	base := unsafe.Pointer(&s.list[0])
+	nodei := (*node[K, V])(unsafe.Add(base, uintptr(i)*unsafe.Sizeof(s.list[0])))
+	at := (*node[K, V])(unsafe.Add(base, uintptr(j)*unsafe.Sizeof(s.list[0])))
 
-	s.list[node.prev].next = node.next
-	s.list[node.next].prev = node.prev
+	((*node[K, V])(unsafe.Add(base, uintptr(nodei.prev)*unsafe.Sizeof(s.list[0])))).next = nodei.next
+	((*node[K, V])(unsafe.Add(base, uintptr(nodei.next)*unsafe.Sizeof(s.list[0])))).prev = nodei.prev
 
-	node.prev = j
-	node.next = at.next
+	nodei.prev = j
+	nodei.next = at.next
 
-	s.list[j].next = i
-	s.list[node.next].prev = i
+	((*node[K, V])(unsafe.Add(base, uintptr(j)*unsafe.Sizeof(s.list[0])))).next = i
+	((*node[K, V])(unsafe.Add(base, uintptr(nodei.next)*unsafe.Sizeof(s.list[0])))).prev = i
 }
