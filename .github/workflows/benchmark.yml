@@ -26,6 +26,7 @@ jobs:
           go mod init bench
           go mod tidy
           go mod edit -replace github.com/phuslu/lru=../
+          cat go.mod
       - name: Tests
         run: |
           go test -v -bench=. -race -count=1 -coverprofile=coverage.txt

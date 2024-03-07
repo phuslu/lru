@@ -393,27 +393,27 @@ goos: linux
 goarch: amd64
 cpu: AMD EPYC 7763 64-Core Processor                
 BenchmarkHashicorpSetGet
-BenchmarkHashicorpSetGet-8    	11607430	       574.4 ns/op	       3 B/op	       0 allocs/op
+BenchmarkHashicorpSetGet-8    	13189354	       555.3 ns/op	      11 B/op	       0 allocs/op
 BenchmarkCloudflareSetGet
-BenchmarkCloudflareSetGet-8   	34291885	       211.7 ns/op	      16 B/op	       1 allocs/op
+BenchmarkCloudflareSetGet-8   	36978129	       204.5 ns/op	      16 B/op	       1 allocs/op
 BenchmarkEcacheSetGet
-BenchmarkEcacheSetGet-8       	42259825	       159.2 ns/op	       2 B/op	       0 allocs/op
+BenchmarkEcacheSetGet-8       	45151062	       145.3 ns/op	       2 B/op	       0 allocs/op
 BenchmarkLxzanSetGet
-BenchmarkLxzanSetGet-8        	43999303	       169.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkLxzanSetGet-8        	46670901	       155.4 ns/op	       0 B/op	       0 allocs/op
 BenchmarkFreelruSetGet
-BenchmarkFreelruSetGet-8      	47874778	       156.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkFreelruSetGet-8      	56836291	       141.6 ns/op	       0 B/op	       0 allocs/op
 BenchmarkPhusluSetGet
-BenchmarkPhusluSetGet-8       	56541656	       130.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPhusluSetGet-8       	62015964	       112.1 ns/op	       0 B/op	       0 allocs/op
 BenchmarkCcacheSetGet
-BenchmarkCcacheSetGet-8       	20182213	       369.2 ns/op	      34 B/op	       2 allocs/op
+BenchmarkCcacheSetGet-8       	21438442	       360.4 ns/op	      34 B/op	       2 allocs/op
 BenchmarkRistrettoSetGet
-BenchmarkRistrettoSetGet-8    	33954415	       160.3 ns/op	      29 B/op	       1 allocs/op
+BenchmarkRistrettoSetGet-8    	34435500	       148.9 ns/op	      29 B/op	       1 allocs/op
 BenchmarkTheineSetGet
-BenchmarkTheineSetGet-8       	20122734	       322.5 ns/op	       5 B/op	       0 allocs/op
+BenchmarkTheineSetGet-8       	22269817	       302.5 ns/op	       5 B/op	       0 allocs/op
 BenchmarkOtterSetGet
-BenchmarkOtterSetGet-8        	36713918	       193.1 ns/op	       9 B/op	       0 allocs/op
+BenchmarkOtterSetGet-8        	52233636	       157.0 ns/op	       8 B/op	       0 allocs/op
 PASS
-ok  	command-line-arguments	112.573s
+ok  	command-line-arguments	104.021s
 ```
 
 with zipfian read (99%) and randomly write(1%)
@@ -422,27 +422,27 @@ goos: linux
 goarch: amd64
 cpu: AMD EPYC 7763 64-Core Processor                
 BenchmarkHashicorpSetGet
-BenchmarkHashicorpSetGet-8    	13828234	       448.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHashicorpSetGet-8    	14609264	       418.5 ns/op	       0 B/op	       0 allocs/op
 BenchmarkCloudflareSetGet
-BenchmarkCloudflareSetGet-8   	49162429	       130.9 ns/op	      16 B/op	       1 allocs/op
+BenchmarkCloudflareSetGet-8   	51900106	       125.5 ns/op	      16 B/op	       1 allocs/op
 BenchmarkEcacheSetGet
-BenchmarkEcacheSetGet-8       	58933701	       104.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkEcacheSetGet-8       	62488617	        98.76 ns/op	       0 B/op	       0 allocs/op
 BenchmarkLxzanSetGet
-BenchmarkLxzanSetGet-8        	58731279	       102.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkLxzanSetGet-8        	65241264	        96.99 ns/op	       0 B/op	       0 allocs/op
 BenchmarkFreelruSetGet
-BenchmarkFreelruSetGet-8      	55033344	       114.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkFreelruSetGet-8      	60159511	       108.4 ns/op	       0 B/op	       0 allocs/op
 BenchmarkPhusluSetGet
-BenchmarkPhusluSetGet-8       	72054231	        86.48 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPhusluSetGet-8       	81835609	        78.86 ns/op	       0 B/op	       0 allocs/op
 BenchmarkCcacheSetGet
-BenchmarkCcacheSetGet-8       	23310871	       270.9 ns/op	      21 B/op	       2 allocs/op
+BenchmarkCcacheSetGet-8       	22419021	       256.8 ns/op	      21 B/op	       2 allocs/op
 BenchmarkRistrettoSetGet
-BenchmarkRistrettoSetGet-8    	48681564	       114.9 ns/op	      20 B/op	       1 allocs/op
+BenchmarkRistrettoSetGet-8    	53689315	       112.1 ns/op	      21 B/op	       1 allocs/op
 BenchmarkTheineSetGet
-BenchmarkTheineSetGet-8       	34271067	       176.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkTheineSetGet-8       	36106326	       175.1 ns/op	       0 B/op	       0 allocs/op
 BenchmarkOtterSetGet
-BenchmarkOtterSetGet-8        	62846517	        85.34 ns/op	       1 B/op	       0 allocs/op
+BenchmarkOtterSetGet-8        	78723906	        80.51 ns/op	       1 B/op	       0 allocs/op
 PASS
-ok  	command-line-arguments	95.788s
+ok  	command-line-arguments	96.150s
 ```
 
 ### Memory usage
@@ -598,18 +598,19 @@ func SetupHashicorp(cachesize int) {
 
 |            | 100000 | 200000 | 400000 | 1000000 | 2000000 | 4000000 |
 | ---------- | ------ | ------ | ------ | ------- | ------- | ------- |
-| phuslu     | 4 MB   | 8 MB   | 16 MB  | 46 MB   | 92 MB   | 186 MB  |
+| phuslu     | 4 MB   | 8 MB   | 16 MB  | 46 MB   | 93 MB   | 185 MB  |
 | lxzan      | 8 MB   | 17 MB  | 35 MB  | 95 MB   | 190 MB  | 379 MB  |
-| ristretto* | 8 MB   | 14 MB  | 35 MB  | 89 MB   | 178 MB  | 413 MB  |
-| freelru*   | 6 MB   | 13 MB  | 27 MB  | 112 MB  | 224 MB  | 448 MB  |
+| ristretto  | 14 MB  | 15 MB  | 34 MB  | 89 MB   | 213 MB  | 412 MB  |
+| otter      | 13 MB  | 22 MB  | 54 MB  | 104 MB  | 209 MB  | 419 MB  |
+| freelru    | 6 MB   | 14 MB  | 27 MB  | 112 MB  | 224 MB  | 448 MB  |
 | ecache     | 11 MB  | 22 MB  | 44 MB  | 123 MB  | 238 MB  | 468 MB  |
-| otter      | 14 MB  | 29 MB  | 62 MB  | 137 MB  | 274 MB  | 547 MB  |
-| theine     | 14 MB  | 27 MB  | 62 MB  | 178 MB  | 357 MB  | 714 MB  |
-| cloudflare | 16 MB  | 33 MB  | 64 MB  | 183 MB  | 358 MB  | 717 MB  |
-| ccache     | 16 MB  | 33 MB  | 65 MB  | 182 MB  | 365 MB  | 730 MB  |
-| hashicorp  | 18 MB  | 37 MB  | 58 MB  | 242 MB  | 484 MB  | 968 MB  |
-- ristretto's usage is questionable, it rejects items by bloom filter and appears lower hit ratio.
-- freelru overcommits the cache size to the next power of 2, leads to higher usage on larger sizes.
+| theine     | 15 MB  | 31 MB  | 62 MB  | 178 MB  | 357 MB  | 714 MB  |
+| cloudflare | 15 MB  | 33 MB  | 64 MB  | 183 MB  | 358 MB  | 717 MB  |
+| ccache     | 16 MB  | 33 MB  | 65 MB  | 183 MB  | 365 MB  | 730 MB  |
+| hashicorp  | 18 MB  | 37 MB  | 57 MB  | 242 MB  | 484 MB  | 968 MB  |
+- ristretto employs a questionable usage pattern due to its rejection of items via a bloom filter, resulting in a lower hit ratio.
+- otter utilizes buffers to achieve contention-free operations, which results in higher memory consumption at smaller cache sizes.
+- freelru overcommits the cache size to the next power of 2, leading to higher memory usage particularly at larger cache sizes.
 
 ### Hit ratio
 It is a classic sharded LRU implementation, so the hit ratio is comparable to or slightly lower than a regular LRU.
