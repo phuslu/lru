@@ -125,12 +125,12 @@ var keys = func() (x []string) {
 }()
 
 //go:noescape
-//go:linkname fastrandn runtime.fastrandn
-func fastrandn(x uint32) uint32
+//go:linkname cheaprandn runtime.cheaprandn
+func cheaprandn(x uint32) uint32
 
 //go:noescape
-//go:linkname fastrand runtime.fastrand
-func fastrand() uint32
+//go:linkname cheaprand runtime.cheaprand
+func cheaprand() uint32
 
 func BenchmarkHashicorpSetGet(b *testing.B) {
 	c := perfbench.Open(b)
@@ -144,11 +144,11 @@ func BenchmarkHashicorpSetGet(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		zipf := zipfian()
 		for pb.Next() {
-			if threshold > 0 && fastrand() <= threshold {
-				i := int(fastrandn(cachesize))
+			if threshold > 0 && cheaprand() <= threshold {
+				i := int(cheaprandn(cachesize))
 				cache.Add(keys[i], i)
 			} else if zipf == nil {
-				cache.Get(keys[fastrandn(cachesize)])
+				cache.Get(keys[cheaprandn(cachesize)])
 			} else {
 				cache.Get(keys[zipf()])
 			}
@@ -169,11 +169,11 @@ func BenchmarkCloudflareSetGet(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		zipf := zipfian()
 		for pb.Next() {
-			if threshold > 0 && fastrand() <= threshold {
-				i := int(fastrandn(cachesize))
+			if threshold > 0 && cheaprand() <= threshold {
+				i := int(cheaprandn(cachesize))
 				cache.Set(keys[i], i, expires)
 			} else if zipf == nil {
-				cache.Get(keys[fastrandn(cachesize)])
+				cache.Get(keys[cheaprandn(cachesize)])
 			} else {
 				cache.Get(keys[zipf()])
 			}
@@ -193,11 +193,11 @@ func BenchmarkEcacheSetGet(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		zipf := zipfian()
 		for pb.Next() {
-			if threshold > 0 && fastrand() <= threshold {
-				i := int(fastrandn(cachesize))
+			if threshold > 0 && cheaprand() <= threshold {
+				i := int(cheaprandn(cachesize))
 				cache.Put(keys[i], i)
 			} else if zipf == nil {
-				cache.Get(keys[fastrandn(cachesize)])
+				cache.Get(keys[cheaprandn(cachesize)])
 			} else {
 				cache.Get(keys[zipf()])
 			}
@@ -221,11 +221,11 @@ func BenchmarkLxzanSetGet(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		zipf := zipfian()
 		for pb.Next() {
-			if threshold > 0 && fastrand() <= threshold {
-				i := int(fastrandn(cachesize))
+			if threshold > 0 && cheaprand() <= threshold {
+				i := int(cheaprandn(cachesize))
 				cache.Set(keys[i], i, time.Hour)
 			} else if zipf == nil {
-				cache.Get(keys[fastrandn(cachesize)])
+				cache.Get(keys[cheaprandn(cachesize)])
 			} else {
 				cache.Get(keys[zipf()])
 			}
@@ -249,11 +249,11 @@ func BenchmarkFreelruSetGet(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		zipf := zipfian()
 		for pb.Next() {
-			if threshold > 0 && fastrand() <= threshold {
-				i := int(fastrandn(cachesize))
+			if threshold > 0 && cheaprand() <= threshold {
+				i := int(cheaprandn(cachesize))
 				cache.AddWithLifetime(keys[i], i, time.Hour)
 			} else if zipf == nil {
-				cache.Get(keys[fastrandn(cachesize)])
+				cache.Get(keys[cheaprandn(cachesize)])
 			} else {
 				cache.Get(keys[zipf()])
 			}
@@ -273,11 +273,11 @@ func BenchmarkPhusluSetGet(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		zipf := zipfian()
 		for pb.Next() {
-			if threshold > 0 && fastrand() <= threshold {
-				i := int(fastrandn(cachesize))
+			if threshold > 0 && cheaprand() <= threshold {
+				i := int(cheaprandn(cachesize))
 				cache.Set(keys[i], i, time.Hour)
 			} else if zipf == nil {
-				cache.Get(keys[fastrandn(cachesize)])
+				cache.Get(keys[cheaprandn(cachesize)])
 			} else {
 				cache.Get(keys[zipf()])
 			}
@@ -297,11 +297,11 @@ func BenchmarkCcacheSetGet(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		zipf := zipfian()
 		for pb.Next() {
-			if threshold > 0 && fastrand() <= threshold {
-				i := int(fastrandn(cachesize))
+			if threshold > 0 && cheaprand() <= threshold {
+				i := int(cheaprandn(cachesize))
 				cache.Set(keys[i], i, time.Hour)
 			} else if zipf == nil {
-				cache.Get(keys[fastrandn(cachesize)])
+				cache.Get(keys[cheaprandn(cachesize)])
 			} else {
 				cache.Get(keys[zipf()])
 			}
@@ -325,11 +325,11 @@ func BenchmarkRistrettoSetGet(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		zipf := zipfian()
 		for pb.Next() {
-			if threshold > 0 && fastrand() <= threshold {
-				i := int(fastrandn(cachesize))
+			if threshold > 0 && cheaprand() <= threshold {
+				i := int(cheaprandn(cachesize))
 				cache.SetWithTTL(keys[i], i, 1, time.Hour)
 			} else if zipf == nil {
-				cache.Get(keys[fastrandn(cachesize)])
+				cache.Get(keys[cheaprandn(cachesize)])
 			} else {
 				cache.Get(keys[zipf()])
 			}
@@ -349,11 +349,11 @@ func BenchmarkTheineSetGet(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		zipf := zipfian()
 		for pb.Next() {
-			if threshold > 0 && fastrand() <= threshold {
-				i := int(fastrandn(cachesize))
+			if threshold > 0 && cheaprand() <= threshold {
+				i := int(cheaprandn(cachesize))
 				cache.SetWithTTL(keys[i], i, 1, time.Hour)
 			} else if zipf == nil {
-				cache.Get(keys[fastrandn(cachesize)])
+				cache.Get(keys[cheaprandn(cachesize)])
 			} else {
 				cache.Get(keys[zipf()])
 			}
@@ -373,11 +373,11 @@ func BenchmarkOtterSetGet(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		zipf := zipfian()
 		for pb.Next() {
-			if threshold > 0 && fastrand() <= threshold {
-				i := int(fastrandn(cachesize))
+			if threshold > 0 && cheaprand() <= threshold {
+				i := int(cheaprandn(cachesize))
 				cache.Set(keys[i], i, time.Hour)
 			} else if zipf == nil {
-				cache.Get(keys[fastrandn(cachesize)])
+				cache.Get(keys[cheaprandn(cachesize)])
 			} else {
 				cache.Get(keys[zipf()])
 			}
