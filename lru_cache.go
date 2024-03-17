@@ -4,23 +4,26 @@
 package lru
 
 import (
+	"errors"
+	"runtime"
 	"sync/atomic"
-	"time"
 	"unsafe"
 )
 
-// TTLCache implements LRU TTLCache with least recent used eviction policy.
-type TTLCache[K comparable, V any] struct {
-	shards [512]ttlshard[K, V]
+// LRUCache implements LRU LRUCache with least recent used eviction policy.
+type LRUCache[K comparable, V any] struct {
+	shards [512]lrushard[K, V]
 	mask   uint32
 	hasher func(K unsafe.Pointer, seed uintptr) uintptr
 	seed   uintptr
-	loader func(key K) (value V, ttl time.Duration, err error)
+	loader func(key K) (value V, err error)
 	group  singleflight_Group[K, V]
 }
 
-// NewTTLCache creates lru cache with size capacity.
-func NewTTLCache[K comparable, V any](size int, options ...Option[K, V]) *TTLCache[K, V] {
+var compactCache = runtime.GOARCH == "amd64"
+
+// NewLRUCache creates lru cache with size capacity.
+func NewLRUCache[K comparable, V any](size int, options ...Option[K, V]) *LRUCache[K, V] {
 	j := -1
 	for i, o := range options {
 		if _, ok := o.(*shardsOption[K, V]); ok {
@@ -34,9 +37,9 @@ func NewTTLCache[K comparable, V any](size int, options ...Option[K, V]) *TTLCac
 		options[0], options[j] = options[j], options[0]
 	}
 
-	c := new(TTLCache[K, V])
+	c := new(LRUCache[K, V])
 	for _, o := range options {
-		o.ApplyToTTLCache(c)
+		o.ApplyToLRUCache(c)
 	}
 
 	if c.hasher == nil {
@@ -49,9 +52,9 @@ func NewTTLCache[K comparable, V any](size int, options ...Option[K, V]) *TTLCac
 	if compactCache {
 		// pre-alloc lists and tables for compactness
 		shardsize := (uint32(size) + c.mask) / (c.mask + 1)
-		shardlists := make([]ttlnode[K, V], (shardsize+1)*(c.mask+1))
-		tablesize := ttlNewTableSize(uint32(shardsize))
-		tablebuckets := make([]ttlbucket, tablesize*(c.mask+1))
+		shardlists := make([]lrunode[K, V], (shardsize+1)*(c.mask+1))
+		tablesize := lruNewTableSize(uint32(shardsize))
+		tablebuckets := make([]lrubucket, tablesize*(c.mask+1))
 		for i := uint32(0); i <= c.mask; i++ {
 			c.shards[i].list = shardlists[i*(shardsize+1) : (i+1)*(shardsize+1)]
 			c.shards[i].table.buckets = tablebuckets[i*tablesize : (i+1)*tablesize]
@@ -68,13 +71,15 @@ func NewTTLCache[K comparable, V any](size int, options ...Option[K, V]) *TTLCac
 }
 
 // Get returns value for key.
-func (c *TTLCache[K, V]) Get(key K) (value V, ok bool) {
+func (c *LRUCache[K, V]) Get(key K) (value V, ok bool) {
 	hash := uint32(c.hasher(noescape(unsafe.Pointer(&key)), c.seed))
 	return c.shards[hash&c.mask].Get(hash, key)
 }
 
+var ErrLoaderIsNil = errors.New("loader is nil")
+
 // GetOrLoad returns value for key, call loader function by singleflight if value was not in cache.
-func (c *TTLCache[K, V]) GetOrLoad(key K) (value V, err error, ok bool) {
+func (c *LRUCache[K, V]) GetOrLoad(key K) (value V, err error, ok bool) {
 	hash := uint32(c.hasher(noescape(unsafe.Pointer(&key)), c.seed))
 	value, ok = c.shards[hash&c.mask].Get(hash, key)
 	if !ok {
@@ -83,11 +88,11 @@ func (c *TTLCache[K, V]) GetOrLoad(key K) (value V, err error, ok bool) {
 			return
 		}
 		value, err, ok = c.group.Do(key, func() (V, error) {
-			v, ttl, err := c.loader(key)
+			v, err := c.loader(key)
 			if err != nil {
 				return v, err
 			}
-			c.shards[hash&c.mask].Set(hash, key, v, ttl)
+			c.shards[hash&c.mask].Set(hash, key, v)
 			return v, nil
 		})
 	}
@@ -95,31 +100,31 @@ func (c *TTLCache[K, V]) GetOrLoad(key K) (value V, err error, ok bool) {
 }
 
 // Peek returns value and expires nanoseconds for key, but does not modify its recency.
-func (c *TTLCache[K, V]) Peek(key K) (value V, expires int64, ok bool) {
+func (c *LRUCache[K, V]) Peek(key K) (value V, ok bool) {
 	hash := uint32(c.hasher(noescape(unsafe.Pointer(&key)), c.seed))
 	return c.shards[hash&c.mask].Peek(hash, key)
 }
 
 // Set inserts key value pair and returns previous value.
-func (c *TTLCache[K, V]) Set(key K, value V, ttl time.Duration) (prev V, replaced bool) {
+func (c *LRUCache[K, V]) Set(key K, value V) (prev V, replaced bool) {
 	hash := uint32(c.hasher(noescape(unsafe.Pointer(&key)), c.seed))
-	return c.shards[hash&c.mask].Set(hash, key, value, ttl)
+	return c.shards[hash&c.mask].Set(hash, key, value)
 }
 
 // SetIfAbsent inserts key value pair and returns previous value, if key is absent in the cache.
-func (c *TTLCache[K, V]) SetIfAbsent(key K, value V, ttl time.Duration) (prev V, replaced bool) {
+func (c *LRUCache[K, V]) SetIfAbsent(key K, value V) (prev V, replaced bool) {
 	hash := uint32(c.hasher(noescape(unsafe.Pointer(&key)), c.seed))
-	return c.shards[hash&c.mask].SetIfAbsent(hash, key, value, ttl)
+	return c.shards[hash&c.mask].SetIfAbsent(hash, key, value)
 }
 
 // Delete method deletes value associated with key and returns deleted value (or empty value if key was not in cache).
-func (c *TTLCache[K, V]) Delete(key K) (prev V) {
+func (c *LRUCache[K, V]) Delete(key K) (prev V) {
 	hash := uint32(c.hasher(noescape(unsafe.Pointer(&key)), c.seed))
 	return c.shards[hash&c.mask].Delete(hash, key)
 }
 
 // Len returns number of cached nodes.
-func (c *TTLCache[K, V]) Len() int {
+func (c *LRUCache[K, V]) Len() int {
 	var n uint32
 	for i := uint32(0); i <= c.mask; i++ {
 		n += c.shards[i].Len()
@@ -128,7 +133,7 @@ func (c *TTLCache[K, V]) Len() int {
 }
 
 // AppendKeys appends all keys to keys and return the keys.
-func (c *TTLCache[K, V]) AppendKeys(keys []K) []K {
+func (c *LRUCache[K, V]) AppendKeys(keys []K) []K {
 	now := atomic.LoadUint32(&clock)
 	for i := uint32(0); i <= c.mask; i++ {
 		keys = c.shards[i].AppendKeys(keys, now)
@@ -136,8 +141,20 @@ func (c *TTLCache[K, V]) AppendKeys(keys []K) []K {
 	return keys
 }
 
+// Stats represents cache stats.
+type Stats struct {
+	// GetCalls is the number of Get calls.
+	GetCalls uint64
+
+	// SetCalls is the number of Set calls.
+	SetCalls uint64
+
+	// Misses is the number of cache misses.
+	Misses uint64
+}
+
 // Stats returns cache stats.
-func (c *TTLCache[K, V]) Stats() (stats Stats) {
+func (c *LRUCache[K, V]) Stats() (stats Stats) {
 	for i := uint32(0); i <= c.mask; i++ {
 		c.shards[i].mu.Lock()
 		s := c.shards[i].stats

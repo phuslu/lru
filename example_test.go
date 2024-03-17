@@ -27,7 +27,7 @@ func ExampleWithLoader() {
 		return 42, time.Hour, nil
 	}
 
-	cache := lru.NewTTLCache[string, int](4096, lru.WithLoader(loader))
+	cache := lru.NewTTLCache[string, int](4096, lru.WithLoader[string, int](loader))
 
 	println(cache.Get("b"))
 	println(cache.GetOrLoad("b"))
