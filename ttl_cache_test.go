@@ -1,8 +1,11 @@
 package lru
 
 import (
+	"fmt"
 	"math/rand"
 	"runtime"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 	"unsafe"
@@ -233,112 +236,112 @@ func TestTTLCacheHasher(t *testing.T) {
 	}
 }
 
-// func TestTTLCacheLoader(t *testing.T) {
-// 	cache := NewTTLCache[string, int](1024)
-// 	if v, err, ok := cache.GetOrLoad("a"); ok || err == nil || v != 0 {
-// 		t.Errorf("cache.GetOrLoad(\"a\") again should be return error: %v, %v, %v", v, err, ok)
-// 	}
+func TestTTLCacheLoader(t *testing.T) {
+	cache := NewTTLCache[string, int](1024)
+	if v, err, ok := cache.GetOrLoad("a"); ok || err == nil || v != 0 {
+		t.Errorf("cache.GetOrLoad(\"a\") again should be return error: %v, %v, %v", v, err, ok)
+	}
 
-// 	cache = NewTTLCache[string, int](1024, WithLoader(func(key string) (int, time.Duration, error) {
-// 		if key == "" {
-// 			return 0, 0, fmt.Errorf("invalid key: %v", key)
-// 		}
-// 		i := int(key[0] - 'a' + 1)
-// 		return i, time.Duration(i) * time.Second, nil
-// 	}))
+	cache = NewTTLCache[string, int](1024, WithLoader[string, int](func(key string) (int, time.Duration, error) {
+		if key == "" {
+			return 0, 0, fmt.Errorf("invalid key: %v", key)
+		}
+		i := int(key[0] - 'a' + 1)
+		return i, time.Duration(i) * time.Second, nil
+	}))
 
-// 	if v, err, ok := cache.GetOrLoad(""); ok || err == nil || v != 0 {
-// 		t.Errorf("cache.GetOrLoad(\"a\") again should be return error: %v, %v, %v", v, err, ok)
-// 	}
+	if v, err, ok := cache.GetOrLoad(""); ok || err == nil || v != 0 {
+		t.Errorf("cache.GetOrLoad(\"a\") again should be return error: %v, %v, %v", v, err, ok)
+	}
 
-// 	if v, err, ok := cache.GetOrLoad("b"); ok || err != nil || v != 2 {
-// 		t.Errorf("cache.GetOrLoad(\"b\") again should be return 2: %v, %v, %v", v, err, ok)
-// 	}
+	if v, err, ok := cache.GetOrLoad("b"); ok || err != nil || v != 2 {
+		t.Errorf("cache.GetOrLoad(\"b\") again should be return 2: %v, %v, %v", v, err, ok)
+	}
 
-// 	if v, err, ok := cache.GetOrLoad("a"); ok || err != nil || v != 1 {
-// 		t.Errorf("cache.GetOrLoad(\"a\") should be return 1: %v, %v, %v", v, err, ok)
-// 	}
+	if v, err, ok := cache.GetOrLoad("a"); ok || err != nil || v != 1 {
+		t.Errorf("cache.GetOrLoad(\"a\") should be return 1: %v, %v, %v", v, err, ok)
+	}
 
-// 	if v, err, ok := cache.GetOrLoad("a"); !ok || err != nil || v != 1 {
-// 		t.Errorf("cache.GetOrLoad(\"a\") again should be return 1: %v, %v, %v", v, err, ok)
-// 	}
+	if v, err, ok := cache.GetOrLoad("a"); !ok || err != nil || v != 1 {
+		t.Errorf("cache.GetOrLoad(\"a\") again should be return 1: %v, %v, %v", v, err, ok)
+	}
 
-// 	time.Sleep(2 * time.Second)
+	time.Sleep(2 * time.Second)
 
-// 	if v, err, ok := cache.GetOrLoad("a"); ok || err != nil || v != 1 {
-// 		t.Errorf("cache.GetOrLoad(\"a\") again should be return 1: %v, %v, %v", v, err, ok)
-// 	}
-// }
+	if v, err, ok := cache.GetOrLoad("a"); ok || err != nil || v != 1 {
+		t.Errorf("cache.GetOrLoad(\"a\") again should be return 1: %v, %v, %v", v, err, ok)
+	}
+}
 
-// func TestTTLCacheLoaderSingleflight(t *testing.T) {
-// 	var loads uint32
+func TestTTLCacheLoaderSingleflight(t *testing.T) {
+	var loads uint32
 
-// 	cache := NewTTLCache[string, int](1024, WithLoader(func(key string) (int, time.Duration, error) {
-// 		atomic.AddUint32(&loads, 1)
-// 		time.Sleep(100 * time.Millisecond)
-// 		return int(key[0] - 'a' + 1), time.Hour, nil
-// 	}))
+	cache := NewTTLCache[string, int](1024, WithLoader[string, int](func(key string) (int, time.Duration, error) {
+		atomic.AddUint32(&loads, 1)
+		time.Sleep(100 * time.Millisecond)
+		return int(key[0] - 'a' + 1), time.Hour, nil
+	}))
 
-// 	var wg sync.WaitGroup
-// 	wg.Add(10)
-// 	for i := 0; i < 10; i++ {
-// 		go func(i int) {
-// 			defer wg.Done()
-// 			v, err, ok := cache.GetOrLoad("a")
-// 			if v != 1 || err != nil || !ok {
-// 				t.Errorf("a should be set to 1: %v,%v,%v", v, err, ok)
-// 			}
-// 		}(i)
-// 	}
-// 	wg.Wait()
+	var wg sync.WaitGroup
+	wg.Add(10)
+	for i := 0; i < 10; i++ {
+		go func(i int) {
+			defer wg.Done()
+			v, err, ok := cache.GetOrLoad("a")
+			if v != 1 || err != nil || !ok {
+				t.Errorf("a should be set to 1: %v,%v,%v", v, err, ok)
+			}
+		}(i)
+	}
+	wg.Wait()
 
-// 	if n := atomic.LoadUint32(&loads); n != 1 {
-// 		t.Errorf("a should be loaded only once: %v", n)
-// 	}
-// }
+	if n := atomic.LoadUint32(&loads); n != 1 {
+		t.Errorf("a should be loaded only once: %v", n)
+	}
+}
 
-// func TestTTLCacheSlidingGet(t *testing.T) {
-// 	cache := NewTTLCache[string, int](256, WithSliding[string, int](true), WithShards[string, int](1))
+func TestTTLCacheSlidingGet(t *testing.T) {
+	cache := NewTTLCache[string, int](256, WithSliding[string, int](true), WithShards[string, int](1))
 
-// 	cache.Set("a", 1, 0)
-// 	cache.Set("b", 2, 3*time.Second)
-// 	cache.Set("c", 3, 3*time.Second)
-// 	cache.Set("d", 3, 1*time.Second)
+	cache.Set("a", 1, 0)
+	cache.Set("b", 2, 3*time.Second)
+	cache.Set("c", 3, 3*time.Second)
+	cache.Set("d", 3, 1*time.Second)
 
-// 	if got, want := cache.AppendKeys(nil), 4; len(got) != want {
-// 		t.Fatalf("curent cache keys %v length should be %v", got, want)
-// 	}
+	if got, want := cache.AppendKeys(nil), 4; len(got) != want {
+		t.Fatalf("curent cache keys %v length should be %v", got, want)
+	}
 
-// 	if v, ok := cache.Get("a"); !ok || v != 1 {
-// 		t.Fatalf("a should be set to 1: %v,", v)
-// 	}
+	if v, ok := cache.Get("a"); !ok || v != 1 {
+		t.Fatalf("a should be set to 1: %v,", v)
+	}
 
-// 	time.Sleep(2 * time.Second)
-// 	if v, ok := cache.Get("c"); !ok || v != 3 {
-// 		t.Errorf("c should be set to 3: %v,", v)
-// 	}
-// 	if v, ok := cache.Get("d"); ok || v != 0 {
-// 		t.Errorf("d should be set to 0: %v,", v)
-// 	}
+	time.Sleep(2 * time.Second)
+	if v, ok := cache.Get("c"); !ok || v != 3 {
+		t.Errorf("c should be set to 3: %v,", v)
+	}
+	if v, ok := cache.Get("d"); ok || v != 0 {
+		t.Errorf("d should be set to 0: %v,", v)
+	}
 
-// 	if got, want := cache.AppendKeys(nil), 3; len(got) != want {
-// 		t.Fatalf("curent cache keys %v length should be %v", got, want)
-// 	}
+	if got, want := cache.AppendKeys(nil), 3; len(got) != want {
+		t.Fatalf("curent cache keys %v length should be %v", got, want)
+	}
 
-// 	cache.Set("c", 4, 3*time.Second)
+	cache.Set("c", 4, 3*time.Second)
 
-// 	time.Sleep(2 * time.Second)
-// 	if v, ok := cache.Get("c"); !ok || v != 4 {
-// 		t.Errorf("c should be still set to 4: %v,", v)
-// 	}
+	time.Sleep(2 * time.Second)
+	if v, ok := cache.Get("c"); !ok || v != 4 {
+		t.Errorf("c should be still set to 4: %v,", v)
+	}
 
-// 	time.Sleep(1 * time.Second)
+	time.Sleep(1 * time.Second)
 
-// 	if got, want := cache.AppendKeys(nil), 2; len(got) != want {
-// 		t.Fatalf("curent cache keys %v length should be %v", got, want)
-// 	}
+	if got, want := cache.AppendKeys(nil), 2; len(got) != want {
+		t.Fatalf("curent cache keys %v length should be %v", got, want)
+	}
 
-// }
+}
 
 func TestTTLCacheStats(t *testing.T) {
 	cache := NewTTLCache[string, int](256, WithShards[string, int](1))

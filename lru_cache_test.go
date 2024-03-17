@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/rand"
 	"runtime"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -194,13 +195,16 @@ func TestLRUCachePeek(t *testing.T) {
 }
 
 func TestLRUCacheHasher(t *testing.T) {
-	cache := NewLRUCache[string, int](1024, WithHasher[string, int](func(key unsafe.Pointer, seed uintptr) (x uintptr) {
-		x = 5381
-		for _, c := range []byte(*(*string)(key)) {
-			x = x*33 + uintptr(c)
-		}
-		return
-	}))
+	cache := NewLRUCache[string, int](1024,
+		WithHasher[string, int](func(key unsafe.Pointer, seed uintptr) (x uintptr) {
+			x = 5381
+			for _, c := range []byte(*(*string)(key)) {
+				x = x*33 + uintptr(c)
+			}
+			return
+		}),
+		WithShards[string, int](1),
+	)
 
 	if v, ok := cache.Get("abcde"); ok {
 		t.Fatalf("bad returned value: %v", v)
@@ -213,6 +217,18 @@ func TestLRUCacheHasher(t *testing.T) {
 	if v, ok := cache.Get("abcde"); !ok || v != 10 {
 		t.Fatalf("bad returned value: %v != %v", v, 10)
 	}
+}
+
+func TestLRUCacheSliding(t *testing.T) {
+	defer func() {
+		if r := recover(); r != nil {
+			if !strings.Contains(fmt.Sprint(r), "not_implemented") {
+				t.Errorf("should be not_implemented")
+			}
+		}
+	}()
+	_ = NewLRUCache[string, int](1024, WithSliding[string, int](true))
+	t.Errorf("should be panic above")
 }
 
 func TestLRUCacheLoader(t *testing.T) {
