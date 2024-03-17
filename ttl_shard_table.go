@@ -17,10 +17,10 @@ const (
 	maxDIB      = ^uint32(0) >> hashBitSize // max 255
 )
 
-func (s *shard[K, V]) table_Init(size uint32, hasher func(K unsafe.Pointer, seed uintptr) uintptr, seed uintptr) {
+func (s *ttlshard[K, V]) table_Init(size uint32, hasher func(K unsafe.Pointer, seed uintptr) uintptr, seed uintptr) {
 	newsize := newTableSize(size)
 	if len(s.table.buckets) == 0 {
-		s.table.buckets = make([]bucket, newsize)
+		s.table.buckets = make([]ttlbucket, newsize)
 	}
 	s.table.mask = newsize - 1
 	s.table.length = 0
@@ -41,7 +41,7 @@ func newTableSize(size uint32) (newsize uint32) {
 
 // Set assigns an index to a key.
 // Returns the previous index, or false when no index was assigned.
-func (s *shard[K, V]) table_Set(hash uint32, key K, index uint32) (prev uint32, ok bool) {
+func (s *ttlshard[K, V]) table_Set(hash uint32, key K, index uint32) (prev uint32, ok bool) {
 	subhash := hash >> dibBitSize
 	hdib := subhash<<dibBitSize | uint32(1)&maxDIB
 	mask := s.table.mask
@@ -49,14 +49,14 @@ func (s *shard[K, V]) table_Set(hash uint32, key K, index uint32) (prev uint32, 
 	b0 := unsafe.Pointer(&s.table.buckets[0])
 	l0 := unsafe.Pointer(&s.list[0])
 	for {
-		b := (*bucket)(unsafe.Add(b0, uintptr(i)*8))
+		b := (*ttlbucket)(unsafe.Add(b0, uintptr(i)*8))
 		if b.hdib&maxDIB == 0 {
 			b.hdib = hdib
 			b.index = index
 			s.table.length++
 			return
 		}
-		if hdib>>dibBitSize == b.hdib>>dibBitSize && (*node[K, V])(unsafe.Add(l0, uintptr(b.index)*unsafe.Sizeof(s.list[0]))).key == key {
+		if hdib>>dibBitSize == b.hdib>>dibBitSize && (*ttlnode[K, V])(unsafe.Add(l0, uintptr(b.index)*unsafe.Sizeof(s.list[0]))).key == key {
 			prev = b.index
 			b.hdib = hdib
 			b.index = index
@@ -74,18 +74,18 @@ func (s *shard[K, V]) table_Set(hash uint32, key K, index uint32) (prev uint32, 
 
 // Get returns an index for a key.
 // Returns false when no index has been assign for key.
-func (s *shard[K, V]) table_Get(hash uint32, key K) (prev uint32, ok bool) {
+func (s *ttlshard[K, V]) table_Get(hash uint32, key K) (prev uint32, ok bool) {
 	subhash := hash >> dibBitSize
 	mask := s.table.mask
 	i := subhash & mask
 	b0 := unsafe.Pointer(&s.table.buckets[0])
 	l0 := unsafe.Pointer(&s.list[0])
 	for {
-		b := (*bucket)(unsafe.Add(b0, uintptr(i)*8))
+		b := (*ttlbucket)(unsafe.Add(b0, uintptr(i)*8))
 		if b.hdib&maxDIB == 0 {
 			return
 		}
-		if b.hdib>>dibBitSize == subhash && (*node[K, V])(unsafe.Add(l0, uintptr(b.index)*unsafe.Sizeof(s.list[0]))).key == key {
+		if b.hdib>>dibBitSize == subhash && (*ttlnode[K, V])(unsafe.Add(l0, uintptr(b.index)*unsafe.Sizeof(s.list[0]))).key == key {
 			return b.index, true
 		}
 		i = (i + 1) & mask
@@ -94,18 +94,18 @@ func (s *shard[K, V]) table_Get(hash uint32, key K) (prev uint32, ok bool) {
 
 // Delete deletes an index for a key.
 // Returns the deleted index, or false when no index was assigned.
-func (s *shard[K, V]) table_Delete(hash uint32, key K) (v uint32, ok bool) {
+func (s *ttlshard[K, V]) table_Delete(hash uint32, key K) (v uint32, ok bool) {
 	subhash := hash >> dibBitSize
 	mask := s.table.mask
 	i := subhash & mask
 	b0 := unsafe.Pointer(&s.table.buckets[0])
 	l0 := unsafe.Pointer(&s.list[0])
 	for {
-		b := (*bucket)(unsafe.Add(b0, uintptr(i)*8))
+		b := (*ttlbucket)(unsafe.Add(b0, uintptr(i)*8))
 		if b.hdib&maxDIB == 0 {
 			return
 		}
-		if b.hdib>>dibBitSize == subhash && (*node[K, V])(unsafe.Add(l0, uintptr(b.index)*unsafe.Sizeof(s.list[0]))).key == key {
+		if b.hdib>>dibBitSize == subhash && (*ttlnode[K, V])(unsafe.Add(l0, uintptr(b.index)*unsafe.Sizeof(s.list[0]))).key == key {
 			old := b.index
 			s.table_delete(i)
 			return old, true
@@ -114,16 +114,16 @@ func (s *shard[K, V]) table_Delete(hash uint32, key K) (v uint32, ok bool) {
 	}
 }
 
-func (s *shard[K, V]) table_delete(i uint32) {
+func (s *ttlshard[K, V]) table_delete(i uint32) {
 	mask := s.table.mask
 	b0 := unsafe.Pointer(&s.table.buckets[0])
-	bi := (*bucket)(unsafe.Add(b0, uintptr(i)*8))
+	bi := (*ttlbucket)(unsafe.Add(b0, uintptr(i)*8))
 	bi.hdib = bi.hdib>>dibBitSize<<dibBitSize | uint32(0)&maxDIB
 	for {
 		pi := i
 		i = (i + 1) & mask
-		bpi := (*bucket)(unsafe.Add(b0, uintptr(pi)*8))
-		bi = (*bucket)(unsafe.Add(b0, uintptr(i)*8))
+		bpi := (*ttlbucket)(unsafe.Add(b0, uintptr(pi)*8))
+		bi = (*ttlbucket)(unsafe.Add(b0, uintptr(i)*8))
 		if bi.hdib&maxDIB <= 1 {
 			bpi.index = 0
 			bpi.hdib = 0

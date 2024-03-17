@@ -6,7 +6,7 @@ import (
 )
 
 func TestShardPadding(t *testing.T) {
-	var s shard[string, int]
+	var s ttlshard[string, int]
 
 	if n := unsafe.Sizeof(s); n != 128 {
 		t.Errorf("shard size is %d, not 128", n)
@@ -15,7 +15,7 @@ func TestShardPadding(t *testing.T) {
 }
 
 func TestShardTableSet(t *testing.T) {
-	var s shard[string, uint32]
+	var s ttlshard[string, uint32]
 	s.Init(1024, getRuntimeHasher[string](), 0)
 
 	key := "foobar"

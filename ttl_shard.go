@@ -9,8 +9,8 @@ import (
 	"unsafe"
 )
 
-// node is a list node of LRU, storing key-value pairs and related information
-type node[K comparable, V any] struct {
+// ttlnode is a list ttlnode of LRU, storing key-value pairs and related information
+type ttlnode[K comparable, V any] struct {
 	key     K
 	expires uint32
 	next    uint32
@@ -19,18 +19,18 @@ type node[K comparable, V any] struct {
 	value   V
 }
 
-type bucket struct {
+type ttlbucket struct {
 	hdib  uint32 // bitfield { hash:24 dib:8 }
 	index uint32 // node index
 }
 
-// shard is a LRU partition contains a list and a hash table.
-type shard[K comparable, V any] struct {
+// ttlshard is a LRU partition contains a list and a hash table.
+type ttlshard[K comparable, V any] struct {
 	mu sync.Mutex
 
 	// the hash table, with 20% extra space than the list for fewer conflicts.
 	table struct {
-		buckets []bucket
+		buckets []ttlbucket
 		mask    uint32
 		length  uint32
 		hasher  func(K unsafe.Pointer, seed uintptr) uintptr
@@ -38,7 +38,7 @@ type shard[K comparable, V any] struct {
 	}
 
 	// the list of nodes
-	list []node[K, V]
+	list []ttlnode[K, V]
 
 	sliding bool
 
@@ -52,12 +52,12 @@ type shard[K comparable, V any] struct {
 	_ [16]byte
 }
 
-func (s *shard[K, V]) Init(size uint32, hasher func(K unsafe.Pointer, seed uintptr) uintptr, seed uintptr) {
+func (s *ttlshard[K, V]) Init(size uint32, hasher func(K unsafe.Pointer, seed uintptr) uintptr, seed uintptr) {
 	s.list_Init(size)
 	s.table_Init(size, hasher, seed)
 }
 
-func (s *shard[K, V]) Get(hash uint32, key K) (value V, ok bool) {
+func (s *ttlshard[K, V]) Get(hash uint32, key K) (value V, ok bool) {
 	s.mu.Lock()
 
 	s.stats.getcalls++
@@ -89,7 +89,7 @@ func (s *shard[K, V]) Get(hash uint32, key K) (value V, ok bool) {
 	return
 }
 
-func (s *shard[K, V]) Peek(hash uint32, key K) (value V, expires int64, ok bool) {
+func (s *ttlshard[K, V]) Peek(hash uint32, key K) (value V, expires int64, ok bool) {
 	s.mu.Lock()
 
 	if index, exists := s.table_Get(hash, key); exists {
@@ -105,7 +105,7 @@ func (s *shard[K, V]) Peek(hash uint32, key K) (value V, expires int64, ok bool)
 	return
 }
 
-func (s *shard[K, V]) SetIfAbsent(hash uint32, key K, value V, ttl time.Duration) (prev V, replaced bool) {
+func (s *ttlshard[K, V]) SetIfAbsent(hash uint32, key K, value V, ttl time.Duration) (prev V, replaced bool) {
 	s.mu.Lock()
 
 	if index, exists := s.table_Get(hash, key); exists {
@@ -153,7 +153,7 @@ func (s *shard[K, V]) SetIfAbsent(hash uint32, key K, value V, ttl time.Duration
 	return
 }
 
-func (s *shard[K, V]) Set(hash uint32, key K, value V, ttl time.Duration) (prev V, replaced bool) {
+func (s *ttlshard[K, V]) Set(hash uint32, key K, value V, ttl time.Duration) (prev V, replaced bool) {
 	s.mu.Lock()
 
 	s.stats.setcalls++
@@ -195,7 +195,7 @@ func (s *shard[K, V]) Set(hash uint32, key K, value V, ttl time.Duration) (prev 
 	return
 }
 
-func (s *shard[K, V]) Delete(hash uint32, key K) (v V) {
+func (s *ttlshard[K, V]) Delete(hash uint32, key K) (v V) {
 	s.mu.Lock()
 
 	if index, exists := s.table_Get(hash, key); exists {
@@ -212,7 +212,7 @@ func (s *shard[K, V]) Delete(hash uint32, key K) (v V) {
 	return
 }
 
-func (s *shard[K, V]) Len() (n uint32) {
+func (s *ttlshard[K, V]) Len() (n uint32) {
 	s.mu.Lock()
 	// inlining s.table_Len()
 	n = s.table.length
@@ -221,7 +221,7 @@ func (s *shard[K, V]) Len() (n uint32) {
 	return
 }
 
-func (s *shard[K, V]) AppendKeys(dst []K, now uint32) []K {
+func (s *ttlshard[K, V]) AppendKeys(dst []K, now uint32) []K {
 	s.mu.Lock()
 	for _, b := range s.table.buckets {
 		if b.index == 0 {

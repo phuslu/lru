@@ -26,7 +26,6 @@
 
 ### Getting Started
 
-An out of box example. https://go.dev/play/p/VdufWuwo4lE
 ```go
 package main
 
@@ -37,7 +36,7 @@ import (
 )
 
 func main() {
-	cache := lru.New[string, int](8192)
+	cache := lru.NewTTLCache[string, int](8192)
 
 	cache.Set("a", 1, 2*time.Second)
 	println(cache.Get("a"))
@@ -50,7 +49,7 @@ func main() {
 	println(cache.Get("a"))
 
 	stats := cache.Stats()
-	println("GetCalls", stats.GetCalls, "SetCalls", stats.SetCalls, "Misses", stats.Misses)
+	println("SetCalls", stats.SetCalls, "GetCalls", stats.GetCalls, "Misses", stats.Misses)
 }
 ```
 
@@ -263,7 +262,7 @@ func BenchmarkFreelruSetGet(b *testing.B) {
 
 func BenchmarkPhusluSetGet(b *testing.B) {
 	c := perfbench.Open(b)
-	cache := phuslu.New[string, int](cachesize, phuslu.WithShards[string, int](uint32(shardcount)))
+	cache := phuslu.NewTTLCache[string, int](cachesize, phuslu.WithShards[string, int](uint32(shardcount)))
 	for i := 0; i < cachesize/2; i++ {
 		cache.Set(keys[i], i, time.Hour)
 	}
@@ -517,7 +516,7 @@ func main() {
 }
 
 func SetupPhuslu(cachesize int) {
-	cache := phuslu.New[string, int](cachesize)
+	cache := phuslu.NewTTLCache[string, int](cachesize)
 	for i := 0; i < cachesize; i++ {
 		cache.Set(keys[i], i, time.Hour)
 	}

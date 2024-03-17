@@ -11,9 +11,9 @@ import (
 	"unsafe"
 )
 
-// Cache implements LRU Cache with least recent used eviction policy.
-type Cache[K comparable, V any] struct {
-	shards [512]shard[K, V]
+// TTLCache implements LRU TTLCache with least recent used eviction policy.
+type TTLCache[K comparable, V any] struct {
+	shards [512]ttlshard[K, V]
 	mask   uint32
 	hasher func(K unsafe.Pointer, seed uintptr) uintptr
 	seed   uintptr
@@ -23,8 +23,8 @@ type Cache[K comparable, V any] struct {
 
 var compactCache = runtime.GOARCH == "amd64"
 
-// New creates lru cache with size capacity.
-func New[K comparable, V any](size int, options ...Option[K, V]) *Cache[K, V] {
+// NewTTLCache creates lru cache with size capacity.
+func NewTTLCache[K comparable, V any](size int, options ...Option[K, V]) *TTLCache[K, V] {
 	clocking()
 
 	j := -1
@@ -40,7 +40,7 @@ func New[K comparable, V any](size int, options ...Option[K, V]) *Cache[K, V] {
 		options[0], options[j] = options[j], options[0]
 	}
 
-	c := new(Cache[K, V])
+	c := new(TTLCache[K, V])
 	for _, o := range options {
 		o.ApplyToCache(c)
 	}
@@ -55,9 +55,9 @@ func New[K comparable, V any](size int, options ...Option[K, V]) *Cache[K, V] {
 	if compactCache {
 		// pre-alloc lists and tables for compactness
 		shardsize := (uint32(size) + c.mask) / (c.mask + 1)
-		shardlists := make([]node[K, V], (shardsize+1)*(c.mask+1))
+		shardlists := make([]ttlnode[K, V], (shardsize+1)*(c.mask+1))
 		tablesize := newTableSize(uint32(shardsize))
-		tablebuckets := make([]bucket, tablesize*(c.mask+1))
+		tablebuckets := make([]ttlbucket, tablesize*(c.mask+1))
 		for i := uint32(0); i <= c.mask; i++ {
 			c.shards[i].list = shardlists[i*(shardsize+1) : (i+1)*(shardsize+1)]
 			c.shards[i].table.buckets = tablebuckets[i*tablesize : (i+1)*tablesize]
@@ -75,7 +75,7 @@ func New[K comparable, V any](size int, options ...Option[K, V]) *Cache[K, V] {
 
 // Options implements LRU Cache Option.
 type Option[K comparable, V any] interface {
-	ApplyToCache(*Cache[K, V])
+	ApplyToCache(*TTLCache[K, V])
 }
 
 // WithShards specifies the shards count of cache.
@@ -87,7 +87,7 @@ type shardsOption[K comparable, V any] struct {
 	count uint32
 }
 
-func (o *shardsOption[K, V]) ApplyToCache(c *Cache[K, V]) {
+func (o *shardsOption[K, V]) ApplyToCache(c *TTLCache[K, V]) {
 	var shardcount uint32
 	if o.count == 0 {
 		shardcount = nextPowOf2(uint32(runtime.GOMAXPROCS(0) * 16))
@@ -110,11 +110,11 @@ type hasherOption[K comparable, V any] struct {
 	hasher func(key unsafe.Pointer, seed uintptr) (hash uintptr)
 }
 
-func (o *hasherOption[K, V]) ApplyToCache(c *Cache[K, V]) {
+func (o *hasherOption[K, V]) ApplyToCache(c *TTLCache[K, V]) {
 	c.hasher = o.hasher
 }
 
-// WithLoader specifies that use sliding cache or not.
+// WithSliding specifies that use sliding cache or not.
 func WithSliding[K comparable, V any](sliding bool) Option[K, V] {
 	return &slidingOption[K, V]{sliding: sliding}
 }
@@ -123,7 +123,7 @@ type slidingOption[K comparable, V any] struct {
 	sliding bool
 }
 
-func (o *slidingOption[K, V]) ApplyToCache(c *Cache[K, V]) {
+func (o *slidingOption[K, V]) ApplyToCache(c *TTLCache[K, V]) {
 	for i := uint32(0); i <= c.mask; i++ {
 		c.shards[i].sliding = o.sliding
 	}
@@ -138,7 +138,7 @@ type loaderOption[K comparable, V any] struct {
 	loader func(K) (V, time.Duration, error)
 }
 
-func (o *loaderOption[K, V]) ApplyToCache(c *Cache[K, V]) {
+func (o *loaderOption[K, V]) ApplyToCache(c *TTLCache[K, V]) {
 	c.loader = o.loader
 	c.group = singleflight_Group[K, V]{}
 }
@@ -152,7 +152,7 @@ func nextPowOf2(n uint32) uint32 {
 }
 
 // Get returns value for key.
-func (c *Cache[K, V]) Get(key K) (value V, ok bool) {
+func (c *TTLCache[K, V]) Get(key K) (value V, ok bool) {
 	hash := uint32(c.hasher(noescape(unsafe.Pointer(&key)), c.seed))
 	return c.shards[hash&c.mask].Get(hash, key)
 }
@@ -160,7 +160,7 @@ func (c *Cache[K, V]) Get(key K) (value V, ok bool) {
 var ErrLoaderIsNil = errors.New("loader is nil")
 
 // GetOrLoad returns value for key, call loader function by singleflight if value was not in cache.
-func (c *Cache[K, V]) GetOrLoad(key K) (value V, err error, ok bool) {
+func (c *TTLCache[K, V]) GetOrLoad(key K) (value V, err error, ok bool) {
 	hash := uint32(c.hasher(noescape(unsafe.Pointer(&key)), c.seed))
 	value, ok = c.shards[hash&c.mask].Get(hash, key)
 	if !ok {
@@ -181,31 +181,31 @@ func (c *Cache[K, V]) GetOrLoad(key K) (value V, err error, ok bool) {
 }
 
 // Peek returns value and expires nanoseconds for key, but does not modify its recency.
-func (c *Cache[K, V]) Peek(key K) (value V, expires int64, ok bool) {
+func (c *TTLCache[K, V]) Peek(key K) (value V, expires int64, ok bool) {
 	hash := uint32(c.hasher(noescape(unsafe.Pointer(&key)), c.seed))
 	return c.shards[hash&c.mask].Peek(hash, key)
 }
 
 // Set inserts key value pair and returns previous value.
-func (c *Cache[K, V]) Set(key K, value V, ttl time.Duration) (prev V, replaced bool) {
+func (c *TTLCache[K, V]) Set(key K, value V, ttl time.Duration) (prev V, replaced bool) {
 	hash := uint32(c.hasher(noescape(unsafe.Pointer(&key)), c.seed))
 	return c.shards[hash&c.mask].Set(hash, key, value, ttl)
 }
 
 // SetIfAbsent inserts key value pair and returns previous value, if key is absent in the cache.
-func (c *Cache[K, V]) SetIfAbsent(key K, value V, ttl time.Duration) (prev V, replaced bool) {
+func (c *TTLCache[K, V]) SetIfAbsent(key K, value V, ttl time.Duration) (prev V, replaced bool) {
 	hash := uint32(c.hasher(noescape(unsafe.Pointer(&key)), c.seed))
 	return c.shards[hash&c.mask].SetIfAbsent(hash, key, value, ttl)
 }
 
 // Delete method deletes value associated with key and returns deleted value (or empty value if key was not in cache).
-func (c *Cache[K, V]) Delete(key K) (prev V) {
+func (c *TTLCache[K, V]) Delete(key K) (prev V) {
 	hash := uint32(c.hasher(noescape(unsafe.Pointer(&key)), c.seed))
 	return c.shards[hash&c.mask].Delete(hash, key)
 }
 
 // Len returns number of cached nodes.
-func (c *Cache[K, V]) Len() int {
+func (c *TTLCache[K, V]) Len() int {
 	var n uint32
 	for i := uint32(0); i <= c.mask; i++ {
 		n += c.shards[i].Len()
@@ -214,7 +214,7 @@ func (c *Cache[K, V]) Len() int {
 }
 
 // AppendKeys appends all keys to keys and return the keys.
-func (c *Cache[K, V]) AppendKeys(keys []K) []K {
+func (c *TTLCache[K, V]) AppendKeys(keys []K) []K {
 	now := atomic.LoadUint32(&clock)
 	for i := uint32(0); i <= c.mask; i++ {
 		keys = c.shards[i].AppendKeys(keys, now)
@@ -235,7 +235,7 @@ type Stats struct {
 }
 
 // Stats returns cache stats.
-func (c *Cache[K, V]) Stats() (stats Stats) {
+func (c *TTLCache[K, V]) Stats() (stats Stats) {
 	for i := uint32(0); i <= c.mask; i++ {
 		c.shards[i].mu.Lock()
 		s := c.shards[i].stats

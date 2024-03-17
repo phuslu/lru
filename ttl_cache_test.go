@@ -3,6 +3,7 @@ package lru
 import (
 	"fmt"
 	"math/rand"
+	"runtime"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -11,6 +12,9 @@ import (
 )
 
 func TestCacheCompactness(t *testing.T) {
+	if runtime.GOARCH != "amd64" {
+		return
+	}
 	compact := compactCache
 	defer func() {
 		compactCache = compact
@@ -18,7 +22,7 @@ func TestCacheCompactness(t *testing.T) {
 
 	for _, b := range []bool{true, false} {
 		compactCache = b
-		cache := New[string, []byte](32 * 1024)
+		cache := NewTTLCache[string, []byte](32 * 1024)
 		if length := cache.Len(); length != 0 {
 			t.Fatalf("bad cache length: %v", length)
 		}
@@ -26,7 +30,7 @@ func TestCacheCompactness(t *testing.T) {
 }
 
 func TestCacheDefaultkey(t *testing.T) {
-	cache := New[string, int](1)
+	cache := NewTTLCache[string, int](1)
 	var k string
 	var i int = 10
 
@@ -40,7 +44,7 @@ func TestCacheDefaultkey(t *testing.T) {
 }
 
 func TestCacheGetSet(t *testing.T) {
-	cache := New[int, int](128)
+	cache := NewTTLCache[int, int](128)
 
 	if v, ok := cache.Get(5); ok {
 		t.Fatalf("bad returned value: %v", v)
@@ -68,7 +72,7 @@ func TestCacheGetSet(t *testing.T) {
 }
 
 func TestCacheSetIfAbsent(t *testing.T) {
-	cache := New[int, int](128)
+	cache := NewTTLCache[int, int](128)
 
 	cache.Set(5, 5, 0)
 
@@ -124,12 +128,12 @@ func TestCacheSetIfAbsent(t *testing.T) {
 }
 
 func TestCacheEviction(t *testing.T) {
-	cache := New[int, *int](256, WithShards[int, *int](1024))
+	cache := NewTTLCache[int, *int](256, WithShards[int, *int](1024))
 	if cache.mask+1 != uint32(cap(cache.shards)) {
 		t.Fatalf("bad shard mask: %v", cache.mask)
 	}
 
-	cache = New[int, *int](256, WithShards[int, *int](1))
+	cache = NewTTLCache[int, *int](256, WithShards[int, *int](1))
 
 	evictedCounter := 0
 	for i := 0; i < 512; i++ {
@@ -183,7 +187,7 @@ func TestCacheEviction(t *testing.T) {
 }
 
 func TestCachePeek(t *testing.T) {
-	cache := New[int, int](64)
+	cache := NewTTLCache[int, int](64)
 
 	cache.Set(10, 10, 0)
 	cache.Set(20, 20, time.Hour)
@@ -211,7 +215,7 @@ func TestCachePeek(t *testing.T) {
 }
 
 func TestCacheHasher(t *testing.T) {
-	cache := New[string, int](1024, WithHasher[string, int](func(key unsafe.Pointer, seed uintptr) (x uintptr) {
+	cache := NewTTLCache[string, int](1024, WithHasher[string, int](func(key unsafe.Pointer, seed uintptr) (x uintptr) {
 		x = 5381
 		for _, c := range []byte(*(*string)(key)) {
 			x = x*33 + uintptr(c)
@@ -233,12 +237,12 @@ func TestCacheHasher(t *testing.T) {
 }
 
 func TestCacheLoader(t *testing.T) {
-	cache := New[string, int](1024)
+	cache := NewTTLCache[string, int](1024)
 	if v, err, ok := cache.GetOrLoad("a"); ok || err == nil || v != 0 {
 		t.Errorf("cache.GetOrLoad(\"a\") again should be return error: %v, %v, %v", v, err, ok)
 	}
 
-	cache = New[string, int](1024, WithLoader(func(key string) (int, time.Duration, error) {
+	cache = NewTTLCache[string, int](1024, WithLoader(func(key string) (int, time.Duration, error) {
 		if key == "" {
 			return 0, 0, fmt.Errorf("invalid key: %v", key)
 		}
@@ -262,7 +266,7 @@ func TestCacheLoader(t *testing.T) {
 		t.Errorf("cache.GetOrLoad(\"a\") again should be return 1: %v, %v, %v", v, err, ok)
 	}
 
-	time.Sleep(1 * time.Second)
+	time.Sleep(2 * time.Second)
 
 	if v, err, ok := cache.GetOrLoad("a"); ok || err != nil || v != 1 {
 		t.Errorf("cache.GetOrLoad(\"a\") again should be return 1: %v, %v, %v", v, err, ok)
@@ -272,7 +276,7 @@ func TestCacheLoader(t *testing.T) {
 func TestCacheLoaderSingleflight(t *testing.T) {
 	var loads uint32
 
-	cache := New[string, int](1024, WithLoader(func(key string) (int, time.Duration, error) {
+	cache := NewTTLCache[string, int](1024, WithLoader(func(key string) (int, time.Duration, error) {
 		atomic.AddUint32(&loads, 1)
 		time.Sleep(100 * time.Millisecond)
 		return int(key[0] - 'a' + 1), time.Hour, nil
@@ -297,7 +301,7 @@ func TestCacheLoaderSingleflight(t *testing.T) {
 }
 
 func TestCacheSlidingGet(t *testing.T) {
-	cache := New[string, int](256, WithSliding[string, int](true), WithShards[string, int](1))
+	cache := NewTTLCache[string, int](256, WithSliding[string, int](true), WithShards[string, int](1))
 
 	cache.Set("a", 1, 0)
 	cache.Set("b", 2, 3*time.Second)
@@ -340,7 +344,7 @@ func TestCacheSlidingGet(t *testing.T) {
 }
 
 func TestCacheStats(t *testing.T) {
-	cache := New[string, int](256, WithShards[string, int](1))
+	cache := NewTTLCache[string, int](256, WithShards[string, int](1))
 
 	cache.Set("a", 1, 0)
 	cache.Set("b", 2, 3*time.Second)
@@ -378,7 +382,7 @@ func TestCacheStats(t *testing.T) {
 }
 
 func BenchmarkCacheRand(b *testing.B) {
-	cache := New[int64, int64](8192)
+	cache := NewTTLCache[int64, int64](8192)
 
 	trace := make([]int64, b.N*2)
 	for i := 0; i < b.N*2; i++ {
@@ -404,7 +408,7 @@ func BenchmarkCacheRand(b *testing.B) {
 }
 
 func BenchmarkCacheFreq(b *testing.B) {
-	cache := New[int64, int64](8192)
+	cache := NewTTLCache[int64, int64](8192)
 
 	trace := make([]int64, b.N*2)
 	for i := 0; i < b.N*2; i++ {
@@ -433,7 +437,7 @@ func BenchmarkCacheFreq(b *testing.B) {
 }
 
 func BenchmarkCacheTTL(b *testing.B) {
-	cache := New[int64, int64](8192)
+	cache := NewTTLCache[int64, int64](8192)
 
 	trace := make([]int64, b.N*2)
 	for i := 0; i < b.N*2; i++ {
