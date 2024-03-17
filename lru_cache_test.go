@@ -17,13 +17,13 @@ func TestLRUCacheCompactness(t *testing.T) {
 		return
 	}
 
-	compact := compactCache
+	compact := isamd64
 	defer func() {
-		compactCache = compact
+		isamd64 = compact
 	}()
 
 	for _, b := range []bool{true, false} {
-		compactCache = b
+		isamd64 = b
 		cache := NewLRUCache[string, []byte](32 * 1024)
 		if length := cache.Len(); length != 0 {
 			t.Fatalf("bad cache length: %v", length)

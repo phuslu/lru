@@ -46,7 +46,7 @@ func NewTTLCache[K comparable, V any](size int, options ...Option[K, V]) *TTLCac
 		c.seed = uintptr(fastrand64())
 	}
 
-	if compactCache {
+	if isamd64 {
 		// pre-alloc lists and tables for compactness
 		shardsize := (uint32(size) + c.mask) / (c.mask + 1)
 		shardlists := make([]ttlnode[K, V], (shardsize+1)*(c.mask+1))

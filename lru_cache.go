@@ -5,7 +5,6 @@ package lru
 
 import (
 	"errors"
-	"runtime"
 	"sync/atomic"
 	"unsafe"
 )
@@ -19,8 +18,6 @@ type LRUCache[K comparable, V any] struct {
 	loader func(key K) (value V, err error)
 	group  singleflight_Group[K, V]
 }
-
-var compactCache = runtime.GOARCH == "amd64"
 
 // NewLRUCache creates lru cache with size capacity.
 func NewLRUCache[K comparable, V any](size int, options ...Option[K, V]) *LRUCache[K, V] {
@@ -49,7 +46,7 @@ func NewLRUCache[K comparable, V any](size int, options ...Option[K, V]) *LRUCac
 		c.seed = uintptr(fastrand64())
 	}
 
-	if compactCache {
+	if isamd64 {
 		// pre-alloc lists and tables for compactness
 		shardsize := (uint32(size) + c.mask) / (c.mask + 1)
 		shardlists := make([]lrunode[K, V], (shardsize+1)*(c.mask+1))
@@ -139,18 +136,6 @@ func (c *LRUCache[K, V]) AppendKeys(keys []K) []K {
 		keys = c.shards[i].AppendKeys(keys, now)
 	}
 	return keys
-}
-
-// Stats represents cache stats.
-type Stats struct {
-	// GetCalls is the number of Get calls.
-	GetCalls uint64
-
-	// SetCalls is the number of Set calls.
-	SetCalls uint64
-
-	// Misses is the number of cache misses.
-	Misses uint64
 }
 
 // Stats returns cache stats.
