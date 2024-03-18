@@ -222,8 +222,8 @@ func TestLRUCacheHasher(t *testing.T) {
 func TestLRUCacheSliding(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
-			if !strings.Contains(fmt.Sprint(r), "not_implemented") {
-				t.Errorf("should be not_implemented")
+			if !strings.Contains(fmt.Sprint(r), "not_supported") {
+				t.Errorf("should be not_supported")
 			}
 		}
 	}()

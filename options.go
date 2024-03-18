@@ -76,7 +76,7 @@ type slidingOption[K comparable, V any] struct {
 }
 
 func (o *slidingOption[K, V]) ApplyToLRUCache(c *LRUCache[K, V]) {
-	panic("not_implemented")
+	panic("not_supported")
 }
 
 func (o *slidingOption[K, V]) ApplyToTTLCache(c *TTLCache[K, V]) {
@@ -95,12 +95,20 @@ type loaderOption[K comparable, V any] struct {
 }
 
 func (o *loaderOption[K, V]) ApplyToLRUCache(c *LRUCache[K, V]) {
-	c.loader = o.loader.(func(key K) (value V, err error))
+	loader, ok := o.loader.(func(key K) (value V, err error))
+	if !ok {
+		panic("not_supported")
+	}
+	c.loader = loader
 	c.group = singleflight_Group[K, V]{}
 }
 
 func (o *loaderOption[K, V]) ApplyToTTLCache(c *TTLCache[K, V]) {
-	c.loader = o.loader.(func(key K) (value V, ttl time.Duration, err error))
+	loader, ok := o.loader.(func(key K) (value V, ttl time.Duration, err error))
+	if !ok {
+		panic("not_supported")
+	}
+	c.loader = loader
 	c.group = singleflight_Group[K, V]{}
 }
 
