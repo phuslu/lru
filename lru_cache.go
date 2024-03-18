@@ -9,7 +9,7 @@ import (
 	"unsafe"
 )
 
-// LRUCache implements LRU LRUCache with least recent used eviction policy.
+// LRUCache implements LRU Cache with least recent used eviction policy.
 type LRUCache[K comparable, V any] struct {
 	shards [512]lrushard[K, V]
 	mask   uint32
@@ -96,7 +96,7 @@ func (c *LRUCache[K, V]) GetOrLoad(key K) (value V, err error, ok bool) {
 	return
 }
 
-// Peek returns value and expires nanoseconds for key, but does not modify its recency.
+// Peek returns value, but does not modify its recency.
 func (c *LRUCache[K, V]) Peek(key K) (value V, ok bool) {
 	hash := uint32(c.hasher(noescape(unsafe.Pointer(&key)), c.seed))
 	return c.shards[hash&c.mask].Peek(hash, key)

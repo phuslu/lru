@@ -72,9 +72,9 @@ func (s *lrushard[K, V]) table_Set(hash uint32, key K, index uint32) (prev uint3
 	}
 }
 
-// Get returns an index for a key.
+// table_Get returns an index for a key.
 // Returns false when no index has been assign for key.
-func (s *lrushard[K, V]) table_Get(hash uint32, key K) (prev uint32, ok bool) {
+func (s *lrushard[K, V]) table_Get(hash uint32, key K) (index uint32, ok bool) {
 	subhash := hash >> dibBitSize
 	mask := s.table.mask
 	i := subhash & mask
@@ -92,9 +92,9 @@ func (s *lrushard[K, V]) table_Get(hash uint32, key K) (prev uint32, ok bool) {
 	}
 }
 
-// Delete deletes an index for a key.
+// table_Delete deletes an index for a key.
 // Returns the deleted index, or false when no index was assigned.
-func (s *lrushard[K, V]) table_Delete(hash uint32, key K) (v uint32, ok bool) {
+func (s *lrushard[K, V]) table_Delete(hash uint32, key K) (index uint32, ok bool) {
 	subhash := hash >> dibBitSize
 	mask := s.table.mask
 	i := subhash & mask

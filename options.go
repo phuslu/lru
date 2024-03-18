@@ -6,7 +6,7 @@ import (
 	"unsafe"
 )
 
-// Options implements LRU Cache Option.
+// Option is an interface for LRUCache and TTLCache configuration.
 type Option[K comparable, V any] interface {
 	ApplyToLRUCache(*LRUCache[K, V])
 	ApplyToTTLCache(*TTLCache[K, V])

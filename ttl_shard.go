@@ -9,7 +9,7 @@ import (
 	"unsafe"
 )
 
-// ttlnode is a list ttlnode of LRU, storing key-value pairs and related information
+// ttlnode is a list of ttl node, storing key-value pairs and related information
 type ttlnode[K comparable, V any] struct {
 	key     K
 	expires uint32

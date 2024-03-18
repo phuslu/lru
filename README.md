@@ -640,7 +640,7 @@ func SetupHashicorp(cachesize int) {
 | cloudflare | 15 MB  | 33 MB  | 64 MB  | 183 MB  | 358 MB  | 717 MB  |
 | ccache     | 16 MB  | 33 MB  | 65 MB  | 183 MB  | 365 MB  | 730 MB  |
 | hashicorp  | 18 MB  | 37 MB  | 57 MB  | 242 MB  | 484 MB  | 968 MB  |
-- nottl is faster than phuslu by removing ttl functionality, resulting in a slight increase in throughput and a -20% improvement in memory usage.
+- nottl saves 20% memory usage compared to phuslu by removing its ttl functionality, resulting in a slight increase in throughput.
 - ristretto employs a questionable usage pattern due to its rejection of items via a bloom filter, resulting in a lower hit ratio.
 - freelru overcommits the cache size to the next power of 2, leading to higher memory usage particularly at larger cache sizes.
 

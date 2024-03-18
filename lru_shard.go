@@ -7,7 +7,7 @@ import (
 	"unsafe"
 )
 
-// lrunode is a list lrunode of LRU, storing key-value pairs and related information
+// lrunode is a list of lru node, storing key-value pairs and related information
 type lrunode[K comparable, V any] struct {
 	key   K
 	next  uint32

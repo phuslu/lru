@@ -9,7 +9,7 @@ import (
 	"unsafe"
 )
 
-// TTLCache implements LRU TTLCache with least recent used eviction policy.
+// TTLCache implements LRU Cache with TTL functionality.
 type TTLCache[K comparable, V any] struct {
 	shards [512]ttlshard[K, V]
 	mask   uint32
