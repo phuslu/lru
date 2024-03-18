@@ -284,6 +284,30 @@ func BenchmarkPhusluSetGet(b *testing.B) {
 	})
 }
 
+func BenchmarkNoTTLSetGet(b *testing.B) {
+	c := perfbench.Open(b)
+	cache := phuslu.NewLRUCache[string, int](cachesize, phuslu.WithShards[string, int](uint32(shardcount)))
+	for i := 0; i < cachesize/2; i++ {
+		cache.Set(keys[i], i)
+	}
+
+	b.ResetTimer()
+	c.Reset()
+	b.RunParallel(func(pb *testing.PB) {
+		zipf := zipfian()
+		for pb.Next() {
+			if threshold > 0 && cheaprand() <= threshold {
+				i := int(cheaprandn(cachesize))
+				cache.Set(keys[i], i)
+			} else if zipf == nil {
+				cache.Get(keys[cheaprandn(cachesize)])
+			} else {
+				cache.Get(keys[zipf()])
+			}
+		}
+	})
+}
+
 func BenchmarkCcacheSetGet(b *testing.B) {
 	c := perfbench.Open(b)
 	cache := ccache.New(ccache.Configure[int]().MaxSize(cachesize).ItemsToPrune(100))
@@ -491,6 +515,7 @@ func main() {
 	runtime.ReadMemStats(&o)
 
 	map[string]func(int){
+		"nottl":      SetupNottl,
 		"phuslu":     SetupPhuslu,
 		"freelru":    SetupFreelru,
 		"ristretto":  SetupRistretto,
@@ -513,6 +538,13 @@ func main() {
 		(m.TotalAlloc-o.TotalAlloc)/1048576,
 		(m.Sys-o.Sys)/1048576,
 	)
+}
+
+func SetupNottl(cachesize int) {
+	cache := phuslu.NewLRUCache[string, int](cachesize)
+	for i := 0; i < cachesize; i++ {
+		cache.Set(keys[i], i)
+	}
 }
 
 func SetupPhuslu(cachesize int) {
@@ -597,18 +629,19 @@ func SetupHashicorp(cachesize int) {
 
 |            | 100000 | 200000 | 400000 | 1000000 | 2000000 | 4000000 |
 | ---------- | ------ | ------ | ------ | ------- | ------- | ------- |
+| nottl*     | 3 MB   | 7 MB   | 13 MB  | 39 MB   | 78 MB   | 155 MB  |
 | phuslu     | 4 MB   | 8 MB   | 16 MB  | 46 MB   | 93 MB   | 185 MB  |
 | lxzan      | 8 MB   | 17 MB  | 35 MB  | 95 MB   | 190 MB  | 379 MB  |
-| ristretto  | 14 MB  | 15 MB  | 34 MB  | 89 MB   | 213 MB  | 412 MB  |
+| ristretto* | 14 MB  | 15 MB  | 34 MB  | 89 MB   | 213 MB  | 412 MB  |
 | otter      | 13 MB  | 22 MB  | 54 MB  | 104 MB  | 209 MB  | 419 MB  |
-| freelru    | 6 MB   | 14 MB  | 27 MB  | 112 MB  | 224 MB  | 448 MB  |
+| freelru*   | 6 MB   | 14 MB  | 27 MB  | 112 MB  | 224 MB  | 448 MB  |
 | ecache     | 11 MB  | 22 MB  | 44 MB  | 123 MB  | 238 MB  | 468 MB  |
 | theine     | 15 MB  | 31 MB  | 62 MB  | 178 MB  | 357 MB  | 714 MB  |
 | cloudflare | 15 MB  | 33 MB  | 64 MB  | 183 MB  | 358 MB  | 717 MB  |
 | ccache     | 16 MB  | 33 MB  | 65 MB  | 183 MB  | 365 MB  | 730 MB  |
 | hashicorp  | 18 MB  | 37 MB  | 57 MB  | 242 MB  | 484 MB  | 968 MB  |
+- nottl is faster than phuslu by removing ttl functionality, resulting in a slight increase in throughput and a -20% improvement in memory usage.
 - ristretto employs a questionable usage pattern due to its rejection of items via a bloom filter, resulting in a lower hit ratio.
-- otter utilizes buffers to achieve contention-free operations, which results in higher memory consumption at smaller cache sizes.
 - freelru overcommits the cache size to the next power of 2, leading to higher memory usage particularly at larger cache sizes.
 
 ### Hit ratio
