@@ -298,6 +298,9 @@ func TestLRUCacheStats(t *testing.T) {
 	cache.Set("d", 3)
 
 	stats := cache.Stats()
+	if got, want := stats.EntriesCount, uint64(4); got != want {
+		t.Fatalf("cache entries should be %v: %v", want, got)
+	}
 	if got, want := stats.GetCalls, uint64(0); got != want {
 		t.Fatalf("cache get calls should be %v: %v", want, got)
 	}
@@ -316,6 +319,9 @@ func TestLRUCacheStats(t *testing.T) {
 	cache.Set("c", 13)
 
 	stats = cache.Stats()
+	if got, want := stats.EntriesCount, uint64(4); got != want {
+		t.Fatalf("cache entries should be %v: %v", want, got)
+	}
 	if got, want := stats.GetCalls, uint64(5); got != want {
 		t.Fatalf("cache get calls should be %v: %v", want, got)
 	}

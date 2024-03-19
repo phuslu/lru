@@ -10,4 +10,7 @@ type Stats struct {
 
 	// Misses is the number of cache misses.
 	Misses uint64
+
+	// EntriesCount is the current number of entries in the cache.
+	EntriesCount uint64
 }

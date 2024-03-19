@@ -139,12 +139,15 @@ func (c *TTLCache[K, V]) AppendKeys(keys []K) []K {
 // Stats returns cache stats.
 func (c *TTLCache[K, V]) Stats() (stats Stats) {
 	for i := uint32(0); i <= c.mask; i++ {
-		c.shards[i].mu.Lock()
-		s := c.shards[i].stats
-		c.shards[i].mu.Unlock()
-		stats.GetCalls += s.getcalls
-		stats.SetCalls += s.setcalls
-		stats.Misses += s.misses
+		s := &c.shards[i]
+		s.mu.Lock()
+		sl := s.table.length
+		ss := s.stats
+		s.mu.Unlock()
+		stats.EntriesCount += uint64(sl)
+		stats.GetCalls += ss.getcalls
+		stats.SetCalls += ss.setcalls
+		stats.Misses += ss.misses
 	}
 	return
 }
