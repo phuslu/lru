@@ -33,8 +33,8 @@ jobs:
       - name: Throughput benchmarks
         working-directory: ./bench
         run: |
-          env writeratio=0.1 zipf=false go test -v -cpu=8 -run=none -bench=. -benchtime=5s -benchmem bench_test.go
-          env writeratio=0.01 zipf=true go test -v -cpu=8 -run=none -bench=. -benchtime=5s -benchmem bench_test.go
+          env writeratio=0.1 zipfian=false go test -v -cpu=8 -run=none -bench=. -benchtime=5s -benchmem bench_test.go
+          env writeratio=0.01 zipfian=true go test -v -cpu=8 -run=none -bench=. -benchtime=5s -benchmem bench_test.go
       - name: Memory Usage
         working-directory: ./bench
         run: |

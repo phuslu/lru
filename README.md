@@ -60,13 +60,14 @@ A Performance result as below. Check github [actions][actions] for more results 
   <summary>go1.22 benchmark on keysize=16, itemsize=1000000, cachesize=50%, concurrency=8</summary>
 
 ```go
-// env writeratio=0.1 zipf=false go test -v -cpu=8 -run=none -bench=. -benchtime=5s -benchmem bench_test.go
+// env writeratio=0.1 zipfian=false go test -v -cpu=8 -run=none -bench=. -benchtime=5s -benchmem bench_test.go
 package bench
 
 import (
 	"crypto/sha1"
 	"fmt"
-	"math/rand"
+	"math/rand/v2"
+	"math/bits"
 	"os"
 	"runtime"
 	"strconv"
@@ -93,17 +94,25 @@ const (
 	cachesize = 1000000
 )
 
-var threshold = func() uint32 {
-	writeratio, _ := strconv.ParseFloat(os.Getenv("writeratio"), 64)
-	return uint32(float64(^uint32(0)) * writeratio)
-}()
+var writeratio, _ = strconv.ParseFloat(os.Getenv("writeratio"), 64)
+var zipfian, _ = strconv.ParseBool(os.Getenv("zipfian"))
 
-var zipfian = func() (zipf func() uint64) {
-	ok, _ := strconv.ParseBool(os.Getenv("zipf"))
-	if !ok {
-		return nil
-	}
-	return rand.NewZipf(rand.New(rand.NewSource(time.Now().UnixNano())), 1.0001, 10, cachesize-1).Uint64
+type CheapRand struct {
+	Seed uint64
+}
+
+func (rand *CheapRand) Uint32() uint32 {
+	rand.Seed += 0xa0761d6478bd642f
+	hi, lo := bits.Mul64(rand.Seed, rand.Seed^0xe7037ed1a0b428db)
+	return uint32(hi ^ lo)
+}
+
+func (rand *CheapRand) Uint32n(n uint32) uint32 {
+	return uint32((uint64(rand.Uint32()) * uint64(n)) >> 32)
+}
+
+func (rand *CheapRand) Uint64() uint64 {
+	return uint64(rand.Uint32())<<32 ^ uint64(rand.Uint32())
 }
 
 var shardcount = func() int {
@@ -123,14 +132,6 @@ var keys = func() (x []string) {
 	return
 }()
 
-//go:noescape
-//go:linkname cheaprandn runtime.cheaprandn
-func cheaprandn(x uint32) uint32
-
-//go:noescape
-//go:linkname cheaprand runtime.cheaprand
-func cheaprand() uint32
-
 func BenchmarkHashicorpSetGet(b *testing.B) {
 	c := perfbench.Open(b)
 	cache := hashicorp.NewLRU[string, int](cachesize, nil, time.Hour)
@@ -141,15 +142,17 @@ func BenchmarkHashicorpSetGet(b *testing.B) {
 	b.ResetTimer()
 	c.Reset()
 	b.RunParallel(func(pb *testing.PB) {
-		zipf := zipfian()
+		threshold := uint32(float64(^uint32(0)) * writeratio)
+		cheaprand := &CheapRand{uint64(time.Now().UnixNano())}
+		zipf := rand.NewZipf(rand.New(cheaprand), 1.0001, 10, cachesize-1)
 		for pb.Next() {
-			if threshold > 0 && cheaprand() <= threshold {
-				i := int(cheaprandn(cachesize))
+			if threshold > 0 && cheaprand.Uint32() <= threshold {
+				i := int(cheaprand.Uint32n(cachesize))
 				cache.Add(keys[i], i)
-			} else if zipf == nil {
-				cache.Get(keys[cheaprandn(cachesize)])
+			} else if zipfian {
+				cache.Get(keys[zipf.Uint64()])
 			} else {
-				cache.Get(keys[zipf()])
+				cache.Get(keys[cheaprand.Uint32n(cachesize)])
 			}
 		}
 	})
@@ -166,15 +169,17 @@ func BenchmarkCloudflareSetGet(b *testing.B) {
 	b.ResetTimer()
 	c.Reset()
 	b.RunParallel(func(pb *testing.PB) {
-		zipf := zipfian()
+		threshold := uint32(float64(^uint32(0)) * writeratio)
+		cheaprand := &CheapRand{uint64(time.Now().UnixNano())}
+		zipf := rand.NewZipf(rand.New(cheaprand), 1.0001, 10, cachesize-1)
 		for pb.Next() {
-			if threshold > 0 && cheaprand() <= threshold {
-				i := int(cheaprandn(cachesize))
+			if threshold > 0 && cheaprand.Uint32() <= threshold {
+				i := int(cheaprand.Uint32n(cachesize))
 				cache.Set(keys[i], i, expires)
-			} else if zipf == nil {
-				cache.Get(keys[cheaprandn(cachesize)])
+			} else if zipfian {
+				cache.Get(keys[zipf.Uint64()])
 			} else {
-				cache.Get(keys[zipf()])
+				cache.Get(keys[cheaprand.Uint32n(cachesize)])
 			}
 		}
 	})
@@ -190,15 +195,17 @@ func BenchmarkEcacheSetGet(b *testing.B) {
 	b.ResetTimer()
 	c.Reset()
 	b.RunParallel(func(pb *testing.PB) {
-		zipf := zipfian()
+		threshold := uint32(float64(^uint32(0)) * writeratio)
+		cheaprand := &CheapRand{uint64(time.Now().UnixNano())}
+		zipf := rand.NewZipf(rand.New(cheaprand), 1.0001, 10, cachesize-1)
 		for pb.Next() {
-			if threshold > 0 && cheaprand() <= threshold {
-				i := int(cheaprandn(cachesize))
+			if threshold > 0 && cheaprand.Uint32() <= threshold {
+				i := int(cheaprand.Uint32n(cachesize))
 				cache.Put(keys[i], i)
-			} else if zipf == nil {
-				cache.Get(keys[cheaprandn(cachesize)])
+			} else if zipfian {
+				cache.Get(keys[zipf.Uint64()])
 			} else {
-				cache.Get(keys[zipf()])
+				cache.Get(keys[cheaprand.Uint32n(cachesize)])
 			}
 		}
 	})
@@ -218,15 +225,17 @@ func BenchmarkLxzanSetGet(b *testing.B) {
 	b.ResetTimer()
 	c.Reset()
 	b.RunParallel(func(pb *testing.PB) {
-		zipf := zipfian()
+		threshold := uint32(float64(^uint32(0)) * writeratio)
+		cheaprand := &CheapRand{uint64(time.Now().UnixNano())}
+		zipf := rand.NewZipf(rand.New(cheaprand), 1.0001, 10, cachesize-1)
 		for pb.Next() {
-			if threshold > 0 && cheaprand() <= threshold {
-				i := int(cheaprandn(cachesize))
+			if threshold > 0 && cheaprand.Uint32() <= threshold {
+				i := int(cheaprand.Uint32n(cachesize))
 				cache.Set(keys[i], i, time.Hour)
-			} else if zipf == nil {
-				cache.Get(keys[cheaprandn(cachesize)])
+			} else if zipfian {
+				cache.Get(keys[zipf.Uint64()])
 			} else {
-				cache.Get(keys[zipf()])
+				cache.Get(keys[cheaprand.Uint32n(cachesize)])
 			}
 		}
 	})
@@ -246,15 +255,17 @@ func BenchmarkFreelruSetGet(b *testing.B) {
 	b.ResetTimer()
 	c.Reset()
 	b.RunParallel(func(pb *testing.PB) {
-		zipf := zipfian()
+		threshold := uint32(float64(^uint32(0)) * writeratio)
+		cheaprand := &CheapRand{uint64(time.Now().UnixNano())}
+		zipf := rand.NewZipf(rand.New(cheaprand), 1.0001, 10, cachesize-1)
 		for pb.Next() {
-			if threshold > 0 && cheaprand() <= threshold {
-				i := int(cheaprandn(cachesize))
+			if threshold > 0 && cheaprand.Uint32() <= threshold {
+				i := int(cheaprand.Uint32n(cachesize))
 				cache.AddWithLifetime(keys[i], i, time.Hour)
-			} else if zipf == nil {
-				cache.Get(keys[cheaprandn(cachesize)])
+			} else if zipfian {
+				cache.Get(keys[zipf.Uint64()])
 			} else {
-				cache.Get(keys[zipf()])
+				cache.Get(keys[cheaprand.Uint32n(cachesize)])
 			}
 		}
 	})
@@ -270,15 +281,17 @@ func BenchmarkPhusluSetGet(b *testing.B) {
 	b.ResetTimer()
 	c.Reset()
 	b.RunParallel(func(pb *testing.PB) {
-		zipf := zipfian()
+		threshold := uint32(float64(^uint32(0)) * writeratio)
+		cheaprand := &CheapRand{uint64(time.Now().UnixNano())}
+		zipf := rand.NewZipf(rand.New(cheaprand), 1.0001, 10, cachesize-1)
 		for pb.Next() {
-			if threshold > 0 && cheaprand() <= threshold {
-				i := int(cheaprandn(cachesize))
+			if threshold > 0 && cheaprand.Uint32() <= threshold {
+				i := int(cheaprand.Uint32n(cachesize))
 				cache.Set(keys[i], i, time.Hour)
-			} else if zipf == nil {
-				cache.Get(keys[cheaprandn(cachesize)])
+			} else if zipfian {
+				cache.Get(keys[zipf.Uint64()])
 			} else {
-				cache.Get(keys[zipf()])
+				cache.Get(keys[cheaprand.Uint32n(cachesize)])
 			}
 		}
 	})
@@ -294,15 +307,17 @@ func BenchmarkNoTTLSetGet(b *testing.B) {
 	b.ResetTimer()
 	c.Reset()
 	b.RunParallel(func(pb *testing.PB) {
-		zipf := zipfian()
+		threshold := uint32(float64(^uint32(0)) * writeratio)
+		cheaprand := &CheapRand{uint64(time.Now().UnixNano())}
+		zipf := rand.NewZipf(rand.New(cheaprand), 1.0001, 10, cachesize-1)
 		for pb.Next() {
-			if threshold > 0 && cheaprand() <= threshold {
-				i := int(cheaprandn(cachesize))
+			if threshold > 0 && cheaprand.Uint32() <= threshold {
+				i := int(cheaprand.Uint32n(cachesize))
 				cache.Set(keys[i], i)
-			} else if zipf == nil {
-				cache.Get(keys[cheaprandn(cachesize)])
+			} else if zipfian {
+				cache.Get(keys[zipf.Uint64()])
 			} else {
-				cache.Get(keys[zipf()])
+				cache.Get(keys[cheaprand.Uint32n(cachesize)])
 			}
 		}
 	})
@@ -318,15 +333,17 @@ func BenchmarkCcacheSetGet(b *testing.B) {
 	b.ResetTimer()
 	c.Reset()
 	b.RunParallel(func(pb *testing.PB) {
-		zipf := zipfian()
+		threshold := uint32(float64(^uint32(0)) * writeratio)
+		cheaprand := &CheapRand{uint64(time.Now().UnixNano())}
+		zipf := rand.NewZipf(rand.New(cheaprand), 1.0001, 10, cachesize-1)
 		for pb.Next() {
-			if threshold > 0 && cheaprand() <= threshold {
-				i := int(cheaprandn(cachesize))
+			if threshold > 0 && cheaprand.Uint32() <= threshold {
+				i := int(cheaprand.Uint32n(cachesize))
 				cache.Set(keys[i], i, time.Hour)
-			} else if zipf == nil {
-				cache.Get(keys[cheaprandn(cachesize)])
+			} else if zipfian {
+				cache.Get(keys[zipf.Uint64()])
 			} else {
-				cache.Get(keys[zipf()])
+				cache.Get(keys[cheaprand.Uint32n(cachesize)])
 			}
 		}
 	})
@@ -346,15 +363,17 @@ func BenchmarkRistrettoSetGet(b *testing.B) {
 	b.ResetTimer()
 	c.Reset()
 	b.RunParallel(func(pb *testing.PB) {
-		zipf := zipfian()
+		threshold := uint32(float64(^uint32(0)) * writeratio)
+		cheaprand := &CheapRand{uint64(time.Now().UnixNano())}
+		zipf := rand.NewZipf(rand.New(cheaprand), 1.0001, 10, cachesize-1)
 		for pb.Next() {
-			if threshold > 0 && cheaprand() <= threshold {
-				i := int(cheaprandn(cachesize))
+			if threshold > 0 && cheaprand.Uint32() <= threshold {
+				i := int(cheaprand.Uint32n(cachesize))
 				cache.SetWithTTL(keys[i], i, 1, time.Hour)
-			} else if zipf == nil {
-				cache.Get(keys[cheaprandn(cachesize)])
+			} else if zipfian {
+				cache.Get(keys[zipf.Uint64()])
 			} else {
-				cache.Get(keys[zipf()])
+				cache.Get(keys[cheaprand.Uint32n(cachesize)])
 			}
 		}
 	})
@@ -370,15 +389,17 @@ func BenchmarkTheineSetGet(b *testing.B) {
 	b.ResetTimer()
 	c.Reset()
 	b.RunParallel(func(pb *testing.PB) {
-		zipf := zipfian()
+		threshold := uint32(float64(^uint32(0)) * writeratio)
+		cheaprand := &CheapRand{uint64(time.Now().UnixNano())}
+		zipf := rand.NewZipf(rand.New(cheaprand), 1.0001, 10, cachesize-1)
 		for pb.Next() {
-			if threshold > 0 && cheaprand() <= threshold {
-				i := int(cheaprandn(cachesize))
+			if threshold > 0 && cheaprand.Uint32() <= threshold {
+				i := int(cheaprand.Uint32n(cachesize))
 				cache.SetWithTTL(keys[i], i, 1, time.Hour)
-			} else if zipf == nil {
-				cache.Get(keys[cheaprandn(cachesize)])
+			} else if zipfian {
+				cache.Get(keys[zipf.Uint64()])
 			} else {
-				cache.Get(keys[zipf()])
+				cache.Get(keys[cheaprand.Uint32n(cachesize)])
 			}
 		}
 	})
@@ -394,15 +415,17 @@ func BenchmarkOtterSetGet(b *testing.B) {
 	b.ResetTimer()
 	c.Reset()
 	b.RunParallel(func(pb *testing.PB) {
-		zipf := zipfian()
+		threshold := uint32(float64(^uint32(0)) * writeratio)
+		cheaprand := &CheapRand{uint64(time.Now().UnixNano())}
+		zipf := rand.NewZipf(rand.New(cheaprand), 1.0001, 10, cachesize-1)
 		for pb.Next() {
-			if threshold > 0 && cheaprand() <= threshold {
-				i := int(cheaprandn(cachesize))
+			if threshold > 0 && cheaprand.Uint32() <= threshold {
+				i := int(cheaprand.Uint32n(cachesize))
 				cache.Set(keys[i], i, time.Hour)
-			} else if zipf == nil {
-				cache.Get(keys[cheaprandn(cachesize)])
+			} else if zipfian {
+				cache.Get(keys[zipf.Uint64()])
 			} else {
-				cache.Get(keys[zipf()])
+				cache.Get(keys[cheaprand.Uint32n(cachesize)])
 			}
 		}
 	})
@@ -416,27 +439,27 @@ goos: linux
 goarch: amd64
 cpu: AMD EPYC 7763 64-Core Processor                
 BenchmarkHashicorpSetGet
-BenchmarkHashicorpSetGet-8    	13189354	       555.3 ns/op	      11 B/op	       0 allocs/op
+BenchmarkHashicorpSetGet-8    	13146066	       553.3 ns/op	      11 B/op	       0 allocs/op
 BenchmarkCloudflareSetGet
-BenchmarkCloudflareSetGet-8   	36978129	       204.5 ns/op	      16 B/op	       1 allocs/op
+BenchmarkCloudflareSetGet-8   	36612316	       208.6 ns/op	      16 B/op	       1 allocs/op
 BenchmarkEcacheSetGet
-BenchmarkEcacheSetGet-8       	45151062	       145.3 ns/op	       2 B/op	       0 allocs/op
+BenchmarkEcacheSetGet-8       	47435138	       138.0 ns/op	       2 B/op	       0 allocs/op
 BenchmarkLxzanSetGet
-BenchmarkLxzanSetGet-8        	46670901	       155.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkLxzanSetGet-8        	48343774	       153.5 ns/op	       0 B/op	       0 allocs/op
 BenchmarkFreelruSetGet
-BenchmarkFreelruSetGet-8      	56836291	       141.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkFreelruSetGet-8      	56105211	       137.8 ns/op	       0 B/op	       0 allocs/op
 BenchmarkPhusluSetGet
-BenchmarkPhusluSetGet-8       	62015964	       112.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPhusluSetGet-8       	66522236	       114.7 ns/op	       0 B/op	       0 allocs/op
 BenchmarkCcacheSetGet
-BenchmarkCcacheSetGet-8       	21438442	       360.4 ns/op	      34 B/op	       2 allocs/op
+BenchmarkCcacheSetGet-8       	21252092	       369.4 ns/op	      34 B/op	       2 allocs/op
 BenchmarkRistrettoSetGet
-BenchmarkRistrettoSetGet-8    	34435500	       148.9 ns/op	      29 B/op	       1 allocs/op
+BenchmarkRistrettoSetGet-8    	35511078	       152.7 ns/op	      29 B/op	       1 allocs/op
 BenchmarkTheineSetGet
-BenchmarkTheineSetGet-8       	22269817	       302.5 ns/op	       5 B/op	       0 allocs/op
+BenchmarkTheineSetGet-8       	21374548	       311.4 ns/op	       5 B/op	       0 allocs/op
 BenchmarkOtterSetGet
-BenchmarkOtterSetGet-8        	52233636	       157.0 ns/op	       8 B/op	       0 allocs/op
+BenchmarkOtterSetGet-8        	51896601	       159.1 ns/op	       8 B/op	       0 allocs/op
 PASS
-ok  	command-line-arguments	104.021s
+ok  	command-line-arguments	113.829s
 ```
 
 with zipfian read (99%) and randomly write(1%)
@@ -445,27 +468,27 @@ goos: linux
 goarch: amd64
 cpu: AMD EPYC 7763 64-Core Processor                
 BenchmarkHashicorpSetGet
-BenchmarkHashicorpSetGet-8    	14609264	       418.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHashicorpSetGet-8    	14631464	       418.5 ns/op	       0 B/op	       0 allocs/op
 BenchmarkCloudflareSetGet
-BenchmarkCloudflareSetGet-8   	51900106	       125.5 ns/op	      16 B/op	       1 allocs/op
+BenchmarkCloudflareSetGet-8   	48996306	       129.3 ns/op	      16 B/op	       1 allocs/op
 BenchmarkEcacheSetGet
-BenchmarkEcacheSetGet-8       	62488617	        98.76 ns/op	       0 B/op	       0 allocs/op
+BenchmarkEcacheSetGet-8       	61667361	       101.6 ns/op	       0 B/op	       0 allocs/op
 BenchmarkLxzanSetGet
-BenchmarkLxzanSetGet-8        	65241264	        96.99 ns/op	       0 B/op	       0 allocs/op
+BenchmarkLxzanSetGet-8        	59331700	        99.66 ns/op	       0 B/op	       0 allocs/op
 BenchmarkFreelruSetGet
-BenchmarkFreelruSetGet-8      	60159511	       108.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkFreelruSetGet-8      	57392088	       113.7 ns/op	       0 B/op	       0 allocs/op
 BenchmarkPhusluSetGet
-BenchmarkPhusluSetGet-8       	81835609	        78.86 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPhusluSetGet-8       	78875428	        81.73 ns/op	       0 B/op	       0 allocs/op
 BenchmarkCcacheSetGet
-BenchmarkCcacheSetGet-8       	22419021	       256.8 ns/op	      21 B/op	       2 allocs/op
+BenchmarkCcacheSetGet-8       	23366601	       270.9 ns/op	      21 B/op	       2 allocs/op
 BenchmarkRistrettoSetGet
-BenchmarkRistrettoSetGet-8    	53689315	       112.1 ns/op	      21 B/op	       1 allocs/op
+BenchmarkRistrettoSetGet-8    	44893608	       114.3 ns/op	      20 B/op	       1 allocs/op
 BenchmarkTheineSetGet
-BenchmarkTheineSetGet-8       	36106326	       175.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkTheineSetGet-8       	32717158	       172.2 ns/op	       0 B/op	       0 allocs/op
 BenchmarkOtterSetGet
-BenchmarkOtterSetGet-8        	78723906	        80.51 ns/op	       1 B/op	       0 allocs/op
+BenchmarkOtterSetGet-8        	70170547	        85.62 ns/op	       1 B/op	       0 allocs/op
 PASS
-ok  	command-line-arguments	96.150s
+ok  	command-line-arguments	96.989s
 ```
 
 ### Memory usage
