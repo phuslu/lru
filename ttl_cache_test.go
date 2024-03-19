@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/rand"
 	"runtime"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -271,6 +272,20 @@ func TestTTLCacheLoader(t *testing.T) {
 	if v, err, ok := cache.GetOrLoad("a"); ok || err != nil || v != 1 {
 		t.Errorf("cache.GetOrLoad(\"a\") again should be return 1: %v, %v, %v", v, err, ok)
 	}
+}
+
+func TestTTLCacheLoaderPanic(t *testing.T) {
+	defer func() {
+		if r := recover(); r != nil {
+			if !strings.Contains(fmt.Sprint(r), "not_supported") {
+				t.Errorf("should be not_supported")
+			}
+		}
+	}()
+	_ = NewTTLCache[string, int](1024, WithLoader[string, int](func(key string) (int, error) {
+		return 1, nil
+	}))
+	t.Errorf("should be panic above")
 }
 
 func TestTTLCacheLoaderSingleflight(t *testing.T) {

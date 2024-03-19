@@ -262,6 +262,20 @@ func TestLRUCacheLoader(t *testing.T) {
 	}
 }
 
+func TestLRUCacheLoaderPanic(t *testing.T) {
+	defer func() {
+		if r := recover(); r != nil {
+			if !strings.Contains(fmt.Sprint(r), "not_supported") {
+				t.Errorf("should be not_supported")
+			}
+		}
+	}()
+	_ = NewLRUCache[string, int](1024, WithLoader[string, int](func(key string) (int, time.Duration, error) {
+		return 1, time.Hour, nil
+	}))
+	t.Errorf("should be panic above")
+}
+
 func TestLRUCacheLoaderSingleflight(t *testing.T) {
 	var loads uint32
 
