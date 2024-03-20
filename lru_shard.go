@@ -58,7 +58,8 @@ func (s *lrushard[K, V]) Get(hash uint32, key K) (value V, ok bool) {
 
 	if index, exists := s.table_Get(hash, key); exists {
 		s.list_MoveToFront(index)
-		value = s.list[index].value
+		// value = s.list[index].value
+		value = (*lrunode[K, V])(unsafe.Add(unsafe.Pointer(&s.list[0]), uintptr(index)*unsafe.Sizeof(s.list[0]))).value
 		ok = true
 	} else {
 		s.stats.misses++
