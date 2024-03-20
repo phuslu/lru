@@ -33,7 +33,7 @@ type ttlshard[K comparable, V any] struct {
 		buckets []ttlbucket
 		mask    uint32
 		length  uint32
-		hasher  func(K unsafe.Pointer, seed uintptr) uintptr
+		hasher  func(key unsafe.Pointer, seed uintptr) uintptr
 		seed    uintptr
 	}
 
@@ -52,7 +52,7 @@ type ttlshard[K comparable, V any] struct {
 	_ [16]byte
 }
 
-func (s *ttlshard[K, V]) Init(size uint32, hasher func(K unsafe.Pointer, seed uintptr) uintptr, seed uintptr) {
+func (s *ttlshard[K, V]) Init(size uint32, hasher func(key unsafe.Pointer, seed uintptr) uintptr, seed uintptr) {
 	s.list_Init(size)
 	s.table_Init(size, hasher, seed)
 }

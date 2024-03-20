@@ -29,7 +29,7 @@ type lrushard[K comparable, V any] struct {
 		buckets []lrubucket
 		mask    uint32
 		length  uint32
-		hasher  func(K unsafe.Pointer, seed uintptr) uintptr
+		hasher  func(key unsafe.Pointer, seed uintptr) uintptr
 		seed    uintptr
 	}
 
@@ -46,7 +46,7 @@ type lrushard[K comparable, V any] struct {
 	_ [24]byte
 }
 
-func (s *lrushard[K, V]) Init(size uint32, hasher func(K unsafe.Pointer, seed uintptr) uintptr, seed uintptr) {
+func (s *lrushard[K, V]) Init(size uint32, hasher func(key unsafe.Pointer, seed uintptr) uintptr, seed uintptr) {
 	s.list_Init(size)
 	s.table_Init(size, hasher, seed)
 }

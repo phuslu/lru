@@ -17,7 +17,7 @@ const (
 	maxDIB      = ^uint32(0) >> hashBitSize // max 255
 )
 
-func (s *lrushard[K, V]) table_Init(size uint32, hasher func(K unsafe.Pointer, seed uintptr) uintptr, seed uintptr) {
+func (s *lrushard[K, V]) table_Init(size uint32, hasher func(key unsafe.Pointer, seed uintptr) uintptr, seed uintptr) {
 	newsize := lruNewTableSize(size)
 	if len(s.table.buckets) == 0 {
 		s.table.buckets = make([]lrubucket, newsize)

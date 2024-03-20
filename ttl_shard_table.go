@@ -9,7 +9,7 @@ import (
 	"unsafe"
 )
 
-func (s *ttlshard[K, V]) table_Init(size uint32, hasher func(K unsafe.Pointer, seed uintptr) uintptr, seed uintptr) {
+func (s *ttlshard[K, V]) table_Init(size uint32, hasher func(key unsafe.Pointer, seed uintptr) uintptr, seed uintptr) {
 	newsize := ttlNewTableSize(size)
 	if len(s.table.buckets) == 0 {
 		s.table.buckets = make([]ttlbucket, newsize)

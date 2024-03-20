@@ -13,7 +13,7 @@ import (
 type LRUCache[K comparable, V any] struct {
 	shards [512]lrushard[K, V]
 	mask   uint32
-	hasher func(K unsafe.Pointer, seed uintptr) uintptr
+	hasher func(key unsafe.Pointer, seed uintptr) uintptr
 	seed   uintptr
 	loader func(key K) (value V, err error)
 	group  singleflight_Group[K, V]
