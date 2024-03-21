@@ -55,7 +55,7 @@ func main() {
 
 ### Throughput benchmarks
 
-A Performance result as below. Check github [actions][actions] for more results and details.
+A Performance result as below. Check github [benchmark][benchmark] action for more results and details.
 <details>
   <summary>go1.22 benchmark on keysize=16, itemsize=1000000, cachesize=50%, concurrency=8</summary>
 
@@ -493,7 +493,7 @@ ok  	command-line-arguments	96.989s
 
 ### Memory usage
 
-The Memory usage result as below. Check github [actions][actions] for more results and details.
+The Memory usage result as below. Check github [memory][memory] action for more results and details.
 <details>
   <summary>memory usage on keysize=16(string), valuesize=8(int), cachesize in (100000,200000,400000,1000000,2000000,4000000)</summary>
 
@@ -682,6 +682,7 @@ For inquiries or support, contact phus.lu@gmail.com or raise github issues.
 [release]: https://github.com/phuslu/lru/tags
 [goreport-img]: https://goreportcard.com/badge/github.com/phuslu/lru
 [goreport]: https://goreportcard.com/report/github.com/phuslu/lru
-[actions]: https://github.com/phuslu/lru/actions/workflows/benchmark.yml
+[benchmark]: https://github.com/phuslu/lru/actions/workflows/benchmark.yml
+[memory]: https://github.com/phuslu/lru/actions/workflows/memory.yml
 [codecov-img]: https://codecov.io/gh/phuslu/lru/graph/badge.svg?token=Q21AMQNM1K
 [codecov]: https://codecov.io/gh/phuslu/lru

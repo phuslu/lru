@@ -1,0 +1,43 @@
+name: memory
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  push:
+    branches:
+      - master
+
+jobs:
+  memory:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install packages
+        run: sudo apt update -y && sudo apt-get install -y csvkit datamash
+      - uses: actions/setup-go@v4
+        with:
+          go-version: '1.22'
+          check-latest: true
+      - uses: actions/checkout@v4
+      - name: go mod tidy
+        run: |
+          mkdir bench
+          cd bench
+          awk '{if($0 ~ "// memusage.go"){a=1;b=1};if($0 ~ "```" && b=1){b=0};if (a&&b) {print}}' ../README.md > memusage.go
+          go mod init bench
+          go mod tidy
+          go mod edit -replace github.com/phuslu/lru=../
+          cat go.mod
+      - name: Memory Tests
+        working-directory: ./bench
+        run: |
+          echo -e 'MemStats\tCacheSize\tAlloc\tTotalAlloc\tSys' > memusage.txt
+          for name in nottl phuslu lxzan ristretto freelru ecache otter theine cloudflare ccache hashicorp; do
+            for cachesize in 100000 200000 400000 1000000 2000000 4000000; do
+              go run memusage.go $name $cachesize >> memusage.txt
+            done
+          done
+          cat memusage.txt
+      - name: Memory Results
+        working-directory: ./bench
+        run: |
+          cat memusage.txt | datamash --header-in crosstab 1,2 unique 3 | tee >(head -1) | tail -n +2 | sort -k12 -n | datamash transpose | tee >(head -1) | tail -n +2 | sort -n | datamash transpose | csvlook
