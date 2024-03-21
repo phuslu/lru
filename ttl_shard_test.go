@@ -5,7 +5,7 @@ import (
 	"unsafe"
 )
 
-func TestShardPadding(t *testing.T) {
+func TestTTLShardPadding(t *testing.T) {
 	var s ttlshard[string, int]
 
 	if n := unsafe.Sizeof(s); n != 128 {
@@ -14,7 +14,7 @@ func TestShardPadding(t *testing.T) {
 
 }
 
-func TestShardTableSet(t *testing.T) {
+func TestTTLShardTableSet(t *testing.T) {
 	var s ttlshard[string, uint32]
 	s.Init(1024, getRuntimeHasher[string](), 0)
 

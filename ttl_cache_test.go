@@ -402,7 +402,7 @@ func TestTTLCacheStats(t *testing.T) {
 	}
 }
 
-func BenchmarkCacheRand(b *testing.B) {
+func BenchmarkTTLCacheRand(b *testing.B) {
 	cache := NewTTLCache[int64, int64](8192)
 
 	trace := make([]int64, b.N*2)
@@ -428,7 +428,7 @@ func BenchmarkCacheRand(b *testing.B) {
 	b.Logf("hit: %d miss: %d ratio: %f", hit, miss, float64(hit)/float64(hit+miss))
 }
 
-func BenchmarkCacheFreq(b *testing.B) {
+func BenchmarkTTLCacheFreq(b *testing.B) {
 	cache := NewTTLCache[int64, int64](8192)
 
 	trace := make([]int64, b.N*2)
@@ -457,7 +457,7 @@ func BenchmarkCacheFreq(b *testing.B) {
 	b.Logf("hit: %d miss: %d ratio: %f", hit, miss, float64(hit)/float64(hit+miss))
 }
 
-func BenchmarkCacheTTL(b *testing.B) {
+func BenchmarkTTLCacheTTL(b *testing.B) {
 	cache := NewTTLCache[int64, int64](8192)
 
 	trace := make([]int64, b.N*2)
