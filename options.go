@@ -1,6 +1,7 @@
 package lru
 
 import (
+	"errors"
 	"runtime"
 	"time"
 	"unsafe"
@@ -21,32 +22,25 @@ type shardsOption[K comparable, V any] struct {
 	count uint32
 }
 
-func (o *shardsOption[K, V]) ApplyToLRUCache(c *LRUCache[K, V]) {
+func (o *shardsOption[K, V]) getcount(maxcount uint32) uint32 {
 	var shardcount uint32
 	if o.count == 0 {
 		shardcount = nextPowOf2(uint32(runtime.GOMAXPROCS(0) * 16))
 	} else {
 		shardcount = nextPowOf2(o.count)
 	}
-	if maxcount := uint32(len(c.shards)); shardcount > maxcount {
+	if shardcount > maxcount {
 		shardcount = maxcount
 	}
+	return shardcount
+}
 
-	c.mask = uint32(shardcount) - 1
+func (o *shardsOption[K, V]) ApplyToLRUCache(c *LRUCache[K, V]) {
+	c.mask = o.getcount(uint32(len(c.shards))) - 1
 }
 
 func (o *shardsOption[K, V]) ApplyToTTLCache(c *TTLCache[K, V]) {
-	var shardcount uint32
-	if o.count == 0 {
-		shardcount = nextPowOf2(uint32(runtime.GOMAXPROCS(0) * 16))
-	} else {
-		shardcount = nextPowOf2(o.count)
-	}
-	if maxcount := uint32(len(c.shards)); shardcount > maxcount {
-		shardcount = maxcount
-	}
-
-	c.mask = uint32(shardcount) - 1
+	c.mask = o.getcount(uint32(len(c.shards))) - 1
 }
 
 // WithHasher specifies the hasher function of cache.
@@ -85,6 +79,8 @@ func (o *slidingOption[K, V]) ApplyToTTLCache(c *TTLCache[K, V]) {
 	}
 }
 
+var ErrLoaderIsNil = errors.New("loader is nil")
+
 // WithLoader specifies that loader function of LoadingCache.
 func WithLoader[K comparable, V any, Loader func(key K) (value V, err error) | func(key K) (value V, ttl time.Duration, err error)](loader Loader) Option[K, V] {
 	return &loaderOption[K, V]{loader: loader}
@@ -119,3 +115,5 @@ func nextPowOf2(n uint32) uint32 {
 	}
 	return k
 }
+
+var isamd64 = runtime.GOARCH == "amd64"

@@ -25,11 +25,8 @@
 package lru
 
 import (
-	"runtime"
 	"unsafe"
 )
-
-var isamd64 = runtime.GOARCH == "amd64"
 
 //go:linkname fastrand64 runtime.fastrand64
 func fastrand64() uint64

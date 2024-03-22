@@ -4,7 +4,6 @@
 package lru
 
 import (
-	"errors"
 	"sync/atomic"
 	"unsafe"
 )
@@ -73,8 +72,6 @@ func (c *LRUCache[K, V]) Get(key K) (value V, ok bool) {
 	// return c.shards[hash&c.mask].Get(hash, key)
 	return (*lrushard[K, V])(unsafe.Add(unsafe.Pointer(&c.shards[0]), uintptr(hash&c.mask)*unsafe.Sizeof(c.shards[0]))).Get(hash, key)
 }
-
-var ErrLoaderIsNil = errors.New("loader is nil")
 
 // GetOrLoad returns value for key, call loader function by singleflight if value was not in cache.
 func (c *LRUCache[K, V]) GetOrLoad(key K) (value V, err error, ok bool) {
