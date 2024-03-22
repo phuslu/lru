@@ -94,8 +94,10 @@ func (s *lrushard[K, V]) SetIfAbsent(hash uint32, key K, value V) (prev V, repla
 
 	s.stats.setcalls++
 
-	index := s.list_Back()
-	node := &s.list[index]
+	// index := s.list_Back()
+	// node := &s.list[index]
+	index := s.list[0].prev
+	node := (*lrunode[K, V])(unsafe.Add(unsafe.Pointer(&s.list[0]), uintptr(index)*unsafe.Sizeof(s.list[0])))
 	evictedValue := node.value
 	s.table_Delete(uint32(s.table.hasher(noescape(unsafe.Pointer(&node.key)), s.table.seed)), node.key)
 
@@ -115,7 +117,8 @@ func (s *lrushard[K, V]) Set(hash uint32, key K, value V) (prev V, replaced bool
 	s.stats.setcalls++
 
 	if index, exists := s.table_Get(hash, key); exists {
-		node := &s.list[index]
+		// node := &s.list[index]
+		node := (*lrunode[K, V])(unsafe.Add(unsafe.Pointer(&s.list[0]), uintptr(index)*unsafe.Sizeof(s.list[0])))
 		previousValue := node.value
 		s.list_MoveToFront(index)
 		node.value = value
@@ -126,8 +129,10 @@ func (s *lrushard[K, V]) Set(hash uint32, key K, value V) (prev V, replaced bool
 		return
 	}
 
-	index := s.list_Back()
-	node := &s.list[index]
+	// index := s.list_Back()
+	// node := &s.list[index]
+	index := s.list[0].prev
+	node := (*lrunode[K, V])(unsafe.Add(unsafe.Pointer(&s.list[0]), uintptr(index)*unsafe.Sizeof(s.list[0])))
 	evictedValue := node.value
 	if key != node.key {
 		s.table_Delete(uint32(s.table.hasher(noescape(unsafe.Pointer(&node.key)), s.table.seed)), node.key)
