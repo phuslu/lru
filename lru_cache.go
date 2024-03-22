@@ -1,4 +1,4 @@
-// Copyright 2023 Phus Lu. All rights reserved.
+// Copyright 2023-2024 Phus Lu. All rights reserved.
 
 // Package lru implements cache with least recent used eviction policy.
 package lru

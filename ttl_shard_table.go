@@ -1,4 +1,4 @@
-// Copyright 2023 Phus Lu. All rights reserved.
+// Copyright 2023-2024 Phus Lu. All rights reserved.
 // Copyright 2019 Joshua J Baker. All rights reserved.
 // Use of this source code is governed by an ISC-style
 // license that can be found in the LICENSE file.
