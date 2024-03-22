@@ -6,10 +6,10 @@
 
 * Simple
     - No Dependencies.
-    - Straightforward API and codes.
+    - Straightforward API.
 * Fast
     - Outperforms well-known *LRU* caches.
-    - Zero memory allocations .
+    - Zero memory allocations.
 * GC friendly
     - Pointerless data structs.
     - Continuous memory layout.
