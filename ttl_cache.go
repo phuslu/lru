@@ -69,13 +69,15 @@ func NewTTLCache[K comparable, V any](size int, options ...Option[K, V]) *TTLCac
 // Get returns value for key.
 func (c *TTLCache[K, V]) Get(key K) (value V, ok bool) {
 	hash := uint32(c.hasher(noescape(unsafe.Pointer(&key)), c.seed))
-	return c.shards[hash&c.mask].Get(hash, key)
+	// return c.shards[hash&c.mask].Get(hash, key)
+	return (*ttlshard[K, V])(unsafe.Add(unsafe.Pointer(&c.shards[0]), uintptr(hash&c.mask)*unsafe.Sizeof(c.shards[0]))).Get(hash, key)
 }
 
 // GetOrLoad returns value for key, call loader function by singleflight if value was not in cache.
 func (c *TTLCache[K, V]) GetOrLoad(key K) (value V, err error, ok bool) {
 	hash := uint32(c.hasher(noescape(unsafe.Pointer(&key)), c.seed))
-	value, ok = c.shards[hash&c.mask].Get(hash, key)
+	// value, ok = c.shards[hash&c.mask].Get(hash, key)
+	value, ok = (*ttlshard[K, V])(unsafe.Add(unsafe.Pointer(&c.shards[0]), uintptr(hash&c.mask)*unsafe.Sizeof(c.shards[0]))).Get(hash, key)
 	if !ok {
 		if c.loader == nil {
 			err = ErrLoaderIsNil
@@ -96,25 +98,29 @@ func (c *TTLCache[K, V]) GetOrLoad(key K) (value V, err error, ok bool) {
 // Peek returns value and expires nanoseconds for key, but does not modify its recency.
 func (c *TTLCache[K, V]) Peek(key K) (value V, expires int64, ok bool) {
 	hash := uint32(c.hasher(noescape(unsafe.Pointer(&key)), c.seed))
-	return c.shards[hash&c.mask].Peek(hash, key)
+	// return c.shards[hash&c.mask].Peek(hash, key)
+	return (*ttlshard[K, V])(unsafe.Add(unsafe.Pointer(&c.shards[0]), uintptr(hash&c.mask)*unsafe.Sizeof(c.shards[0]))).Peek(hash, key)
 }
 
 // Set inserts key value pair and returns previous value.
 func (c *TTLCache[K, V]) Set(key K, value V, ttl time.Duration) (prev V, replaced bool) {
 	hash := uint32(c.hasher(noescape(unsafe.Pointer(&key)), c.seed))
-	return c.shards[hash&c.mask].Set(hash, key, value, ttl)
+	// return c.shards[hash&c.mask].Set(hash, key, value, ttl)
+	return (*ttlshard[K, V])(unsafe.Add(unsafe.Pointer(&c.shards[0]), uintptr(hash&c.mask)*unsafe.Sizeof(c.shards[0]))).Set(hash, key, value, ttl)
 }
 
 // SetIfAbsent inserts key value pair and returns previous value, if key is absent in the cache.
 func (c *TTLCache[K, V]) SetIfAbsent(key K, value V, ttl time.Duration) (prev V, replaced bool) {
 	hash := uint32(c.hasher(noescape(unsafe.Pointer(&key)), c.seed))
-	return c.shards[hash&c.mask].SetIfAbsent(hash, key, value, ttl)
+	// return c.shards[hash&c.mask].SetIfAbsent(hash, key, value, ttl)
+	return (*ttlshard[K, V])(unsafe.Add(unsafe.Pointer(&c.shards[0]), uintptr(hash&c.mask)*unsafe.Sizeof(c.shards[0]))).SetIfAbsent(hash, key, value, ttl)
 }
 
 // Delete method deletes value associated with key and returns deleted value (or empty value if key was not in cache).
 func (c *TTLCache[K, V]) Delete(key K) (prev V) {
 	hash := uint32(c.hasher(noescape(unsafe.Pointer(&key)), c.seed))
-	return c.shards[hash&c.mask].Delete(hash, key)
+	// return c.shards[hash&c.mask].Delete(hash, key)
+	return (*ttlshard[K, V])(unsafe.Add(unsafe.Pointer(&c.shards[0]), uintptr(hash&c.mask)*unsafe.Sizeof(c.shards[0]))).Delete(hash, key)
 }
 
 // Len returns number of cached nodes.

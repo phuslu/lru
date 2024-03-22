@@ -70,7 +70,8 @@ func NewLRUCache[K comparable, V any](size int, options ...Option[K, V]) *LRUCac
 // Get returns value for key.
 func (c *LRUCache[K, V]) Get(key K) (value V, ok bool) {
 	hash := uint32(c.hasher(noescape(unsafe.Pointer(&key)), c.seed))
-	return c.shards[hash&c.mask].Get(hash, key)
+	// return c.shards[hash&c.mask].Get(hash, key)
+	return (*lrushard[K, V])(unsafe.Add(unsafe.Pointer(&c.shards[0]), uintptr(hash&c.mask)*unsafe.Sizeof(c.shards[0]))).Get(hash, key)
 }
 
 var ErrLoaderIsNil = errors.New("loader is nil")
@@ -99,25 +100,29 @@ func (c *LRUCache[K, V]) GetOrLoad(key K) (value V, err error, ok bool) {
 // Peek returns value, but does not modify its recency.
 func (c *LRUCache[K, V]) Peek(key K) (value V, ok bool) {
 	hash := uint32(c.hasher(noescape(unsafe.Pointer(&key)), c.seed))
-	return c.shards[hash&c.mask].Peek(hash, key)
+	// return c.shards[hash&c.mask].Peek(hash, key)
+	return (*lrushard[K, V])(unsafe.Add(unsafe.Pointer(&c.shards[0]), uintptr(hash&c.mask)*unsafe.Sizeof(c.shards[0]))).Peek(hash, key)
 }
 
 // Set inserts key value pair and returns previous value.
 func (c *LRUCache[K, V]) Set(key K, value V) (prev V, replaced bool) {
 	hash := uint32(c.hasher(noescape(unsafe.Pointer(&key)), c.seed))
-	return c.shards[hash&c.mask].Set(hash, key, value)
+	// return c.shards[hash&c.mask].Set(hash, key, value)
+	return (*lrushard[K, V])(unsafe.Add(unsafe.Pointer(&c.shards[0]), uintptr(hash&c.mask)*unsafe.Sizeof(c.shards[0]))).Set(hash, key, value)
 }
 
 // SetIfAbsent inserts key value pair and returns previous value, if key is absent in the cache.
 func (c *LRUCache[K, V]) SetIfAbsent(key K, value V) (prev V, replaced bool) {
 	hash := uint32(c.hasher(noescape(unsafe.Pointer(&key)), c.seed))
-	return c.shards[hash&c.mask].SetIfAbsent(hash, key, value)
+	// return c.shards[hash&c.mask].SetIfAbsent(hash, key, value)
+	return (*lrushard[K, V])(unsafe.Add(unsafe.Pointer(&c.shards[0]), uintptr(hash&c.mask)*unsafe.Sizeof(c.shards[0]))).SetIfAbsent(hash, key, value)
 }
 
 // Delete method deletes value associated with key and returns deleted value (or empty value if key was not in cache).
 func (c *LRUCache[K, V]) Delete(key K) (prev V) {
 	hash := uint32(c.hasher(noescape(unsafe.Pointer(&key)), c.seed))
-	return c.shards[hash&c.mask].Delete(hash, key)
+	// return c.shards[hash&c.mask].Delete(hash, key)
+	return (*lrushard[K, V])(unsafe.Add(unsafe.Pointer(&c.shards[0]), uintptr(hash&c.mask)*unsafe.Sizeof(c.shards[0]))).Delete(hash, key)
 }
 
 // Len returns number of cached nodes.
