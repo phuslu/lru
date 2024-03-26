@@ -50,7 +50,7 @@ func NewTTLCache[K comparable, V any](size int, options ...Option[K, V]) *TTLCac
 		shardsize := (uint32(size) + c.mask) / (c.mask + 1)
 		shardlists := make([]ttlnode[K, V], (shardsize+1)*(c.mask+1))
 		tablesize := ttlNewTableSize(uint32(shardsize))
-		tablebuckets := make([]ttlbucket, tablesize*(c.mask+1))
+		tablebuckets := make([]uint64, tablesize*(c.mask+1))
 		for i := uint32(0); i <= c.mask; i++ {
 			c.shards[i].list = shardlists[i*(shardsize+1) : (i+1)*(shardsize+1)]
 			c.shards[i].table_buckets = tablebuckets[i*tablesize : (i+1)*tablesize]

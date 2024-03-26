@@ -25,7 +25,7 @@ type lrushard[K comparable, V any] struct {
 	mu sync.Mutex
 
 	// the hash table, with 20% extra space than the list for fewer conflicts.
-	table_buckets []lrubucket
+	table_buckets []uint64 // []lrubucket
 	table_mask    uint32
 	table_length  uint32
 	table_hasher  func(key unsafe.Pointer, seed uintptr) uintptr
@@ -173,7 +173,8 @@ func (s *lrushard[K, V]) Len() (n uint32) {
 
 func (s *lrushard[K, V]) AppendKeys(dst []K, now uint32) []K {
 	s.mu.Lock()
-	for _, b := range s.table_buckets {
+	for _, bucket := range s.table_buckets {
+		b := (*lrubucket)(unsafe.Pointer(&bucket))
 		if b.index == 0 {
 			continue
 		}

@@ -12,7 +12,7 @@ import (
 func (s *ttlshard[K, V]) table_Init(size uint32, hasher func(key unsafe.Pointer, seed uintptr) uintptr, seed uintptr) {
 	newsize := ttlNewTableSize(size)
 	if len(s.table_buckets) == 0 {
-		s.table_buckets = make([]ttlbucket, newsize)
+		s.table_buckets = make([]uint64, newsize)
 	}
 	s.table_mask = newsize - 1
 	s.table_length = 0
