@@ -25,22 +25,19 @@ type lrushard[K comparable, V any] struct {
 	mu sync.Mutex
 
 	// the hash table, with 20% extra space than the list for fewer conflicts.
-	table struct {
-		buckets []lrubucket
-		mask    uint32
-		length  uint32
-		hasher  func(key unsafe.Pointer, seed uintptr) uintptr
-		seed    uintptr
-	}
+	table_buckets []lrubucket
+	table_mask    uint32
+	table_length  uint32
+	table_hasher  func(key unsafe.Pointer, seed uintptr) uintptr
+	table_seed    uintptr
 
 	// the list of nodes
 	list []lrunode[K, V]
 
-	stats struct {
-		getcalls uint64
-		setcalls uint64
-		misses   uint64
-	}
+	// stats
+	stats_getcalls uint64
+	stats_setcalls uint64
+	stats_misses   uint64
 
 	// padding
 	_ [24]byte
@@ -54,7 +51,7 @@ func (s *lrushard[K, V]) Init(size uint32, hasher func(key unsafe.Pointer, seed 
 func (s *lrushard[K, V]) Get(hash uint32, key K) (value V, ok bool) {
 	s.mu.Lock()
 
-	s.stats.getcalls++
+	s.stats_getcalls++
 
 	if index, exists := s.table_Get(hash, key); exists {
 		s.list_MoveToFront(index)
@@ -62,7 +59,7 @@ func (s *lrushard[K, V]) Get(hash uint32, key K) (value V, ok bool) {
 		value = (*lrunode[K, V])(unsafe.Add(unsafe.Pointer(&s.list[0]), uintptr(index)*unsafe.Sizeof(s.list[0]))).value
 		ok = true
 	} else {
-		s.stats.misses++
+		s.stats_misses++
 	}
 
 	s.mu.Unlock()
@@ -92,14 +89,14 @@ func (s *lrushard[K, V]) SetIfAbsent(hash uint32, key K, value V) (prev V, repla
 		return
 	}
 
-	s.stats.setcalls++
+	s.stats_setcalls++
 
 	// index := s.list_Back()
 	// node := &s.list[index]
 	index := s.list[0].prev
 	node := (*lrunode[K, V])(unsafe.Add(unsafe.Pointer(&s.list[0]), uintptr(index)*unsafe.Sizeof(s.list[0])))
 	evictedValue := node.value
-	s.table_Delete(uint32(s.table.hasher(noescape(unsafe.Pointer(&node.key)), s.table.seed)), node.key)
+	s.table_Delete(uint32(s.table_hasher(noescape(unsafe.Pointer(&node.key)), s.table_seed)), node.key)
 
 	node.key = key
 	node.value = value
@@ -114,7 +111,7 @@ func (s *lrushard[K, V]) SetIfAbsent(hash uint32, key K, value V) (prev V, repla
 func (s *lrushard[K, V]) Set(hash uint32, key K, value V) (prev V, replaced bool) {
 	s.mu.Lock()
 
-	s.stats.setcalls++
+	s.stats_setcalls++
 
 	if index, exists := s.table_Get(hash, key); exists {
 		// node := &s.list[index]
@@ -135,7 +132,7 @@ func (s *lrushard[K, V]) Set(hash uint32, key K, value V) (prev V, replaced bool
 	node := (*lrunode[K, V])(unsafe.Add(unsafe.Pointer(&s.list[0]), uintptr(index)*unsafe.Sizeof(s.list[0])))
 	evictedValue := node.value
 	if key != node.key {
-		s.table_Delete(uint32(s.table.hasher(noescape(unsafe.Pointer(&node.key)), s.table.seed)), node.key)
+		s.table_Delete(uint32(s.table_hasher(noescape(unsafe.Pointer(&node.key)), s.table_seed)), node.key)
 	}
 
 	node.key = key
@@ -168,7 +165,7 @@ func (s *lrushard[K, V]) Delete(hash uint32, key K) (v V) {
 func (s *lrushard[K, V]) Len() (n uint32) {
 	s.mu.Lock()
 	// inlining s.table_Len()
-	n = s.table.length
+	n = s.table_length
 	s.mu.Unlock()
 
 	return
@@ -176,7 +173,7 @@ func (s *lrushard[K, V]) Len() (n uint32) {
 
 func (s *lrushard[K, V]) AppendKeys(dst []K, now uint32) []K {
 	s.mu.Lock()
-	for _, b := range s.table.buckets {
+	for _, b := range s.table_buckets {
 		if b.index == 0 {
 			continue
 		}

@@ -19,7 +19,7 @@ func TestLRUShardTableSet(t *testing.T) {
 	s.Init(1024, getRuntimeHasher[string](), 0)
 
 	key := "foobar"
-	hash := uint32(s.table.hasher(noescape(unsafe.Pointer(&key)), s.table.seed))
+	hash := uint32(s.table_hasher(noescape(unsafe.Pointer(&key)), s.table_seed))
 
 	s.Set(hash, key, 42)
 

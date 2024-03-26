@@ -53,7 +53,7 @@ func NewLRUCache[K comparable, V any](size int, options ...Option[K, V]) *LRUCac
 		tablebuckets := make([]lrubucket, tablesize*(c.mask+1))
 		for i := uint32(0); i <= c.mask; i++ {
 			c.shards[i].list = shardlists[i*(shardsize+1) : (i+1)*(shardsize+1)]
-			c.shards[i].table.buckets = tablebuckets[i*tablesize : (i+1)*tablesize]
+			c.shards[i].table_buckets = tablebuckets[i*tablesize : (i+1)*tablesize]
 			c.shards[i].Init(shardsize, c.hasher, c.seed)
 		}
 	} else {
@@ -145,13 +145,11 @@ func (c *LRUCache[K, V]) Stats() (stats Stats) {
 	for i := uint32(0); i <= c.mask; i++ {
 		s := &c.shards[i]
 		s.mu.Lock()
-		sl := s.table.length
-		ss := s.stats
+		stats.EntriesCount += uint64(s.table_length)
+		stats.GetCalls += s.stats_getcalls
+		stats.SetCalls += s.stats_setcalls
+		stats.Misses += s.stats_misses
 		s.mu.Unlock()
-		stats.EntriesCount += uint64(sl)
-		stats.GetCalls += ss.getcalls
-		stats.SetCalls += ss.setcalls
-		stats.Misses += ss.misses
 	}
 	return
 }
