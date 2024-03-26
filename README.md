@@ -491,6 +491,221 @@ PASS
 ok  	command-line-arguments	96.989s
 ```
 
+### GC scan
+
+The GC scan result as below. Check github [gcscan][gcscan] action for more results and details.
+<details>
+  <summary>GC scan on keysize=16(string), valuesize=8(int), cachesize in (100000,200000,400000,1000000)</summary>
+
+```go
+// env GODEBUG=gctrace=1 go run gcscan.go phuslu 1000000 
+package main
+
+import (
+	"fmt"
+	"os"
+	"runtime"
+	"runtime/debug"
+	"strconv"
+	"time"
+
+	theine "github.com/Yiling-J/theine-go"
+	"github.com/cespare/xxhash/v2"
+	cloudflare "github.com/cloudflare/golibs/lrucache"
+	ristretto "github.com/dgraph-io/ristretto"
+	freelru "github.com/elastic/go-freelru"
+	hashicorp "github.com/hashicorp/golang-lru/v2/expirable"
+	ccache "github.com/karlseguin/ccache/v3"
+	lxzan "github.com/lxzan/memorycache"
+	otter "github.com/maypok86/otter"
+	ecache "github.com/orca-zhang/ecache"
+	phuslu "github.com/phuslu/lru"
+)
+
+const keysize = 16
+var repeat, _ = strconv.Atoi(os.Getenv("repeat"))
+
+var keys []string
+
+func main() {
+	name := os.Args[1]
+	cachesize, _ := strconv.Atoi(os.Args[2])
+
+	keys = make([]string, cachesize)
+	for i := range cachesize {
+		keys[i] = fmt.Sprintf(fmt.Sprintf("%%0%dd", keysize), i)
+	}
+
+	map[string]func(int){
+		"nottl":      SetupNottl,
+		"phuslu":     SetupPhuslu,
+		"freelru":    SetupFreelru,
+		"ristretto":  SetupRistretto,
+		"otter":      SetupOtter,
+		"lxzan":      SetupLxzan,
+		"ecache":     SetupEcache,
+		"cloudflare": SetupCloudflare,
+		"ccache":     SetupCcache,
+		"hashicorp":  SetupHashicorp,
+		"theine":     SetupTheine,
+	}[name](cachesize)
+}
+
+func SetupNottl(cachesize int) {
+	defer debug.SetGCPercent(debug.SetGCPercent(-1))
+	cache := phuslu.NewLRUCache[string, int](cachesize)
+	runtime.GC()
+	for range repeat {
+		for i := range cachesize {
+			cache.Set(keys[i], i)
+		}
+		runtime.GC()
+	}
+}
+
+func SetupPhuslu(cachesize int) {
+	defer debug.SetGCPercent(debug.SetGCPercent(-1))
+	cache := phuslu.NewTTLCache[string, int](cachesize)
+	runtime.GC()
+	for range repeat {
+		for i := range cachesize {
+			cache.Set(keys[i], i, time.Hour)
+		}
+		runtime.GC()
+	}
+}
+
+func SetupFreelru(cachesize int) {
+	defer debug.SetGCPercent(debug.SetGCPercent(-1))
+	cache, _ := freelru.NewSharded[string, int](uint32(cachesize), func(s string) uint32 { return uint32(xxhash.Sum64String(s)) })
+	runtime.GC()
+	for range repeat {
+		for i := range cachesize {
+			cache.AddWithLifetime(keys[i], i, time.Hour)
+		}
+		runtime.GC()
+	}
+}
+
+func SetupOtter(cachesize int) {
+	defer debug.SetGCPercent(debug.SetGCPercent(-1))
+	cache, _ := otter.MustBuilder[string, int](cachesize).WithVariableTTL().Build()
+	runtime.GC()
+	for range repeat {
+		for i := range cachesize {
+			cache.Set(keys[i], i, time.Hour)
+		}
+		runtime.GC()
+	}
+}
+
+func SetupEcache(cachesize int) {
+	defer debug.SetGCPercent(debug.SetGCPercent(-1))
+	cache := ecache.NewLRUCache(1024, uint16(cachesize/1024), time.Hour)
+	runtime.GC()
+	for range repeat {
+		for i := range cachesize {
+			cache.Put(keys[i], i)
+		}
+		runtime.GC()
+	}
+}
+
+func SetupRistretto(cachesize int) {
+	defer debug.SetGCPercent(debug.SetGCPercent(-1))
+	cache, _ := ristretto.NewCache(&ristretto.Config{
+		NumCounters: int64(10 * cachesize), // number of keys to track frequency of (10M).
+		MaxCost:     int64(cachesize),      // maximum cost of cache (1M).
+		BufferItems: 64,                    // number of keys per Get buffer.
+	})
+	runtime.GC()
+	for range repeat {
+		for i := range cachesize {
+			cache.SetWithTTL(keys[i], i, 1, time.Hour)
+		}
+		runtime.GC()
+	}
+}
+
+func SetupLxzan(cachesize int) {
+	defer debug.SetGCPercent(debug.SetGCPercent(-1))
+	cache := lxzan.New[string, int](
+		lxzan.WithBucketNum(128),
+		lxzan.WithBucketSize(cachesize/128, cachesize/128),
+		lxzan.WithInterval(time.Hour, time.Hour),
+	)
+	runtime.GC()
+	for range repeat {
+		for i := range cachesize {
+			cache.Set(keys[i], i, time.Hour)
+		}
+		runtime.GC()
+	}
+}
+
+func SetupTheine(cachesize int) {
+	defer debug.SetGCPercent(debug.SetGCPercent(-1))
+	cache, _ := theine.NewBuilder[string, int](int64(cachesize)).Build()
+	runtime.GC()
+	for range repeat {
+		for i := range cachesize {
+			cache.SetWithTTL(keys[i], i, 1, time.Hour)
+		}
+		runtime.GC()
+	}
+}
+
+func SetupCloudflare(cachesize int) {
+	defer debug.SetGCPercent(debug.SetGCPercent(-1))
+	cache := cloudflare.NewMultiLRUCache(1024, uint(cachesize/1024))
+	runtime.GC()
+	for range repeat {
+		for i := range cachesize {
+			cache.Set(keys[i], i, time.Now().Add(time.Hour))
+		}
+		runtime.GC()
+	}
+}
+
+func SetupCcache(cachesize int) {
+	defer debug.SetGCPercent(debug.SetGCPercent(-1))
+	cache := ccache.New(ccache.Configure[int]().MaxSize(int64(cachesize)).ItemsToPrune(100))
+	runtime.GC()
+	for range repeat {
+		for i := range cachesize {
+			cache.Set(keys[i], i, time.Hour)
+		}
+		runtime.GC()
+	}
+}
+
+func SetupHashicorp(cachesize int) {
+	defer debug.SetGCPercent(debug.SetGCPercent(-1))
+	cache := hashicorp.NewLRU[string, int](cachesize, nil, time.Hour)
+	runtime.GC()
+	for range repeat {
+		for i := range cachesize {
+			cache.Add(keys[i], i)
+		}
+		runtime.GC()
+	}
+}
+```
+</details>
+
+| GCScan     | 100000 | 200000 | 400000 | 1000000 |
+| ---------- | ------ | ------ | ------ | ------- |
+| phuslu     | 1 ms   | 3 ms   | 6 ms   | 15 ms   |
+| freelru    | 2 ms   | 3 ms   | 6 ms   | 16 ms   |
+| ristretto  | 4 ms   | 6 ms   | 9 ms   | 17 ms   |
+| lxzan      | 2 ms   | 4 ms   | 7 ms   | 18 ms   |
+| cloudflare | 5 ms   | 10 ms  | 21 ms  | 56 ms   |
+| ecache     | 5 ms   | 10 ms  | 21 ms  | 57 ms   |
+| ccache     | 5 ms   | 10 ms  | 22 ms  | 58 ms   |
+| otter      | 6 ms   | 12 ms  | 28 ms  | 64 ms   |
+| hashicorp  | 7 ms   | 16 ms  | 30 ms  | 79 ms   |
+| theine     | 6 ms   | 13 ms  | 34 ms  | 83 ms   |
+
 ### Memory usage
 
 The Memory usage result as below. Check github [memory][memory] action for more results and details.
@@ -684,5 +899,6 @@ For inquiries or support, contact phus.lu@gmail.com or raise github issues.
 [goreport]: https://goreportcard.com/report/github.com/phuslu/lru
 [benchmark]: https://github.com/phuslu/lru/actions/workflows/benchmark.yml
 [memory]: https://github.com/phuslu/lru/actions/workflows/memory.yml
+[gcscan]: https://github.com/phuslu/lru/actions/workflows/gcscan.yml
 [codecov-img]: https://codecov.io/gh/phuslu/lru/graph/badge.svg?token=Q21AMQNM1K
 [codecov]: https://codecov.io/gh/phuslu/lru

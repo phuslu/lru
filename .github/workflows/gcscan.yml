@@ -1,0 +1,44 @@
+name: gcscan
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  push:
+    branches:
+      - master
+
+jobs:
+  gcscan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install packages
+        run: sudo apt update -y && sudo apt-get install -y csvkit datamash
+      - uses: actions/setup-go@v4
+        with:
+          go-version: '1.22'
+          check-latest: true
+      - uses: actions/checkout@v4
+      - name: go mod tidy
+        run: |
+          mkdir bench
+          cd bench
+          awk '{if($0 ~ "// env GODEBUG=gctrace=1"){a=1;b=1};if($0 ~ "```" && b=1){b=0};if (a&&b) {print}}' ../README.md > gcscan.go
+          go mod init bench
+          go mod tidy
+          go mod edit -replace github.com/phuslu/lru=../
+          cat go.mod
+      - name: GC Tests
+        working-directory: ./bench
+        run: |
+          echo -e 'GCScan\tCacheSize\tScanTime' > gcscan.txt
+          for name in nottl phuslu lxzan ristretto freelru ecache otter theine cloudflare ccache hashicorp; do
+            for cachesize in 100000 200000 400000 1000000; do
+              env GODEBUG=gctrace=1 repeat=40 go run gcscan.go $name $cachesize 2>&1 | tee gcscan-$name-$cachesize.txt
+              echo -e "$name\t$cachesize\t$(grep ^gc gcscan-$name-$cachesize.txt | tail -30 | awk -F+ '{a+=$2}END{print int(a/30)}') ms" | tee -a gcscan.txt
+            done
+          done
+          cat gcscan.txt
+      - name: GC Results
+        working-directory: ./bench
+        run: |
+          cat gcscan.txt | datamash --header-in crosstab 1,2 unique 3 | tee >(head -1) | tail -n +2 | sort -k12 -n | datamash transpose | tee >(head -1) | tail -n +2 | sort -n | datamash transpose | csvlook
