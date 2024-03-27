@@ -20,7 +20,7 @@
     - Using SlidingCache via `WithSliding(true)` option.
     - Create LoadingCache via `WithLoader(func(key K) (v V, ttl time.Duration, err error))` option.
 
-### Limitation
+### Limitations
 1. The TTL is accurate to the nearest second.
 2. Expired items are only removed when accessed again or the cache is full.
 
@@ -126,7 +126,7 @@ var shardcount = func() int {
 
 var keys = func() (x []string) {
 	x = make([]string, cachesize)
-	for i := 0; i < cachesize; i++ {
+	for i := range cachesize {
 		x[i] = fmt.Sprintf("%x", sha1.Sum([]byte(fmt.Sprint(i))))[:keysize]
 	}
 	return
@@ -135,7 +135,7 @@ var keys = func() (x []string) {
 func BenchmarkHashicorpSetGet(b *testing.B) {
 	c := perfbench.Open(b)
 	cache := hashicorp.NewLRU[string, int](cachesize, nil, time.Hour)
-	for i := 0; i < cachesize/2; i++ {
+	for i := range cachesize/2 {
 		cache.Add(keys[i], i)
 	}
 
@@ -161,7 +161,7 @@ func BenchmarkHashicorpSetGet(b *testing.B) {
 func BenchmarkCloudflareSetGet(b *testing.B) {
 	c := perfbench.Open(b)
 	cache := cloudflare.NewMultiLRUCache(uint(shardcount), uint(cachesize/shardcount))
-	for i := 0; i < cachesize/2; i++ {
+	for i := range cachesize/2 {
 		cache.Set(keys[i], i, time.Now().Add(time.Hour))
 	}
 	expires := time.Now().Add(time.Hour)
@@ -188,7 +188,7 @@ func BenchmarkCloudflareSetGet(b *testing.B) {
 func BenchmarkEcacheSetGet(b *testing.B) {
 	c := perfbench.Open(b)
 	cache := ecache.NewLRUCache(uint16(shardcount), uint16(cachesize/shardcount), time.Hour)
-	for i := 0; i < cachesize/2; i++ {
+	for i := range cachesize/2 {
 		cache.Put(keys[i], i)
 	}
 
@@ -218,7 +218,7 @@ func BenchmarkLxzanSetGet(b *testing.B) {
 		lxzan.WithBucketSize(cachesize/shardcount, cachesize/shardcount),
 		lxzan.WithInterval(time.Hour, time.Hour),
 	)
-	for i := 0; i < cachesize/2; i++ {
+	for i := range cachesize/2 {
 		cache.Set(keys[i], i, time.Hour)
 	}
 
@@ -248,7 +248,7 @@ func hashStringXXHASH(s string) uint32 {
 func BenchmarkFreelruSetGet(b *testing.B) {
 	c := perfbench.Open(b)
 	cache, _ := freelru.NewSharded[string, int](cachesize, hashStringXXHASH)
-	for i := 0; i < cachesize/2; i++ {
+	for i := range cachesize/2 {
 		cache.AddWithLifetime(keys[i], i, time.Hour)
 	}
 
@@ -274,7 +274,7 @@ func BenchmarkFreelruSetGet(b *testing.B) {
 func BenchmarkPhusluSetGet(b *testing.B) {
 	c := perfbench.Open(b)
 	cache := phuslu.NewTTLCache[string, int](cachesize, phuslu.WithShards[string, int](uint32(shardcount)))
-	for i := 0; i < cachesize/2; i++ {
+	for i := range cachesize/2 {
 		cache.Set(keys[i], i, time.Hour)
 	}
 
@@ -300,7 +300,7 @@ func BenchmarkPhusluSetGet(b *testing.B) {
 func BenchmarkNoTTLSetGet(b *testing.B) {
 	c := perfbench.Open(b)
 	cache := phuslu.NewLRUCache[string, int](cachesize, phuslu.WithShards[string, int](uint32(shardcount)))
-	for i := 0; i < cachesize/2; i++ {
+	for i := range cachesize/2 {
 		cache.Set(keys[i], i)
 	}
 
@@ -326,7 +326,7 @@ func BenchmarkNoTTLSetGet(b *testing.B) {
 func BenchmarkCcacheSetGet(b *testing.B) {
 	c := perfbench.Open(b)
 	cache := ccache.New(ccache.Configure[int]().MaxSize(cachesize).ItemsToPrune(100))
-	for i := 0; i < cachesize/2; i++ {
+	for i := range cachesize/2 {
 		cache.Set(keys[i], i, time.Hour)
 	}
 
@@ -356,7 +356,7 @@ func BenchmarkRistrettoSetGet(b *testing.B) {
 		MaxCost:     cachesize,      // maximum cost of cache (1M).
 		BufferItems: 64,             // number of keys per Get buffer.
 	})
-	for i := 0; i < cachesize/2; i++ {
+	for i := range cachesize/2 {
 		cache.SetWithTTL(keys[i], i, 1, time.Hour)
 	}
 
@@ -382,7 +382,7 @@ func BenchmarkRistrettoSetGet(b *testing.B) {
 func BenchmarkTheineSetGet(b *testing.B) {
 	c := perfbench.Open(b)
 	cache, _ := theine.NewBuilder[string, int](cachesize).Build()
-	for i := 0; i < cachesize/2; i++ {
+	for i := range cachesize/2 {
 		cache.SetWithTTL(keys[i], i, 1, time.Hour)
 	}
 
@@ -408,7 +408,7 @@ func BenchmarkTheineSetGet(b *testing.B) {
 func BenchmarkOtterSetGet(b *testing.B) {
 	c := perfbench.Open(b)
 	cache, _ := otter.MustBuilder[string, int](cachesize).WithVariableTTL().Build()
-	for i := 0; i < cachesize/2; i++ {
+	for i := range cachesize/2 {
 		cache.Set(keys[i], i, time.Hour)
 	}
 
@@ -493,9 +493,9 @@ ok  	command-line-arguments	96.989s
 
 ### GC scan
 
-The GC scan result as below. Check github [gcscan][gcscan] action for more results and details.
+The GC scan times as below. Check github [gcscan][gcscan] action for more results and details.
 <details>
-  <summary>GC scan on keysize=16(string), valuesize=8(int), cachesize in (100000,200000,400000,1000000)</summary>
+  <summary>GC scan times on keysize=16(string), valuesize=8(int), cachesize in (100000,200000,400000,1000000)</summary>
 
 ```go
 // env GODEBUG=gctrace=1 go run gcscan.go phuslu 1000000 
@@ -745,7 +745,7 @@ func main() {
 	cachesize, _ := strconv.Atoi(os.Args[2])
 
 	keys = make([]string, cachesize)
-	for i := 0; i < cachesize; i++ {
+	for i := range cachesize {
 		keys[i] = fmt.Sprintf(fmt.Sprintf("%%0%dd", keysize), i)
 	}
 
@@ -780,35 +780,35 @@ func main() {
 
 func SetupNottl(cachesize int) {
 	cache := phuslu.NewLRUCache[string, int](cachesize)
-	for i := 0; i < cachesize; i++ {
+	for i := range cachesize {
 		cache.Set(keys[i], i)
 	}
 }
 
 func SetupPhuslu(cachesize int) {
 	cache := phuslu.NewTTLCache[string, int](cachesize)
-	for i := 0; i < cachesize; i++ {
+	for i := range cachesize {
 		cache.Set(keys[i], i, time.Hour)
 	}
 }
 
 func SetupFreelru(cachesize int) {
 	cache, _ := freelru.NewSharded[string, int](uint32(cachesize), func(s string) uint32 { return uint32(xxhash.Sum64String(s)) })
-	for i := 0; i < cachesize; i++ {
+	for i := range cachesize {
 		cache.AddWithLifetime(keys[i], i, time.Hour)
 	}
 }
 
 func SetupOtter(cachesize int) {
 	cache, _ := otter.MustBuilder[string, int](cachesize).WithVariableTTL().Build()
-	for i := 0; i < cachesize; i++ {
+	for i := range cachesize {
 		cache.Set(keys[i], i, time.Hour)
 	}
 }
 
 func SetupEcache(cachesize int) {
 	cache := ecache.NewLRUCache(1024, uint16(cachesize/1024), time.Hour)
-	for i := 0; i < cachesize; i++ {
+	for i := range cachesize {
 		cache.Put(keys[i], i)
 	}
 }
@@ -819,7 +819,7 @@ func SetupRistretto(cachesize int) {
 		MaxCost:     int64(cachesize),      // maximum cost of cache (1M).
 		BufferItems: 64,             // number of keys per Get buffer.
 	})
-	for i := 0; i < cachesize; i++ {
+	for i := range cachesize {
 		cache.SetWithTTL(keys[i], i, 1, time.Hour)
 	}
 }
@@ -830,35 +830,35 @@ func SetupLxzan(cachesize int) {
 		lxzan.WithBucketSize(cachesize/128, cachesize/128),
 		lxzan.WithInterval(time.Hour, time.Hour),
 	)
-	for i := 0; i < cachesize; i++ {
+	for i := range cachesize {
 		cache.Set(keys[i], i, time.Hour)
 	}
 }
 
 func SetupTheine(cachesize int) {
 	cache, _ := theine.NewBuilder[string, int](int64(cachesize)).Build()
-	for i := 0; i < cachesize; i++ {
+	for i := range cachesize {
 		cache.SetWithTTL(keys[i], i, 1, time.Hour)
 	}
 }
 
 func SetupCloudflare(cachesize int) {
 	cache := cloudflare.NewMultiLRUCache(1024, uint(cachesize/1024))
-	for i := 0; i < cachesize; i++ {
+	for i := range cachesize {
 		cache.Set(keys[i], i, time.Now().Add(time.Hour))
 	}
 }
 
 func SetupCcache(cachesize int) {
 	cache := ccache.New(ccache.Configure[int]().MaxSize(int64(cachesize)).ItemsToPrune(100))
-	for i := 0; i < cachesize; i++ {
+	for i := range cachesize {
 		cache.Set(keys[i], i, time.Hour)
 	}
 }
 
 func SetupHashicorp(cachesize int) {
 	cache := hashicorp.NewLRU[string, int](cachesize, nil, time.Hour)
-	for i := 0; i < cachesize; i++ {
+	for i := range cachesize {
 		cache.Add(keys[i], i)
 	}
 }
