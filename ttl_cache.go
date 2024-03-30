@@ -20,6 +20,8 @@ type TTLCache[K comparable, V any] struct {
 
 // NewTTLCache creates lru cache with size capacity.
 func NewTTLCache[K comparable, V any](size int, options ...Option[K, V]) *TTLCache[K, V] {
+	clocking()
+
 	j := -1
 	for i, o := range options {
 		if _, ok := o.(*shardsOption[K, V]); ok {
