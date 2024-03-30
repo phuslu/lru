@@ -11,11 +11,11 @@
     - Outperforms well-known *LRU* caches.
     - Zero memory allocations.
 * GC friendly
-    - Pointerless data structs.
-    - Continuous memory layout.
+    - Pointerless and continuous data structs.
+    - Minimized GC scan times.
 * Memory efficient
-    - Adds only 26 extra bytes per cache item.
-    - Minimized memory usage compared to others.
+    - Adds only 26 extra bytes per entry.
+    - Minimized memory usage.
 * Feature optional
     - Using SlidingCache via `WithSliding(true)` option.
     - Create LoadingCache via `WithLoader(func(key K) (v V, ttl time.Duration, err error))` option.
