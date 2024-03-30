@@ -4,7 +4,6 @@
 package lru
 
 import (
-	"sync/atomic"
 	"unsafe"
 )
 
@@ -133,9 +132,8 @@ func (c *LRUCache[K, V]) Len() int {
 
 // AppendKeys appends all keys to keys and return the keys.
 func (c *LRUCache[K, V]) AppendKeys(keys []K) []K {
-	now := atomic.LoadUint32(&clock)
 	for i := uint32(0); i <= c.mask; i++ {
-		keys = c.shards[i].AppendKeys(keys, now)
+		keys = c.shards[i].AppendKeys(keys)
 	}
 	return keys
 }

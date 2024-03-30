@@ -171,7 +171,7 @@ func (s *lrushard[K, V]) Len() (n uint32) {
 	return
 }
 
-func (s *lrushard[K, V]) AppendKeys(dst []K, now uint32) []K {
+func (s *lrushard[K, V]) AppendKeys(dst []K) []K {
 	s.mu.Lock()
 	for _, bucket := range s.table_buckets {
 		b := (*lrubucket)(unsafe.Pointer(&bucket))
