@@ -1,6 +1,7 @@
 package lru
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"runtime"
@@ -239,11 +240,11 @@ func TestTTLCacheHasher(t *testing.T) {
 
 func TestTTLCacheLoader(t *testing.T) {
 	cache := NewTTLCache[string, int](1024)
-	if v, err, ok := cache.GetOrLoad("a", nil); ok || err == nil || v != 0 {
+	if v, err, ok := cache.GetOrLoad(context.Background(), "a", nil); ok || err == nil || v != 0 {
 		t.Errorf("cache.GetOrLoad(\"a\", nil) again should be return error: %v, %v, %v", v, err, ok)
 	}
 
-	cache = NewTTLCache[string, int](1024, WithLoader[string, int](func(key string) (int, time.Duration, error) {
+	cache = NewTTLCache[string, int](1024, WithLoader[string, int](func(ctx context.Context, key string) (int, time.Duration, error) {
 		if key == "" {
 			return 0, 0, fmt.Errorf("invalid key: %v", key)
 		}
@@ -251,25 +252,25 @@ func TestTTLCacheLoader(t *testing.T) {
 		return i, time.Duration(i) * time.Second, nil
 	}))
 
-	if v, err, ok := cache.GetOrLoad("", nil); ok || err == nil || v != 0 {
+	if v, err, ok := cache.GetOrLoad(context.Background(), "", nil); ok || err == nil || v != 0 {
 		t.Errorf("cache.GetOrLoad(\"a\", nil) again should be return error: %v, %v, %v", v, err, ok)
 	}
 
-	if v, err, ok := cache.GetOrLoad("b", nil); ok || err != nil || v != 2 {
+	if v, err, ok := cache.GetOrLoad(context.Background(), "b", nil); ok || err != nil || v != 2 {
 		t.Errorf("cache.GetOrLoad(\"b\", nil) again should be return 2: %v, %v, %v", v, err, ok)
 	}
 
-	if v, err, ok := cache.GetOrLoad("a", nil); ok || err != nil || v != 1 {
+	if v, err, ok := cache.GetOrLoad(context.Background(), "a", nil); ok || err != nil || v != 1 {
 		t.Errorf("cache.GetOrLoad(\"a\", nil) should be return 1: %v, %v, %v", v, err, ok)
 	}
 
-	if v, err, ok := cache.GetOrLoad("a", nil); !ok || err != nil || v != 1 {
+	if v, err, ok := cache.GetOrLoad(context.Background(), "a", nil); !ok || err != nil || v != 1 {
 		t.Errorf("cache.GetOrLoad(\"a\") again should be return 1: %v, %v, %v", v, err, ok)
 	}
 
 	time.Sleep(2 * time.Second)
 
-	if v, err, ok := cache.GetOrLoad("a", nil); ok || err != nil || v != 1 {
+	if v, err, ok := cache.GetOrLoad(context.Background(), "a", nil); ok || err != nil || v != 1 {
 		t.Errorf("cache.GetOrLoad(\"a\") again should be return 1: %v, %v, %v", v, err, ok)
 	}
 }
@@ -282,7 +283,7 @@ func TestTTLCacheLoaderPanic(t *testing.T) {
 			}
 		}
 	}()
-	_ = NewTTLCache[string, int](1024, WithLoader[string, int](func(key string) (int, error) {
+	_ = NewTTLCache[string, int](1024, WithLoader[string, int](func(ctx context.Context, key string) (int, error) {
 		return 1, nil
 	}))
 	t.Errorf("should be panic above")
@@ -291,7 +292,7 @@ func TestTTLCacheLoaderPanic(t *testing.T) {
 func TestTTLCacheLoaderSingleflight(t *testing.T) {
 	var loads uint32
 
-	cache := NewTTLCache[string, int](1024, WithLoader[string, int](func(key string) (int, time.Duration, error) {
+	cache := NewTTLCache[string, int](1024, WithLoader[string, int](func(ctx context.Context, key string) (int, time.Duration, error) {
 		atomic.AddUint32(&loads, 1)
 		time.Sleep(100 * time.Millisecond)
 		return int(key[0] - 'a' + 1), time.Hour, nil
@@ -302,7 +303,7 @@ func TestTTLCacheLoaderSingleflight(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		go func(i int) {
 			defer wg.Done()
-			v, err, ok := cache.GetOrLoad("a", nil)
+			v, err, ok := cache.GetOrLoad(context.Background(), "a", nil)
 			if v != 1 || err != nil || !ok {
 				t.Errorf("a should be set to 1: %v,%v,%v", v, err, ok)
 			}

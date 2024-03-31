@@ -1,6 +1,7 @@
 package lru_test
 
 import (
+	"context"
 	"time"
 	"unsafe"
 
@@ -23,7 +24,7 @@ func ExampleWithHasher() {
 }
 
 func ExampleWithLoader() {
-	loader := func(key string) (int, time.Duration, error) {
+	loader := func(ctx context.Context, key string) (int, time.Duration, error) {
 		return 42, time.Hour, nil
 	}
 
@@ -31,8 +32,8 @@ func ExampleWithLoader() {
 
 	println(cache.Get("a"))
 	println(cache.Get("b"))
-	println(cache.GetOrLoad("a", nil))
-	println(cache.GetOrLoad("b", func(key string) (int, time.Duration, error) { return 100, 0, nil }))
+	println(cache.GetOrLoad(context.Background(), "a", nil))
+	println(cache.GetOrLoad(context.Background(), "b", func(context.Context, string) (int, time.Duration, error) { return 100, 0, nil }))
 	println(cache.Get("a"))
 	println(cache.Get("b"))
 }

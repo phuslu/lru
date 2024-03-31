@@ -1,6 +1,7 @@
 package lru
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"runtime"
@@ -233,11 +234,11 @@ func TestLRUCacheSliding(t *testing.T) {
 
 func TestLRUCacheLoader(t *testing.T) {
 	cache := NewLRUCache[string, int](1024)
-	if v, err, ok := cache.GetOrLoad("a", nil); ok || err == nil || v != 0 {
+	if v, err, ok := cache.GetOrLoad(context.Background(), "a", nil); ok || err == nil || v != 0 {
 		t.Errorf("cache.GetOrLoad(\"a\", nil) again should be return error: %v, %v, %v", v, err, ok)
 	}
 
-	cache = NewLRUCache[string, int](1024, WithLoader[string, int](func(key string) (int, error) {
+	cache = NewLRUCache[string, int](1024, WithLoader[string, int](func(ctx context.Context, key string) (int, error) {
 		if key == "" {
 			return 0, fmt.Errorf("invalid key: %v", key)
 		}
@@ -245,19 +246,19 @@ func TestLRUCacheLoader(t *testing.T) {
 		return i, nil
 	}))
 
-	if v, err, ok := cache.GetOrLoad("", nil); ok || err == nil || v != 0 {
+	if v, err, ok := cache.GetOrLoad(context.Background(), "", nil); ok || err == nil || v != 0 {
 		t.Errorf("cache.GetOrLoad(\"a\", nil) again should be return error: %v, %v, %v", v, err, ok)
 	}
 
-	if v, err, ok := cache.GetOrLoad("b", nil); ok || err != nil || v != 2 {
+	if v, err, ok := cache.GetOrLoad(context.Background(), "b", nil); ok || err != nil || v != 2 {
 		t.Errorf("cache.GetOrLoad(\"b\", nil) again should be return 2: %v, %v, %v", v, err, ok)
 	}
 
-	if v, err, ok := cache.GetOrLoad("a", nil); ok || err != nil || v != 1 {
+	if v, err, ok := cache.GetOrLoad(context.Background(), "a", nil); ok || err != nil || v != 1 {
 		t.Errorf("cache.GetOrLoad(\"a\", nil) should be return 1: %v, %v, %v", v, err, ok)
 	}
 
-	if v, err, ok := cache.GetOrLoad("a", nil); !ok || err != nil || v != 1 {
+	if v, err, ok := cache.GetOrLoad(context.Background(), "a", nil); !ok || err != nil || v != 1 {
 		t.Errorf("cache.GetOrLoad(\"a\", nil) again should be return 1: %v, %v, %v", v, err, ok)
 	}
 }
@@ -270,7 +271,7 @@ func TestLRUCacheLoaderPanic(t *testing.T) {
 			}
 		}
 	}()
-	_ = NewLRUCache[string, int](1024, WithLoader[string, int](func(key string) (int, time.Duration, error) {
+	_ = NewLRUCache[string, int](1024, WithLoader[string, int](func(ctx context.Context, key string) (int, time.Duration, error) {
 		return 1, time.Hour, nil
 	}))
 	t.Errorf("should be panic above")
@@ -279,7 +280,7 @@ func TestLRUCacheLoaderPanic(t *testing.T) {
 func TestLRUCacheLoaderSingleflight(t *testing.T) {
 	var loads uint32
 
-	cache := NewLRUCache[string, int](1024, WithLoader[string, int](func(key string) (int, error) {
+	cache := NewLRUCache[string, int](1024, WithLoader[string, int](func(ctx context.Context, key string) (int, error) {
 		atomic.AddUint32(&loads, 1)
 		time.Sleep(100 * time.Millisecond)
 		return int(key[0] - 'a' + 1), nil
@@ -290,7 +291,7 @@ func TestLRUCacheLoaderSingleflight(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		go func(i int) {
 			defer wg.Done()
-			v, err, ok := cache.GetOrLoad("a", nil)
+			v, err, ok := cache.GetOrLoad(context.Background(), "a", nil)
 			if v != 1 || err != nil || !ok {
 				t.Errorf("a should be set to 1: %v,%v,%v", v, err, ok)
 			}

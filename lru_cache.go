@@ -4,6 +4,7 @@
 package lru
 
 import (
+	"context"
 	"unsafe"
 )
 
@@ -13,7 +14,7 @@ type LRUCache[K comparable, V any] struct {
 	mask   uint32
 	hasher func(key unsafe.Pointer, seed uintptr) uintptr
 	seed   uintptr
-	loader func(key K) (value V, err error)
+	loader func(ctx context.Context, key K) (value V, err error)
 	group  singleflight_Group[K, V]
 }
 
@@ -73,7 +74,7 @@ func (c *LRUCache[K, V]) Get(key K) (value V, ok bool) {
 }
 
 // GetOrLoad returns value for key, call loader function by singleflight if value was not in cache.
-func (c *LRUCache[K, V]) GetOrLoad(key K, loader func(key K) (value V, err error)) (value V, err error, ok bool) {
+func (c *LRUCache[K, V]) GetOrLoad(ctx context.Context, key K, loader func(context.Context, K) (V, error)) (value V, err error, ok bool) {
 	hash := uint32(c.hasher(noescape(unsafe.Pointer(&key)), c.seed))
 	value, ok = c.shards[hash&c.mask].Get(hash, key)
 	if !ok {
@@ -85,7 +86,7 @@ func (c *LRUCache[K, V]) GetOrLoad(key K, loader func(key K) (value V, err error
 			return
 		}
 		value, err, ok = c.group.Do(key, func() (V, error) {
-			v, err := loader(key)
+			v, err := loader(ctx, key)
 			if err != nil {
 				return v, err
 			}

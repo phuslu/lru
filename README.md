@@ -18,7 +18,7 @@
     - Minimized memory usage.
 * Feature optional
     - Using SlidingCache via `WithSliding(true)` option.
-    - Create LoadingCache via `WithLoader(func(key K) (v V, ttl time.Duration, err error))` option.
+    - Create LoadingCache via `WithLoader(func(context.Context, K) (V, time.Duration, error))` option.
 
 ### Limitations
 1. The TTL is accurate to the nearest second.
