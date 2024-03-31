@@ -82,7 +82,7 @@ func (o *slidingOption[K, V]) ApplyToTTLCache(c *TTLCache[K, V]) {
 var ErrLoaderIsNil = errors.New("loader is nil")
 
 // WithLoader specifies that loader function of LoadingCache.
-func WithLoader[K comparable, V any, Loader func(key K) (value V, err error) | func(key K) (value V, ttl time.Duration, err error)](loader Loader) Option[K, V] {
+func WithLoader[K comparable, V any, Loader ~func(key K) (value V, err error) | ~func(key K) (value V, ttl time.Duration, err error)](loader Loader) Option[K, V] {
 	return &loaderOption[K, V]{loader: loader}
 }
 
