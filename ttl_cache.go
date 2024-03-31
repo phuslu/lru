@@ -76,12 +76,15 @@ func (c *TTLCache[K, V]) Get(key K) (value V, ok bool) {
 }
 
 // GetOrLoad returns value for key, call loader function by singleflight if value was not in cache.
-func (c *TTLCache[K, V]) GetOrLoad(key K) (value V, err error, ok bool) {
+func (c *TTLCache[K, V]) GetOrLoad(key K, loader func(key K) (value V, ttl time.Duration, err error)) (value V, err error, ok bool) {
 	hash := uint32(c.hasher(noescape(unsafe.Pointer(&key)), c.seed))
 	// value, ok = c.shards[hash&c.mask].Get(hash, key)
 	value, ok = (*ttlshard[K, V])(unsafe.Add(unsafe.Pointer(&c.shards[0]), uintptr(hash&c.mask)*unsafe.Sizeof(c.shards[0]))).Get(hash, key)
 	if !ok {
-		if c.loader == nil {
+		if loader == nil {
+			loader = c.loader
+		}
+		if loader == nil {
 			err = ErrLoaderIsNil
 			return
 		}

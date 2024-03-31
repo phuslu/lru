@@ -29,8 +29,11 @@ func ExampleWithLoader() {
 
 	cache := lru.NewTTLCache[string, int](4096, lru.WithLoader[string, int](loader))
 
+	println(cache.Get("a"))
 	println(cache.Get("b"))
-	println(cache.GetOrLoad("b"))
+	println(cache.GetOrLoad("a", nil))
+	println(cache.GetOrLoad("b", func(key string) (int, time.Duration, error) { return 100, 0, nil }))
+	println(cache.Get("a"))
 	println(cache.Get("b"))
 }
 

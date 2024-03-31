@@ -73,11 +73,14 @@ func (c *LRUCache[K, V]) Get(key K) (value V, ok bool) {
 }
 
 // GetOrLoad returns value for key, call loader function by singleflight if value was not in cache.
-func (c *LRUCache[K, V]) GetOrLoad(key K) (value V, err error, ok bool) {
+func (c *LRUCache[K, V]) GetOrLoad(key K, loader func(key K) (value V, err error)) (value V, err error, ok bool) {
 	hash := uint32(c.hasher(noescape(unsafe.Pointer(&key)), c.seed))
 	value, ok = c.shards[hash&c.mask].Get(hash, key)
 	if !ok {
-		if c.loader == nil {
+		if loader == nil {
+			loader = c.loader
+		}
+		if loader == nil {
 			err = ErrLoaderIsNil
 			return
 		}

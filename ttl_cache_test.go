@@ -239,8 +239,8 @@ func TestTTLCacheHasher(t *testing.T) {
 
 func TestTTLCacheLoader(t *testing.T) {
 	cache := NewTTLCache[string, int](1024)
-	if v, err, ok := cache.GetOrLoad("a"); ok || err == nil || v != 0 {
-		t.Errorf("cache.GetOrLoad(\"a\") again should be return error: %v, %v, %v", v, err, ok)
+	if v, err, ok := cache.GetOrLoad("a", nil); ok || err == nil || v != 0 {
+		t.Errorf("cache.GetOrLoad(\"a\", nil) again should be return error: %v, %v, %v", v, err, ok)
 	}
 
 	cache = NewTTLCache[string, int](1024, WithLoader[string, int](func(key string) (int, time.Duration, error) {
@@ -251,25 +251,25 @@ func TestTTLCacheLoader(t *testing.T) {
 		return i, time.Duration(i) * time.Second, nil
 	}))
 
-	if v, err, ok := cache.GetOrLoad(""); ok || err == nil || v != 0 {
-		t.Errorf("cache.GetOrLoad(\"a\") again should be return error: %v, %v, %v", v, err, ok)
+	if v, err, ok := cache.GetOrLoad("", nil); ok || err == nil || v != 0 {
+		t.Errorf("cache.GetOrLoad(\"a\", nil) again should be return error: %v, %v, %v", v, err, ok)
 	}
 
-	if v, err, ok := cache.GetOrLoad("b"); ok || err != nil || v != 2 {
-		t.Errorf("cache.GetOrLoad(\"b\") again should be return 2: %v, %v, %v", v, err, ok)
+	if v, err, ok := cache.GetOrLoad("b", nil); ok || err != nil || v != 2 {
+		t.Errorf("cache.GetOrLoad(\"b\", nil) again should be return 2: %v, %v, %v", v, err, ok)
 	}
 
-	if v, err, ok := cache.GetOrLoad("a"); ok || err != nil || v != 1 {
-		t.Errorf("cache.GetOrLoad(\"a\") should be return 1: %v, %v, %v", v, err, ok)
+	if v, err, ok := cache.GetOrLoad("a", nil); ok || err != nil || v != 1 {
+		t.Errorf("cache.GetOrLoad(\"a\", nil) should be return 1: %v, %v, %v", v, err, ok)
 	}
 
-	if v, err, ok := cache.GetOrLoad("a"); !ok || err != nil || v != 1 {
+	if v, err, ok := cache.GetOrLoad("a", nil); !ok || err != nil || v != 1 {
 		t.Errorf("cache.GetOrLoad(\"a\") again should be return 1: %v, %v, %v", v, err, ok)
 	}
 
 	time.Sleep(2 * time.Second)
 
-	if v, err, ok := cache.GetOrLoad("a"); ok || err != nil || v != 1 {
+	if v, err, ok := cache.GetOrLoad("a", nil); ok || err != nil || v != 1 {
 		t.Errorf("cache.GetOrLoad(\"a\") again should be return 1: %v, %v, %v", v, err, ok)
 	}
 }
@@ -302,7 +302,7 @@ func TestTTLCacheLoaderSingleflight(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		go func(i int) {
 			defer wg.Done()
-			v, err, ok := cache.GetOrLoad("a")
+			v, err, ok := cache.GetOrLoad("a", nil)
 			if v != 1 || err != nil || !ok {
 				t.Errorf("a should be set to 1: %v,%v,%v", v, err, ok)
 			}
