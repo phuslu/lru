@@ -85,7 +85,7 @@ func (c *LRUCache[K, V]) GetOrLoad(key K, loader func(key K) (value V, err error
 			return
 		}
 		value, err, ok = c.group.Do(key, func() (V, error) {
-			v, err := c.loader(key)
+			v, err := loader(key)
 			if err != nil {
 				return v, err
 			}

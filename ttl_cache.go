@@ -89,7 +89,7 @@ func (c *TTLCache[K, V]) GetOrLoad(key K, loader func(key K) (value V, ttl time.
 			return
 		}
 		value, err, ok = c.group.Do(key, func() (V, error) {
-			v, ttl, err := c.loader(key)
+			v, ttl, err := loader(key)
 			if err != nil {
 				return v, err
 			}
