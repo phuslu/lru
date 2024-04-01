@@ -35,7 +35,7 @@ func NewLRUCache[K comparable, V any](size int, options ...Option[K, V]) *LRUCac
 
 	c := new(LRUCache[K, V])
 	for _, o := range options {
-		o.ApplyToLRUCache(c)
+		o.applyToLRUCache(c)
 	}
 
 	if c.hasher == nil {

@@ -10,8 +10,8 @@ import (
 
 // Option is an interface for LRUCache and TTLCache configuration.
 type Option[K comparable, V any] interface {
-	ApplyToLRUCache(*LRUCache[K, V])
-	ApplyToTTLCache(*TTLCache[K, V])
+	applyToLRUCache(*LRUCache[K, V])
+	applyToTTLCache(*TTLCache[K, V])
 }
 
 // WithShards specifies the shards count of cache.
@@ -36,11 +36,11 @@ func (o *shardsOption[K, V]) getcount(maxcount uint32) uint32 {
 	return shardcount
 }
 
-func (o *shardsOption[K, V]) ApplyToLRUCache(c *LRUCache[K, V]) {
+func (o *shardsOption[K, V]) applyToLRUCache(c *LRUCache[K, V]) {
 	c.mask = o.getcount(uint32(len(c.shards))) - 1
 }
 
-func (o *shardsOption[K, V]) ApplyToTTLCache(c *TTLCache[K, V]) {
+func (o *shardsOption[K, V]) applyToTTLCache(c *TTLCache[K, V]) {
 	c.mask = o.getcount(uint32(len(c.shards))) - 1
 }
 
@@ -53,11 +53,11 @@ type hasherOption[K comparable, V any] struct {
 	hasher func(key unsafe.Pointer, seed uintptr) (hash uintptr)
 }
 
-func (o *hasherOption[K, V]) ApplyToLRUCache(c *LRUCache[K, V]) {
+func (o *hasherOption[K, V]) applyToLRUCache(c *LRUCache[K, V]) {
 	c.hasher = o.hasher
 }
 
-func (o *hasherOption[K, V]) ApplyToTTLCache(c *TTLCache[K, V]) {
+func (o *hasherOption[K, V]) applyToTTLCache(c *TTLCache[K, V]) {
 	c.hasher = o.hasher
 }
 
@@ -70,11 +70,11 @@ type slidingOption[K comparable, V any] struct {
 	sliding bool
 }
 
-func (o *slidingOption[K, V]) ApplyToLRUCache(c *LRUCache[K, V]) {
+func (o *slidingOption[K, V]) applyToLRUCache(c *LRUCache[K, V]) {
 	panic("not_supported")
 }
 
-func (o *slidingOption[K, V]) ApplyToTTLCache(c *TTLCache[K, V]) {
+func (o *slidingOption[K, V]) applyToTTLCache(c *TTLCache[K, V]) {
 	for i := uint32(0); i <= c.mask; i++ {
 		c.shards[i].sliding = o.sliding
 	}
@@ -91,7 +91,7 @@ type loaderOption[K comparable, V any] struct {
 	loader any
 }
 
-func (o *loaderOption[K, V]) ApplyToLRUCache(c *LRUCache[K, V]) {
+func (o *loaderOption[K, V]) applyToLRUCache(c *LRUCache[K, V]) {
 	loader, ok := o.loader.(func(ctx context.Context, key K) (value V, err error))
 	if !ok {
 		panic("not_supported")
@@ -100,7 +100,7 @@ func (o *loaderOption[K, V]) ApplyToLRUCache(c *LRUCache[K, V]) {
 	c.group = singleflight_Group[K, V]{}
 }
 
-func (o *loaderOption[K, V]) ApplyToTTLCache(c *TTLCache[K, V]) {
+func (o *loaderOption[K, V]) applyToTTLCache(c *TTLCache[K, V]) {
 	loader, ok := o.loader.(func(ctx context.Context, key K) (value V, ttl time.Duration, err error))
 	if !ok {
 		panic("not_supported")

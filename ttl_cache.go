@@ -38,7 +38,7 @@ func NewTTLCache[K comparable, V any](size int, options ...Option[K, V]) *TTLCac
 
 	c := new(TTLCache[K, V])
 	for _, o := range options {
-		o.ApplyToTTLCache(c)
+		o.applyToTTLCache(c)
 	}
 
 	if c.hasher == nil {
