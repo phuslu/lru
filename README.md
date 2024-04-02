@@ -55,6 +55,8 @@ func main() {
 
 ### Throughput benchmarks
 
+*Disclaimer: This have been testing on the busy GitHub runners with 8 vCPUs and the results may be very different from your real environment. see https://github.com/phuslu/lru/issues/14*
+
 A Performance result as below. Check github [benchmark][benchmark] action for more results and details.
 <details>
   <summary>go1.22 benchmark on keysize=16, itemsize=1000000, cachesize=50%, concurrency=8</summary>
