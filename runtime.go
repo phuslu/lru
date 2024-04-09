@@ -25,6 +25,7 @@
 package lru
 
 import (
+	"reflect"
 	"unsafe"
 )
 
@@ -105,4 +106,17 @@ type rtType struct {
 func noescape(p unsafe.Pointer) unsafe.Pointer {
 	x := uintptr(p)
 	return unsafe.Pointer(x ^ 0)
+}
+
+func b2s(b []byte) string {
+	return *(*string)(unsafe.Pointer(&b))
+}
+
+func s2b(s string) (b []byte) {
+	bh := (*reflect.SliceHeader)(unsafe.Pointer(&b))
+	sh := *(*reflect.StringHeader)(unsafe.Pointer(&s))
+	bh.Data = sh.Data
+	bh.Len = sh.Len
+	bh.Cap = sh.Len
+	return b
 }
