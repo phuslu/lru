@@ -10,7 +10,7 @@ import (
 
 // MmapCache implements Bytes Cache with least recent used eviction policy.
 type MmapCache struct {
-	shards [512]mmapshard
+	shards []mmapshard
 	mask   uint32
 	hasher func(key unsafe.Pointer, seed uintptr) uintptr
 	seed   uintptr
@@ -22,29 +22,14 @@ type MmapCache struct {
 func NewMmapCache[K comparable, V any](size int) *MmapCache {
 	c := new(MmapCache)
 
-	if c.hasher == nil {
-		c.hasher = getRuntimeHasher[K]()
-	}
-	if c.seed == 0 {
-		c.seed = uintptr(fastrand64())
-	}
+	c.hasher = getRuntimeHasher[K]()
+	c.seed = uintptr(fastrand64())
+	c.mask = 511
+	c.shards = make([]mmapshard, c.mask+1)
 
-	if isamd64 {
-		// pre-alloc lists and tables for compactness
-		shardsize := (uint32(size) + c.mask) / (c.mask + 1)
-		shardlists := make([]mmapnode, (shardsize+1)*(c.mask+1))
-		tablesize := bytesNewTableSize(uint32(shardsize))
-		tablebuckets := make([]uint64, tablesize*(c.mask+1))
-		for i := uint32(0); i <= c.mask; i++ {
-			c.shards[i].list = shardlists[i*(shardsize+1) : (i+1)*(shardsize+1)]
-			c.shards[i].table_buckets = tablebuckets[i*tablesize : (i+1)*tablesize]
-			c.shards[i].Init(shardsize, c.hasher, c.seed)
-		}
-	} else {
-		shardsize := (uint32(size) + c.mask) / (c.mask + 1)
-		for i := uint32(0); i <= c.mask; i++ {
-			c.shards[i].Init(shardsize, c.hasher, c.seed)
-		}
+	shardsize := (uint32(size) + c.mask) / (c.mask + 1)
+	for i := uint32(0); i <= c.mask; i++ {
+		c.shards[i].Init(shardsize, c.hasher, c.seed)
 	}
 
 	return c
