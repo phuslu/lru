@@ -5,16 +5,16 @@ import (
 	"unsafe"
 )
 
-func TestBytesShardPadding(t *testing.T) {
-	var s bytesshard
+func TestMmapShardPadding(t *testing.T) {
+	var s mmapshard
 
 	if n := unsafe.Sizeof(s); n != 128 {
 		t.Errorf("shard size is %d, not 128", n)
 	}
 }
 
-func TestBytesShardListSet(t *testing.T) {
-	var s bytesshard
+func TestMmapShardListSet(t *testing.T) {
+	var s mmapshard
 	s.Init(1024, getRuntimeHasher[string](), 0)
 
 	key := []byte("foobar")
@@ -28,8 +28,8 @@ func TestBytesShardListSet(t *testing.T) {
 	}
 }
 
-func TestBytesShardTableSet(t *testing.T) {
-	var s bytesshard
+func TestMmapShardTableSet(t *testing.T) {
+	var s mmapshard
 	s.Init(1024, getRuntimeHasher[string](), 0)
 
 	key := []byte("foobar")
