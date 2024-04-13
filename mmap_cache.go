@@ -1,3 +1,6 @@
+//go:build linux && amd64
+// +build linux,amd64
+
 // Copyright 2023-2024 Phus Lu. All rights reserved.
 
 // Package bytes implements cache with least recent used eviction policy.
