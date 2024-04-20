@@ -9,17 +9,17 @@ import (
 	"syscall"
 )
 
-type mmapfile struct {
+type bytesfile struct {
 	location string
 	file     *os.File
 	size     int
 }
 
-func (m *mmapfile) close() error {
+func (m *bytesfile) close() error {
 	return m.file.Close()
 }
 
-func (m *mmapfile) open() error {
+func (m *bytesfile) open() error {
 	var openingFlag = os.O_RDWR
 	if _, err := os.Stat(m.location); os.IsNotExist(err) {
 		openingFlag = openingFlag | os.O_CREATE
@@ -31,7 +31,7 @@ func (m *mmapfile) open() error {
 	return m.allocate()
 }
 
-func (m *mmapfile) assign(offset int64, target *[]byte) error {
+func (m *bytesfile) assign(offset int64, target *[]byte) error {
 	buffer, err := syscall.Mmap(int(m.file.Fd()), offset, m.size, syscall.PROT_READ|syscall.PROT_WRITE, syscall.MAP_SHARED)
 	if err != nil {
 		return fmt.Errorf("failed to map memory %v: %w", m.location, err)
@@ -40,7 +40,7 @@ func (m *mmapfile) assign(offset int64, target *[]byte) error {
 	return nil
 }
 
-func (m *mmapfile) allocate() error {
+func (m *bytesfile) allocate() error {
 	info, err := os.Stat(m.location)
 	if err != nil {
 		return err
