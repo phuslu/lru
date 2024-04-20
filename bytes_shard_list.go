@@ -1,6 +1,3 @@
-//go:build linux && amd64
-// +build linux,amd64
-
 // Copyright 2023-2024 Phus Lu. All rights reserved.
 
 package lru

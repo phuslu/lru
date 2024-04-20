@@ -1,6 +1,3 @@
-//go:build linux && amd64
-// +build linux,amd64
-
 // Copyright 2023-2024 Phus Lu. All rights reserved.
 
 package lru
@@ -31,8 +28,6 @@ type bytesshard struct {
 	table_buckets []uint64 // []bytesbucket
 	table_mask    uint32
 	table_length  uint32
-	table_hasher  func(key unsafe.Pointer, seed uintptr) uintptr
-	table_seed    uintptr
 
 	// the list of nodes
 	list []bytesnode
@@ -43,12 +38,12 @@ type bytesshard struct {
 	stats_misses   uint64
 
 	// padding
-	_ [24]byte
+	_ [40]byte
 }
 
-func (s *bytesshard) Init(size uint32, hasher func(key unsafe.Pointer, seed uintptr) uintptr, seed uintptr) {
+func (s *bytesshard) Init(size uint32) {
 	s.list_Init(size)
-	s.table_Init(size, hasher, seed)
+	s.table_Init(size)
 }
 
 func (s *bytesshard) Get(hash uint32, key []byte) (value []byte, ok bool) {
@@ -99,7 +94,7 @@ func (s *bytesshard) SetIfAbsent(hash uint32, key []byte, value []byte) (prev []
 	index := s.list[0].prev
 	node := (*bytesnode)(unsafe.Add(unsafe.Pointer(&s.list[0]), uintptr(index)*unsafe.Sizeof(s.list[0])))
 	evictedValue := node.value
-	s.table_Delete(uint32(s.table_hasher(noescape(unsafe.Pointer(&node.key)), s.table_seed)), node.key)
+	s.table_Delete(uint32(wyhash_HashString(b2s(node.key), 0)), node.key)
 
 	node.key = key
 	node.value = value
@@ -134,7 +129,7 @@ func (s *bytesshard) Set(hash uint32, key []byte, value []byte) (prev []byte, re
 	index := s.list[0].prev
 	node := (*bytesnode)(unsafe.Add(unsafe.Pointer(&s.list[0]), uintptr(index)*unsafe.Sizeof(s.list[0])))
 	evictedValue := node.value
-	s.table_Delete(uint32(s.table_hasher(noescape(unsafe.Pointer(&node.key)), s.table_seed)), node.key)
+	s.table_Delete(uint32(wyhash_HashString(b2s(node.key), 0)), node.key)
 
 	node.key = key
 	node.value = value

@@ -1,6 +1,3 @@
-//go:build linux && amd64
-// +build linux,amd64
-
 // Copyright 2023-2024 Phus Lu. All rights reserved.
 // Copyright 2019 Joshua J Baker. All rights reserved.
 // Use of this source code is governed by an ISC-style
@@ -12,15 +9,13 @@ import (
 	"unsafe"
 )
 
-func (s *bytesshard) table_Init(size uint32, hasher func(key unsafe.Pointer, seed uintptr) uintptr, seed uintptr) {
+func (s *bytesshard) table_Init(size uint32) {
 	newsize := bytesNewTableSize(size)
 	if len(s.table_buckets) == 0 {
 		s.table_buckets = make([]uint64, newsize)
 	}
 	s.table_mask = newsize - 1
 	s.table_length = 0
-	s.table_hasher = hasher
-	s.table_seed = seed
 }
 
 func bytesNewTableSize(size uint32) (newsize uint32) {

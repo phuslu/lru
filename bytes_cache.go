@@ -1,5 +1,4 @@
-//go:build linux && amd64
-// +build linux,amd64
+// Copyright 2023-2024 Phus Lu. All rights reserved.
 
 package lru
 
@@ -12,9 +11,6 @@ import (
 type BytesCache struct {
 	shards []bytesshard
 	mask   uint32
-	hasher func(key unsafe.Pointer, seed uintptr) uintptr
-	seed   uintptr
-	loader func(ctx context.Context, key []byte) (value []byte, err error)
 	group  singleflight_Group[string, []byte]
 }
 
@@ -22,14 +18,12 @@ type BytesCache struct {
 func NewBytesCache[K comparable, V any](size int) *BytesCache {
 	c := new(BytesCache)
 
-	c.hasher = getRuntimeHasher[K]()
-	c.seed = uintptr(fastrand64())
 	c.mask = 511
 	c.shards = make([]bytesshard, c.mask+1)
 
 	shardsize := (uint32(size) + c.mask) / (c.mask + 1)
 	for i := uint32(0); i <= c.mask; i++ {
-		c.shards[i].Init(shardsize, c.hasher, c.seed)
+		c.shards[i].Init(shardsize)
 	}
 
 	return c
@@ -37,19 +31,16 @@ func NewBytesCache[K comparable, V any](size int) *BytesCache {
 
 // Get returns value for key.
 func (c *BytesCache) Get(key []byte) (value []byte, ok bool) {
-	hash := uint32(c.hasher(noescape(unsafe.Pointer(&key)), c.seed))
+	hash := uint32(wyhash_HashString(b2s(key), 0))
 	// return c.shards[hash&c.mask].Get(hash, key)
 	return (*bytesshard)(unsafe.Add(unsafe.Pointer(&c.shards[0]), uintptr(hash&c.mask)*unsafe.Sizeof(c.shards[0]))).Get(hash, key)
 }
 
 // GetOrLoad returns value for key, call loader function by singleflight if value was not in cache.
 func (c *BytesCache) GetOrLoad(ctx context.Context, key []byte, loader func(context.Context, []byte) ([]byte, error)) (value []byte, err error, ok bool) {
-	hash := uint32(c.hasher(noescape(unsafe.Pointer(&key)), c.seed))
+	hash := uint32(wyhash_HashString(b2s(key), 0))
 	value, ok = c.shards[hash&c.mask].Get(hash, key)
 	if !ok {
-		if loader == nil {
-			loader = c.loader
-		}
 		if loader == nil {
 			err = ErrLoaderIsNil
 			return
@@ -68,28 +59,28 @@ func (c *BytesCache) GetOrLoad(ctx context.Context, key []byte, loader func(cont
 
 // Peek returns value, but does not modify its recency.
 func (c *BytesCache) Peek(key []byte) (value []byte, ok bool) {
-	hash := uint32(c.hasher(noescape(unsafe.Pointer(&key)), c.seed))
+	hash := uint32(wyhash_HashString(b2s(key), 0))
 	// return c.shards[hash&c.mask].Peek(hash, key)
 	return (*bytesshard)(unsafe.Add(unsafe.Pointer(&c.shards[0]), uintptr(hash&c.mask)*unsafe.Sizeof(c.shards[0]))).Peek(hash, key)
 }
 
 // Set inserts key value pair and returns previous value.
 func (c *BytesCache) Set(key []byte, value []byte) (prev []byte, replaced bool) {
-	hash := uint32(c.hasher(noescape(unsafe.Pointer(&key)), c.seed))
+	hash := uint32(wyhash_HashString(b2s(key), 0))
 	// return c.shards[hash&c.mask].Set(hash, key, value)
 	return (*bytesshard)(unsafe.Add(unsafe.Pointer(&c.shards[0]), uintptr(hash&c.mask)*unsafe.Sizeof(c.shards[0]))).Set(hash, key, value)
 }
 
 // SetIfAbsent inserts key value pair and returns previous value, if key is absent in the cache.
 func (c *BytesCache) SetIfAbsent(key []byte, value []byte) (prev []byte, replaced bool) {
-	hash := uint32(c.hasher(noescape(unsafe.Pointer(&key)), c.seed))
+	hash := uint32(wyhash_HashString(b2s(key), 0))
 	// return c.shards[hash&c.mask].SetIfAbsent(hash, key, value)
 	return (*bytesshard)(unsafe.Add(unsafe.Pointer(&c.shards[0]), uintptr(hash&c.mask)*unsafe.Sizeof(c.shards[0]))).SetIfAbsent(hash, key, value)
 }
 
 // Delete method deletes value associated with key and returns deleted value (or empty value if key was not in cache).
 func (c *BytesCache) Delete(key []byte) (prev []byte) {
-	hash := uint32(c.hasher(noescape(unsafe.Pointer(&key)), c.seed))
+	hash := uint32(wyhash_HashString(b2s(key), 0))
 	// return c.shards[hash&c.mask].Delete(hash, key)
 	return (*bytesshard)(unsafe.Add(unsafe.Pointer(&c.shards[0]), uintptr(hash&c.mask)*unsafe.Sizeof(c.shards[0]))).Delete(hash, key)
 }

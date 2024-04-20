@@ -1,6 +1,3 @@
-//go:build linux && amd64
-// +build linux,amd64
-
 package lru
 
 import (
@@ -18,11 +15,11 @@ func TestBytesShardPadding(t *testing.T) {
 
 func TestBytesShardListSet(t *testing.T) {
 	var s bytesshard
-	s.Init(1024, getRuntimeHasher[string](), 0)
+	s.Init(1024)
 
 	key := []byte("foobar")
 	value := []byte("42")
-	hash := uint32(s.table_hasher(noescape(unsafe.Pointer(&key)), s.table_seed))
+	hash := uint32(wyhash_HashString(b2s(key), 0))
 
 	s.Set(hash, key, value)
 
@@ -33,11 +30,11 @@ func TestBytesShardListSet(t *testing.T) {
 
 func TestBytesShardTableSet(t *testing.T) {
 	var s bytesshard
-	s.Init(1024, getRuntimeHasher[string](), 0)
+	s.Init(1024)
 
 	key := []byte("foobar")
 	value := []byte("42")
-	hash := uint32(s.table_hasher(noescape(unsafe.Pointer(&key)), s.table_seed))
+	hash := uint32(wyhash_HashString(b2s(key), 0))
 
 	s.Set(hash, key, value)
 
