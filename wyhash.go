@@ -142,11 +142,3 @@ func wyhash_hash(data string, seed wyhash_u64) wyhash_u64 {
 
 	return wyhash__wymum(seed^see1, wyhash_u64(len)^wyhash__wyp4)
 }
-
-// HashString returns a 64bit digest of the data with different ones for every seed.
-func wyhash_HashString(data string, seed uint64) uint64 {
-	if len(data) == 0 {
-		return seed
-	}
-	return wyhash_hash(*(*string)(wyhash_ptr(&data)), seed)
-}

@@ -19,7 +19,7 @@ func TestBytesShardListSet(t *testing.T) {
 
 	key := []byte("foobar")
 	value := []byte("42")
-	hash := uint32(wyhash_HashString(b2s(key), 0))
+	hash := uint32(wyhash_HashBytes(key, 0))
 
 	s.Set(hash, key, value)
 
@@ -34,7 +34,7 @@ func TestBytesShardTableSet(t *testing.T) {
 
 	key := []byte("foobar")
 	value := []byte("42")
-	hash := uint32(wyhash_HashString(b2s(key), 0))
+	hash := uint32(wyhash_HashBytes(key, 0))
 
 	s.Set(hash, key, value)
 
