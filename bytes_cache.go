@@ -15,13 +15,12 @@ type BytesCache struct {
 }
 
 // NewBytesCache creates bytes cache with size capacity.
-func NewBytesCache[K comparable, V any](size int) *BytesCache {
+func NewBytesCache(shards uint8, shardsize uint32) *BytesCache {
 	c := new(BytesCache)
 
-	c.mask = 511
+	c.mask = nextPowOf2(uint32(shards)) - 1
 	c.shards = make([]bytesshard, c.mask+1)
 
-	shardsize := (uint32(size) + c.mask) / (c.mask + 1)
 	for i := uint32(0); i <= c.mask; i++ {
 		c.shards[i].Init(shardsize)
 	}
@@ -31,14 +30,14 @@ func NewBytesCache[K comparable, V any](size int) *BytesCache {
 
 // Get returns value for key.
 func (c *BytesCache) Get(key []byte) (value []byte, ok bool) {
-	hash := uint32(wyhash_HashString(b2s(key), 0))
+	hash := uint32(wyhash_HashBytes(key, 0))
 	// return c.shards[hash&c.mask].Get(hash, key)
 	return (*bytesshard)(unsafe.Add(unsafe.Pointer(&c.shards[0]), uintptr(hash&c.mask)*unsafe.Sizeof(c.shards[0]))).Get(hash, key)
 }
 
 // GetOrLoad returns value for key, call loader function by singleflight if value was not in cache.
 func (c *BytesCache) GetOrLoad(ctx context.Context, key []byte, loader func(context.Context, []byte) ([]byte, error)) (value []byte, err error, ok bool) {
-	hash := uint32(wyhash_HashString(b2s(key), 0))
+	hash := uint32(wyhash_HashBytes(key, 0))
 	value, ok = c.shards[hash&c.mask].Get(hash, key)
 	if !ok {
 		if loader == nil {
@@ -59,28 +58,28 @@ func (c *BytesCache) GetOrLoad(ctx context.Context, key []byte, loader func(cont
 
 // Peek returns value, but does not modify its recency.
 func (c *BytesCache) Peek(key []byte) (value []byte, ok bool) {
-	hash := uint32(wyhash_HashString(b2s(key), 0))
+	hash := uint32(wyhash_HashBytes(key, 0))
 	// return c.shards[hash&c.mask].Peek(hash, key)
 	return (*bytesshard)(unsafe.Add(unsafe.Pointer(&c.shards[0]), uintptr(hash&c.mask)*unsafe.Sizeof(c.shards[0]))).Peek(hash, key)
 }
 
 // Set inserts key value pair and returns previous value.
 func (c *BytesCache) Set(key []byte, value []byte) (prev []byte, replaced bool) {
-	hash := uint32(wyhash_HashString(b2s(key), 0))
+	hash := uint32(wyhash_HashBytes(key, 0))
 	// return c.shards[hash&c.mask].Set(hash, key, value)
 	return (*bytesshard)(unsafe.Add(unsafe.Pointer(&c.shards[0]), uintptr(hash&c.mask)*unsafe.Sizeof(c.shards[0]))).Set(hash, key, value)
 }
 
 // SetIfAbsent inserts key value pair and returns previous value, if key is absent in the cache.
 func (c *BytesCache) SetIfAbsent(key []byte, value []byte) (prev []byte, replaced bool) {
-	hash := uint32(wyhash_HashString(b2s(key), 0))
+	hash := uint32(wyhash_HashBytes(key, 0))
 	// return c.shards[hash&c.mask].SetIfAbsent(hash, key, value)
 	return (*bytesshard)(unsafe.Add(unsafe.Pointer(&c.shards[0]), uintptr(hash&c.mask)*unsafe.Sizeof(c.shards[0]))).SetIfAbsent(hash, key, value)
 }
 
 // Delete method deletes value associated with key and returns deleted value (or empty value if key was not in cache).
 func (c *BytesCache) Delete(key []byte) (prev []byte) {
-	hash := uint32(wyhash_HashString(b2s(key), 0))
+	hash := uint32(wyhash_HashBytes(key, 0))
 	// return c.shards[hash&c.mask].Delete(hash, key)
 	return (*bytesshard)(unsafe.Add(unsafe.Pointer(&c.shards[0]), uintptr(hash&c.mask)*unsafe.Sizeof(c.shards[0]))).Delete(hash, key)
 }
@@ -114,4 +113,11 @@ func (c *BytesCache) Stats() (stats Stats) {
 		s.mu.Unlock()
 	}
 	return
+}
+
+func wyhash_HashBytes(data []byte, seed uint64) uint64 {
+	if len(data) == 0 {
+		return seed
+	}
+	return wyhash_hash(*(*string)(unsafe.Pointer(&data)), seed)
 }
