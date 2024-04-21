@@ -3,7 +3,6 @@
 package lru
 
 import (
-	"context"
 	"unsafe"
 )
 
@@ -11,7 +10,6 @@ import (
 type BytesCache struct {
 	shards []bytesshard
 	mask   uint32
-	group  singleflight_Group[string, []byte]
 }
 
 // NewBytesCache creates bytes cache with size capacity.
@@ -33,27 +31,6 @@ func (c *BytesCache) Get(key []byte) (value []byte, ok bool) {
 	hash := uint32(wyhash_HashBytes(key, 0))
 	// return c.shards[hash&c.mask].Get(hash, key)
 	return (*bytesshard)(unsafe.Add(unsafe.Pointer(&c.shards[0]), uintptr(hash&c.mask)*unsafe.Sizeof(c.shards[0]))).Get(hash, key)
-}
-
-// GetOrLoad returns value for key, call loader function by singleflight if value was not in cache.
-func (c *BytesCache) GetOrLoad(ctx context.Context, key []byte, loader func(context.Context, []byte) ([]byte, error)) (value []byte, err error, ok bool) {
-	hash := uint32(wyhash_HashBytes(key, 0))
-	value, ok = c.shards[hash&c.mask].Get(hash, key)
-	if !ok {
-		if loader == nil {
-			err = ErrLoaderIsNil
-			return
-		}
-		value, err, ok = c.group.Do(b2s(key), func() ([]byte, error) {
-			v, err := loader(ctx, key)
-			if err != nil {
-				return v, err
-			}
-			c.shards[hash&c.mask].Set(hash, key, v)
-			return v, nil
-		})
-	}
-	return
 }
 
 // Peek returns value, but does not modify its recency.
