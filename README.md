@@ -353,7 +353,7 @@ func BenchmarkCcacheSetGet(b *testing.B) {
 
 func BenchmarkRistrettoSetGet(b *testing.B) {
 	c := perfbench.Open(b)
-	cache, _ := ristretto.NewCache(&ristretto.Config{
+	cache, _ := ristretto.NewCache(&ristretto.Config[string, int]{
 		NumCounters: 10 * cachesize, // number of keys to track frequency of (10M).
 		MaxCost:     cachesize,      // maximum cost of cache (1M).
 		BufferItems: 64,             // number of keys per Get buffer.
@@ -615,7 +615,7 @@ func SetupEcache(cachesize int) {
 
 func SetupRistretto(cachesize int) {
 	defer debug.SetGCPercent(debug.SetGCPercent(-1))
-	cache, _ := ristretto.NewCache(&ristretto.Config{
+	cache, _ := ristretto.NewCache(&ristretto.Config[string, int]{
 		NumCounters: int64(10 * cachesize), // number of keys to track frequency of (10M).
 		MaxCost:     int64(cachesize),      // maximum cost of cache (1M).
 		BufferItems: 64,                    // number of keys per Get buffer.
@@ -816,7 +816,7 @@ func SetupEcache(cachesize int) {
 }
 
 func SetupRistretto(cachesize int) {
-	cache, _ := ristretto.NewCache(&ristretto.Config{
+	cache, _ := ristretto.NewCache(&ristretto.Config[string, int]{
 		NumCounters: int64(10 * cachesize), // number of keys to track frequency of (10M).
 		MaxCost:     int64(cachesize),      // maximum cost of cache (1M).
 		BufferItems: 64,             // number of keys per Get buffer.
