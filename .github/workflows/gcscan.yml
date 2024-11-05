@@ -1,6 +1,9 @@
 name: gcscan
 
 on:
+  pull_request:
+    paths-ignore:
+      - README.md
   schedule:
     - cron: '0 0 * * *'
   push:
