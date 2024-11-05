@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestBytesCacheDefaultkey(t *testing.T) {
+func TestBytesCacheDefaultKey(t *testing.T) {
 	cache := NewBytesCache(1, 1)
 	var k []byte
 	var i = []byte("42")

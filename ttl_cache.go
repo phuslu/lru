@@ -16,7 +16,7 @@ type TTLCache[K comparable, V any] struct {
 	hasher func(key unsafe.Pointer, seed uintptr) uintptr
 	seed   uintptr
 	loader func(ctx context.Context, key K) (value V, ttl time.Duration, err error)
-	group  singleflight_Group[K, V]
+	group  singleflightGroup[K, V]
 }
 
 // NewTTLCache creates lru cache with size capacity.
@@ -56,7 +56,7 @@ func NewTTLCache[K comparable, V any](size int, options ...Option[K, V]) *TTLCac
 		tablebuckets := make([]uint64, tablesize*(c.mask+1))
 		for i := uint32(0); i <= c.mask; i++ {
 			c.shards[i].list = shardlists[i*(shardsize+1) : (i+1)*(shardsize+1)]
-			c.shards[i].table_buckets = tablebuckets[i*tablesize : (i+1)*tablesize]
+			c.shards[i].tableBuckets = tablebuckets[i*tablesize : (i+1)*tablesize]
 			c.shards[i].Init(shardsize, c.hasher, c.seed)
 		}
 	} else {
@@ -152,10 +152,10 @@ func (c *TTLCache[K, V]) Stats() (stats Stats) {
 	for i := uint32(0); i <= c.mask; i++ {
 		s := &c.shards[i]
 		s.mu.Lock()
-		stats.EntriesCount += uint64(s.table_length)
-		stats.GetCalls += s.stats_getcalls
-		stats.SetCalls += s.stats_setcalls
-		stats.Misses += s.stats_misses
+		stats.EntriesCount += uint64(s.tableLength)
+		stats.GetCalls += s.statsGetCalls
+		stats.SetCalls += s.statsSetCalls
+		stats.Misses += s.statsMisses
 		s.mu.Unlock()
 	}
 	return

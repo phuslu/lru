@@ -97,7 +97,7 @@ func (o *loaderOption[K, V]) applyToLRUCache(c *LRUCache[K, V]) {
 		panic("not_supported")
 	}
 	c.loader = loader
-	c.group = singleflight_Group[K, V]{}
+	c.group = singleflightGroup[K, V]{}
 }
 
 func (o *loaderOption[K, V]) applyToTTLCache(c *TTLCache[K, V]) {
@@ -106,7 +106,7 @@ func (o *loaderOption[K, V]) applyToTTLCache(c *TTLCache[K, V]) {
 		panic("not_supported")
 	}
 	c.loader = loader
-	c.group = singleflight_Group[K, V]{}
+	c.group = singleflightGroup[K, V]{}
 }
 
 func nextPowOf2(n uint32) uint32 {

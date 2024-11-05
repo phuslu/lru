@@ -18,11 +18,11 @@ func TestTTLShardListSet(t *testing.T) {
 	s.Init(1024, getRuntimeHasher[string](), 0)
 
 	key := "foobar"
-	hash := uint32(s.table_hasher(noescape(unsafe.Pointer(&key)), s.table_seed))
+	hash := uint32(s.tableHasher(noescape(unsafe.Pointer(&key)), s.tableSeed))
 
 	s.Set(hash, key, 42, 0)
 
-	if index := s.list_Back(); s.list[index].key == key {
+	if index := s.listBack(); s.list[index].key == key {
 		t.Errorf("foobar should be list back: %v %v", index, s.list[index].key)
 	}
 }
@@ -32,11 +32,11 @@ func TestTTLShardTableSet(t *testing.T) {
 	s.Init(1024, getRuntimeHasher[string](), 0)
 
 	key := "foobar"
-	hash := uint32(s.table_hasher(noescape(unsafe.Pointer(&key)), s.table_seed))
+	hash := uint32(s.tableHasher(noescape(unsafe.Pointer(&key)), s.tableSeed))
 
 	s.Set(hash, key, 42, 0)
 
-	i, ok := s.table_Set(hash, key, 123)
+	i, ok := s.tableSet(hash, key, 123)
 	if v := s.list[i].value; !ok || v != 42 {
 		t.Errorf("foobar should be set to 42: %v %v", i, ok)
 	}
