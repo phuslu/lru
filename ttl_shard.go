@@ -17,6 +17,7 @@ type ttlnode[K comparable, V any] struct {
 	prev    uint32
 	ttl     uint32
 	value   V
+	hit     bool
 }
 
 type ttlbucket struct {
@@ -183,10 +184,11 @@ func (s *ttlshard[K, V]) Set(hash uint32, key K, value V, ttl time.Duration) (pr
 	index := s.list[0].prev
 	node := (*ttlnode[K, V])(unsafe.Add(unsafe.Pointer(&s.list[0]), uintptr(index)*unsafe.Sizeof(s.list[0])))
 	evictedValue := node.value
-	if key != node.key {
+	if key != node.key && node.hit {
 		s.tableDelete(uint32(s.tableHasher(noescape(unsafe.Pointer(&node.key)), s.tableSeed)), node.key)
 	}
 
+	node.hit = true
 	node.key = key
 	node.value = value
 	if ttl > 0 {

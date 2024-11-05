@@ -403,6 +403,31 @@ func TestTTLCacheStats(t *testing.T) {
 	}
 }
 
+func TestGetLength(t *testing.T) {
+	cache := NewTTLCache[int, int](1024)
+
+	for i := 0; i < 1000; i++ {
+		cache.Set(i, i, time.Hour)
+	}
+
+	if got, want := cache.Len(), 1000; got != want {
+		t.Fatalf("bad cache length, got %v, want %v", got, want)
+	}
+}
+
+//func TestGetLengthWithString(t *testing.T) {
+//	cache := NewTTLCache[string, string](1024)
+//
+//	for i := 0; i < 1024; i++ {
+//		s := fmt.Sprintf("hello-%d", i)
+//		cache.Set(s, s, time.Hour)
+//	}
+//
+//	if got, want := cache.Len(), 1024; got != want {
+//		t.Fatalf("bad cache length, got %v, want %v", got, want)
+//	}
+//}
+
 func BenchmarkTTLCacheRand(b *testing.B) {
 	cache := NewTTLCache[int64, int64](8192)
 
