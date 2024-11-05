@@ -6,7 +6,7 @@ import (
 	"unsafe"
 )
 
-func (s *lrushard[K, V]) list_Init(size uint32) {
+func (s *lrushard[K, V]) listInit(size uint32) {
 	size += 1
 	if len(s.list) == 0 {
 		s.list = make([]lrunode[K, V], size)
@@ -17,11 +17,11 @@ func (s *lrushard[K, V]) list_Init(size uint32) {
 	}
 }
 
-func (s *lrushard[K, V]) list_Back() uint32 {
+func (s *lrushard[K, V]) listBack() uint32 {
 	return s.list[0].prev
 }
 
-func (s *lrushard[K, V]) list_MoveToFront(i uint32) {
+func (s *lrushard[K, V]) listMoveToFront(i uint32) {
 	root := &s.list[0]
 	if root.next == i {
 		return
@@ -40,7 +40,7 @@ func (s *lrushard[K, V]) list_MoveToFront(i uint32) {
 	((*lrunode[K, V])(unsafe.Add(base, uintptr(nodei.next)*unsafe.Sizeof(s.list[0])))).prev = i
 }
 
-func (s *lrushard[K, V]) list_MoveToBack(i uint32) {
+func (s *lrushard[K, V]) listMoveToBack(i uint32) {
 	j := s.list[0].prev
 	if i == j {
 		return

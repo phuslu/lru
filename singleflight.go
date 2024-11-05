@@ -6,8 +6,8 @@ package lru
 
 import "sync"
 
-// singleflight_call is an in-flight or completed singleflight.Do singleflight_call
-type singleflight_call[T any] struct {
+// singleflightCall is an in-flight or completed singleflight.Do singleflightCall
+type singleflightCall[T any] struct {
 	wg sync.WaitGroup
 
 	// These fields are written once before the WaitGroup is done
@@ -23,17 +23,9 @@ type singleflight_call[T any] struct {
 
 // Group represents a class of work and forms a namespace in
 // which units of work can be executed with duplicate suppression.
-type singleflight_Group[K comparable, V any] struct {
-	mu sync.Mutex                  // protects m
-	m  map[K]*singleflight_call[V] // lazily initialized
-}
-
-// Result holds the results of Do, so they can be passed
-// on a channel.
-type singleflight_Result[T any] struct {
-	Val    T
-	Err    error
-	Shared bool
+type singleflightGroup[K comparable, V any] struct {
+	mu sync.Mutex                 // protects m
+	m  map[K]*singleflightCall[V] // lazily initialized
 }
 
 // Do executes and returns the results of the given function, making
@@ -41,10 +33,10 @@ type singleflight_Result[T any] struct {
 // time. If a duplicate comes in, the duplicate singleflight_caller waits for the
 // original to complete and receives the same results.
 // The return value shared indicates whether v was given to multiple singleflight_callers.
-func (g *singleflight_Group[K, V]) Do(key K, fn func() (V, error)) (v V, err error, shared bool) {
+func (g *singleflightGroup[K, V]) Do(key K, fn func() (V, error)) (v V, err error, shared bool) {
 	g.mu.Lock()
 	if g.m == nil {
-		g.m = make(map[K]*singleflight_call[V])
+		g.m = make(map[K]*singleflightCall[V])
 	}
 	if c, ok := g.m[key]; ok {
 		c.dups++
@@ -52,7 +44,7 @@ func (g *singleflight_Group[K, V]) Do(key K, fn func() (V, error)) (v V, err err
 		c.wg.Wait()
 		return c.val, c.err, true
 	}
-	c := new(singleflight_call[V])
+	c := new(singleflightCall[V])
 	c.wg.Add(1)
 	g.m[key] = c
 	g.mu.Unlock()
@@ -61,8 +53,8 @@ func (g *singleflight_Group[K, V]) Do(key K, fn func() (V, error)) (v V, err err
 	return c.val, c.err, c.dups > 0
 }
 
-// doCall handles the single singleflight_call for a key.
-func (g *singleflight_Group[K, V]) doCall(c *singleflight_call[V], key K, fn func() (V, error)) {
+// doCall handles the single singleflightCall for a key.
+func (g *singleflightGroup[K, V]) doCall(c *singleflightCall[V], key K, fn func() (V, error)) {
 	c.val, c.err = fn()
 	c.wg.Done()
 

@@ -20,44 +20,44 @@ type bytesbucket struct {
 	index uint32 // node index
 }
 
-// bytesshard is a LRU partition contains a list and a hash table.
+// bytesshard is an LRU partition contains a list and a hash table.
 type bytesshard struct {
 	mu sync.Mutex
 
-	// the hash table, with 20% extra space than the list for fewer conflicts.
-	table_buckets []uint64 // []bytesbucket
-	table_mask    uint32
-	table_length  uint32
+	// the hash table, with 20% extra spacer than the list for fewer conflicts.
+	tableBuckets []uint64 // []bytesbucket
+	tableMask    uint32
+	tableLength  uint32
 
 	// the list of nodes
 	list []bytesnode
 
 	// stats
-	stats_getcalls uint64
-	stats_setcalls uint64
-	stats_misses   uint64
+	statsGetCalls uint64
+	statsSetCalls uint64
+	statsMisses   uint64
 
 	// padding
 	_ [40]byte
 }
 
 func (s *bytesshard) Init(size uint32) {
-	s.list_Init(size)
-	s.table_Init(size)
+	s.listInit(size)
+	s.tableInit(size)
 }
 
 func (s *bytesshard) Get(hash uint32, key []byte) (value []byte, ok bool) {
 	s.mu.Lock()
 
-	s.stats_getcalls++
+	s.statsGetCalls++
 
-	if index, exists := s.table_Get(hash, key); exists {
-		s.list_MoveToFront(index)
+	if index, exists := s.tableGet(hash, key); exists {
+		s.listMoveToFront(index)
 		// value = s.list[index].value
 		value = (*bytesnode)(unsafe.Add(unsafe.Pointer(&s.list[0]), uintptr(index)*unsafe.Sizeof(s.list[0]))).value
 		ok = true
 	} else {
-		s.stats_misses++
+		s.statsMisses++
 	}
 
 	s.mu.Unlock()
@@ -68,7 +68,7 @@ func (s *bytesshard) Get(hash uint32, key []byte) (value []byte, ok bool) {
 func (s *bytesshard) Peek(hash uint32, key []byte) (value []byte, ok bool) {
 	s.mu.Lock()
 
-	if index, exists := s.table_Get(hash, key); exists {
+	if index, exists := s.tableGet(hash, key); exists {
 		value = s.list[index].value
 		ok = true
 	}
@@ -81,25 +81,25 @@ func (s *bytesshard) Peek(hash uint32, key []byte) (value []byte, ok bool) {
 func (s *bytesshard) SetIfAbsent(hash uint32, key []byte, value []byte) (prev []byte, replaced bool) {
 	s.mu.Lock()
 
-	if index, exists := s.table_Get(hash, key); exists {
+	if index, exists := s.tableGet(hash, key); exists {
 		prev = s.list[index].value
 		s.mu.Unlock()
 		return
 	}
 
-	s.stats_setcalls++
+	s.statsSetCalls++
 
 	// index := s.list_Back()
 	// node := &s.list[index]
 	index := s.list[0].prev
 	node := (*bytesnode)(unsafe.Add(unsafe.Pointer(&s.list[0]), uintptr(index)*unsafe.Sizeof(s.list[0])))
 	evictedValue := node.value
-	s.table_Delete(uint32(wyhash_HashBytes(node.key, 0)), node.key)
+	s.tableDelete(uint32(wyhashHashbytes(node.key, 0)), node.key)
 
 	node.key = key
 	node.value = value
-	s.table_Set(hash, key, index)
-	s.list_MoveToFront(index)
+	s.tableSet(hash, key, index)
+	s.listMoveToFront(index)
 	prev = evictedValue
 
 	s.mu.Unlock()
@@ -109,13 +109,13 @@ func (s *bytesshard) SetIfAbsent(hash uint32, key []byte, value []byte) (prev []
 func (s *bytesshard) Set(hash uint32, key []byte, value []byte) (prev []byte, replaced bool) {
 	s.mu.Lock()
 
-	s.stats_setcalls++
+	s.statsSetCalls++
 
-	if index, exists := s.table_Get(hash, key); exists {
+	if index, exists := s.tableGet(hash, key); exists {
 		// node := &s.list[index]
 		node := (*bytesnode)(unsafe.Add(unsafe.Pointer(&s.list[0]), uintptr(index)*unsafe.Sizeof(s.list[0])))
 		previousValue := node.value
-		s.list_MoveToFront(index)
+		s.listMoveToFront(index)
 		node.value = value
 		prev = previousValue
 		replaced = true
@@ -129,12 +129,12 @@ func (s *bytesshard) Set(hash uint32, key []byte, value []byte) (prev []byte, re
 	index := s.list[0].prev
 	node := (*bytesnode)(unsafe.Add(unsafe.Pointer(&s.list[0]), uintptr(index)*unsafe.Sizeof(s.list[0])))
 	evictedValue := node.value
-	s.table_Delete(uint32(wyhash_HashBytes(node.key, 0)), node.key)
+	s.tableDelete(uint32(wyhashHashbytes(node.key, 0)), node.key)
 
 	node.key = key
 	node.value = value
-	s.table_Set(hash, key, index)
-	s.list_MoveToFront(index)
+	s.tableSet(hash, key, index)
+	s.listMoveToFront(index)
 	prev = evictedValue
 
 	s.mu.Unlock()
@@ -144,12 +144,12 @@ func (s *bytesshard) Set(hash uint32, key []byte, value []byte) (prev []byte, re
 func (s *bytesshard) Delete(hash uint32, key []byte) (v []byte) {
 	s.mu.Lock()
 
-	if index, exists := s.table_Get(hash, key); exists {
+	if index, exists := s.tableGet(hash, key); exists {
 		node := &s.list[index]
 		value := node.value
-		s.list_MoveToBack(index)
+		s.listMoveToBack(index)
 		node.value = v
-		s.table_Delete(hash, key)
+		s.tableDelete(hash, key)
 		v = value
 	}
 
@@ -161,7 +161,7 @@ func (s *bytesshard) Delete(hash uint32, key []byte) (v []byte) {
 func (s *bytesshard) Len() (n uint32) {
 	s.mu.Lock()
 	// inlining s.table_Len()
-	n = s.table_length
+	n = s.tableLength
 	s.mu.Unlock()
 
 	return
@@ -169,7 +169,7 @@ func (s *bytesshard) Len() (n uint32) {
 
 func (s *bytesshard) AppendKeys(dst [][]byte) [][]byte {
 	s.mu.Lock()
-	for _, bucket := range s.table_buckets {
+	for _, bucket := range s.tableBuckets {
 		b := (*bytesbucket)(unsafe.Pointer(&bucket))
 		if b.index == 0 {
 			continue

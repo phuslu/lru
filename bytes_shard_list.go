@@ -6,7 +6,7 @@ import (
 	"unsafe"
 )
 
-func (s *bytesshard) list_Init(size uint32) {
+func (s *bytesshard) listInit(size uint32) {
 	size += 1
 	if len(s.list) == 0 {
 		s.list = make([]bytesnode, size)
@@ -17,11 +17,11 @@ func (s *bytesshard) list_Init(size uint32) {
 	}
 }
 
-func (s *bytesshard) list_Back() uint32 {
+func (s *bytesshard) listBack() uint32 {
 	return s.list[0].prev
 }
 
-func (s *bytesshard) list_MoveToFront(i uint32) {
+func (s *bytesshard) listMoveToFront(i uint32) {
 	root := &s.list[0]
 	if root.next == i {
 		return
@@ -40,7 +40,7 @@ func (s *bytesshard) list_MoveToFront(i uint32) {
 	((*bytesnode)(unsafe.Add(base, uintptr(nodei.next)*unsafe.Sizeof(s.list[0])))).prev = i
 }
 
-func (s *bytesshard) list_MoveToBack(i uint32) {
+func (s *bytesshard) listMoveToBack(i uint32) {
 	j := s.list[0].prev
 	if i == j {
 		return
