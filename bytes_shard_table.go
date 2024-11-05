@@ -35,7 +35,7 @@ func (s *bytesshard) tableSet(hash uint32, key []byte, index uint32) (prev uint3
 	subhash := hash >> dibBitSize
 	hdib := subhash<<dibBitSize | uint32(1)&maxDIB
 	mask := s.tableMask
-	i := (hdib >> dibBitSize) & mask
+	i := subhash & mask
 	b0 := unsafe.Pointer(&s.tableBuckets[0])
 	l0 := unsafe.Pointer(&s.list[0])
 	for {
