@@ -1,7 +1,9 @@
 package lru
 
 import (
+	"fmt"
 	"testing"
+	"time"
 	"unsafe"
 )
 
@@ -39,5 +41,42 @@ func TestLRUShardTableSet(t *testing.T) {
 	i, ok := s.tableSet(hash, key, 123)
 	if v := s.list[i].value; !ok || v != 42 {
 		t.Errorf("foobar should be set to 42: %v %v", i, ok)
+	}
+}
+
+func TestLRUCacheLengthWithZeroValue(t *testing.T) {
+	cache := NewTTLCache[string, string](128, WithShards[string, string](1))
+
+	cache.Set("", "", time.Hour)
+	cache.Set("1", "1", time.Hour)
+
+	if got, want := cache.Len(), 2; got != want {
+		t.Fatalf("curent cache length %v should be %v", got, want)
+	}
+
+	for i := 2; i < 128; i++ {
+		k := fmt.Sprintf("%d", i)
+		if _, replace := cache.Set(k, k, time.Hour); replace {
+			t.Fatalf("key %v should not be replaced", k)
+		}
+	}
+
+	if l := cache.Len(); l != 128 {
+		t.Fatalf("cache length %v should be 128", l)
+	}
+
+	for i := 128; i < 256; i++ {
+		k := fmt.Sprintf("%d", i)
+		v := ""
+		if i-128 > 0 {
+			v = fmt.Sprintf("%d", i-128)
+		}
+		if prev, _ := cache.Set(k, k, time.Hour); prev != v {
+			t.Fatalf("value %v should be evicted", prev)
+		}
+	}
+
+	if l := cache.Len(); l != 128 {
+		t.Fatalf("cache length %v should be 128", l)
 	}
 }
