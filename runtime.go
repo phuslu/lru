@@ -20,7 +20,7 @@
 // build tag "go1.18 && !go1.23" defines the range [go1.18, go1.23) (inclusive
 // on go1.18, exclusive on go1.23).
 
-//go:build go1.18 && !go1.24
+//go:build go1.18 && !go1.25
 
 package lru
 
