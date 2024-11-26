@@ -12,10 +12,12 @@ jobs:
   benchmark:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/setup-go@v5
-        with:
-          go-version: '1.23.2'
-          check-latest: true
+      - name: install go tip
+        run: |
+          curl --head https://github.com/phuslu/go/releases/download/v0.0.0/gotip.linux-amd64.tar.xz
+          curl -sSLf https://github.com/phuslu/go/releases/download/v0.0.0/gotip.linux-amd64.tar.xz | tar xJ -C .
+          sudo mv go /usr/local/go
+          sudo ln -sf /usr/local/go/bin/go /usr/bin/go
       - uses: actions/checkout@v4
       - name: go mod tidy
         run: |
