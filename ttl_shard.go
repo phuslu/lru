@@ -183,7 +183,9 @@ func (s *ttlshard[K, V]) Set(hash uint32, key K, value V, ttl time.Duration) (pr
 	index := s.list[0].prev
 	node := (*ttlnode[K, V])(unsafe.Add(unsafe.Pointer(&s.list[0]), uintptr(index)*unsafe.Sizeof(s.list[0])))
 	evictedValue := node.value
-	if key != node.key {
+
+	// delete the old key if the list is full, note that the list length is size+1
+	if len(s.list)-1 < int(s.tableLength+1) && key != node.key {
 		s.tableDelete(uint32(s.tableHasher(noescape(unsafe.Pointer(&node.key)), s.tableSeed)), node.key)
 	}
 

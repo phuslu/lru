@@ -73,6 +73,37 @@ func TestTTLCacheGetSet(t *testing.T) {
 	}
 }
 
+func TestTTLCacheLengthWithZeroValue(t *testing.T) {
+	cache := NewTTLCache[int, int](128, WithShards[int, int](1))
+
+	cache.Set(0, 0, time.Hour)
+	cache.Set(1, 1, time.Hour)
+
+	if got, want := cache.Len(), 2; got != want {
+		t.Fatalf("curent cache length %v should be %v", got, want)
+	}
+
+	for i := 2; i < 128; i++ {
+		if _, replace := cache.Set(i, i, time.Hour); replace {
+			t.Fatalf("no value should be replaced")
+		}
+	}
+
+	if l := cache.Len(); l != 128 {
+		t.Fatalf("cache length %v should be 128", l)
+	}
+
+	for i := 128; i < 256; i++ {
+		if prev, _ := cache.Set(i, i, time.Hour); prev != i-128 {
+			t.Fatalf("value %v should be evicted", prev)
+		}
+	}
+
+	if l := cache.Len(); l != 128 {
+		t.Fatalf("cache length %v should be 128", l)
+	}
+}
+
 func TestTTLCacheSetIfAbsent(t *testing.T) {
 	cache := NewTTLCache[int, int](128)
 
