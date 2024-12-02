@@ -435,66 +435,35 @@ func BenchmarkOtterSetGet(b *testing.B) {
 ```
 </details>
 
-with randomly read (90%) and randomly write(10%)
+with 95% [zipf](https://ieeexplore.ieee.org/document/749260) reads and 5% randomly writes:
 ```
 goos: linux
 goarch: amd64
 cpu: AMD EPYC 7763 64-Core Processor                
 BenchmarkHashicorpSetGet
-BenchmarkHashicorpSetGet-8    	12812018	       551.7 ns/op	       2 B/op	       0 allocs/op
+BenchmarkHashicorpSetGet-8    	14216642	       437.8 ns/op	       1 B/op	       0 allocs/op
 BenchmarkCloudflareSetGet
-BenchmarkCloudflareSetGet-8   	40555947	       193.4 ns/op	      16 B/op	       1 allocs/op
+BenchmarkCloudflareSetGet-8   	48545095	       138.4 ns/op	      16 B/op	       1 allocs/op
 BenchmarkEcacheSetGet
-BenchmarkEcacheSetGet-8       	51143671	       137.4 ns/op	       2 B/op	       0 allocs/op
+BenchmarkEcacheSetGet-8       	58657796	       111.3 ns/op	       1 B/op	       0 allocs/op
 BenchmarkLxzanSetGet
-BenchmarkLxzanSetGet-8        	49087316	       149.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkLxzanSetGet-8        	58624521	       108.2 ns/op	       0 B/op	       0 allocs/op
 BenchmarkFreelruSetGet
-BenchmarkFreelruSetGet-8      	56792978	       136.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkFreelruSetGet-8      	57877179	       114.8 ns/op	       0 B/op	       0 allocs/op
 BenchmarkPhusluSetGet
-BenchmarkPhusluSetGet-8       	68453722	       107.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPhusluSetGet-8       	80641694	        84.63 ns/op	       0 B/op	       0 allocs/op
 BenchmarkNoTTLSetGet
-BenchmarkNoTTLSetGet-8        	70937752	       100.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkNoTTLSetGet-8        	82049758	        81.10 ns/op	       0 B/op	       0 allocs/op
 BenchmarkCcacheSetGet
-BenchmarkCcacheSetGet-8       	20497290	       398.3 ns/op	      33 B/op	       2 allocs/op
+BenchmarkCcacheSetGet-8       	15654375	       341.5 ns/op	      25 B/op	       2 allocs/op
 BenchmarkRistrettoSetGet
-BenchmarkRistrettoSetGet-8    	43891279	       119.3 ns/op	      11 B/op	       0 allocs/op
+BenchmarkRistrettoSetGet-8    	55431110	       111.9 ns/op	       8 B/op	       0 allocs/op
 BenchmarkTheineSetGet
-BenchmarkTheineSetGet-8       	31571217	       209.4 ns/op	       3 B/op	       0 allocs/op
+BenchmarkTheineSetGet-8       	38325188	       145.9 ns/op	       2 B/op	       0 allocs/op
 BenchmarkOtterSetGet
-BenchmarkOtterSetGet-8        	57040723	       139.8 ns/op	       8 B/op	       0 allocs/op
+BenchmarkOtterSetGet-8        	70208274	        93.29 ns/op	       4 B/op	       0 allocs/op
 PASS
-ok  	command-line-arguments	111.510s
-```
-
-with zipfian read (99%) and randomly write(1%)
-```
-goos: linux
-goarch: amd64
-cpu: AMD EPYC 7763 64-Core Processor                
-BenchmarkHashicorpSetGet
-BenchmarkHashicorpSetGet-8    	15919035	       376.2 ns/op	       0 B/op	       0 allocs/op
-BenchmarkCloudflareSetGet
-BenchmarkCloudflareSetGet-8   	53066322	       121.4 ns/op	      16 B/op	       1 allocs/op
-BenchmarkEcacheSetGet
-BenchmarkEcacheSetGet-8       	62513349	        97.02 ns/op	       0 B/op	       0 allocs/op
-BenchmarkLxzanSetGet
-BenchmarkLxzanSetGet-8        	63570199	        95.26 ns/op	       0 B/op	       0 allocs/op
-BenchmarkFreelruSetGet
-BenchmarkFreelruSetGet-8      	59656036	       103.1 ns/op	       0 B/op	       0 allocs/op
-BenchmarkPhusluSetGet
-BenchmarkPhusluSetGet-8       	86247986	        72.97 ns/op	       0 B/op	       0 allocs/op
-BenchmarkNoTTLSetGet
-BenchmarkNoTTLSetGet-8        	86648599	        69.10 ns/op	       0 B/op	       0 allocs/op
-BenchmarkCcacheSetGet
-BenchmarkCcacheSetGet-8       	23900656	       263.9 ns/op	      21 B/op	       2 allocs/op
-BenchmarkRistrettoSetGet
-BenchmarkRistrettoSetGet-8    	63938320	        93.84 ns/op	       4 B/op	       0 allocs/op
-BenchmarkTheineSetGet
-BenchmarkTheineSetGet-8       	61027147	       102.2 ns/op	       0 B/op	       0 allocs/op
-BenchmarkOtterSetGet
-BenchmarkOtterSetGet-8        	80983778	        72.15 ns/op	       1 B/op	       0 allocs/op
-PASS
-ok  	command-line-arguments	100.932s
+ok  	command-line-arguments	106.169s
 ```
 
 ### GC scan
