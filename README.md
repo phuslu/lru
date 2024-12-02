@@ -55,7 +55,7 @@ func main() {
 
 ### Throughput benchmarks
 
-*Disclaimer: This have been testing on the busy GitHub runners with 8 vCPUs and the results may be very different from your real environment. see https://github.com/phuslu/lru/issues/14*
+*Disclaimer: This have been testing on my 3 environments and the results may be very different from yours. see https://github.com/phuslu/lru/issues/14*
 
 A Performance result as below. Check github [benchmark][benchmark] action for more results and details.
 <details>
@@ -435,7 +435,9 @@ func BenchmarkOtterSetGet(b *testing.B) {
 ```
 </details>
 
-with 95% [zipf](https://ieeexplore.ieee.org/document/749260) reads and 5% randomly writes:
+Run with 95% [zipf](https://ieeexplore.ieee.org/document/749260) reads and 5% randomly writes.
+
+**In github actions:**
 ```
 goos: linux
 goarch: amd64
@@ -464,6 +466,68 @@ BenchmarkOtterSetGet
 BenchmarkOtterSetGet-8        	70208274	        93.29 ns/op	       4 B/op	       0 allocs/op
 PASS
 ok  	command-line-arguments	106.169s
+```
+
+**In my windows laptop:**
+```
+goos: windows
+goarch: amd64
+cpu: 11th Gen Intel(R) Core(TM) i5-1135G7 @ 2.40GHz
+BenchmarkHashicorpSetGet
+BenchmarkHashicorpSetGet-8      17376360               570.8 ns/op             0 B/op          0 allocs/op
+BenchmarkCloudflareSetGet
+BenchmarkCloudflareSetGet-8     74426450                92.55 ns/op           16 B/op          1 allocs/op
+BenchmarkEcacheSetGet
+BenchmarkEcacheSetGet-8         88482524                78.37 ns/op            1 B/op          0 allocs/op
+BenchmarkLxzanSetGet
+BenchmarkLxzanSetGet-8          74142448                90.51 ns/op            0 B/op          0 allocs/op
+BenchmarkFreelruSetGet
+BenchmarkFreelruSetGet-8        80740551                88.70 ns/op            0 B/op          0 allocs/op
+BenchmarkPhusluSetGet
+BenchmarkPhusluSetGet-8         97101519                65.88 ns/op            0 B/op          0 allocs/op
+BenchmarkNoTTLSetGet
+BenchmarkNoTTLSetGet-8          92839735                65.27 ns/op            0 B/op          0 allocs/op
+BenchmarkCcacheSetGet
+BenchmarkCcacheSetGet-8         25047673               350.2 ns/op            25 B/op          2 allocs/op
+BenchmarkRistrettoSetGet
+BenchmarkRistrettoSetGet-8      90289784                81.44 ns/op           22 B/op          1 allocs/op
+BenchmarkTheineSetGet
+BenchmarkTheineSetGet-8         57348163               114.3 ns/op             0 B/op          0 allocs/op
+BenchmarkOtterSetGet
+BenchmarkOtterSetGet-8          100000000               65.72 ns/op            4 B/op          0 allocs/op
+PASS
+ok      command-line-arguments  104.553s
+```
+
+**In an idle 48c256g server:**
+```
+goos: linux
+goarch: amd64
+cpu: Intel(R) Xeon(R) Silver 4116 CPU @ 2.10GHz
+BenchmarkHashicorpSetGet
+BenchmarkHashicorpSetGet-8    	 6939919	       762.1 ns/op	       1 B/op	       0 allocs/op
+BenchmarkCloudflareSetGet
+BenchmarkCloudflareSetGet-8   	47835366	       141.1 ns/op	      16 B/op	       1 allocs/op
+BenchmarkEcacheSetGet
+BenchmarkEcacheSetGet-8       	64053291	        94.14 ns/op	       1 B/op	       0 allocs/op
+BenchmarkLxzanSetGet
+BenchmarkLxzanSetGet-8        	54651466	       115.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkFreelruSetGet
+BenchmarkFreelruSetGet-8      	46037301	       130.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPhusluSetGet
+BenchmarkPhusluSetGet-8       	67405720	        91.43 ns/op	       0 B/op	       0 allocs/op
+BenchmarkNoTTLSetGet
+BenchmarkNoTTLSetGet-8        	67561371	        85.05 ns/op	       0 B/op	       0 allocs/op
+BenchmarkCcacheSetGet
+BenchmarkCcacheSetGet-8       	12946960	       499.0 ns/op	      25 B/op	       2 allocs/op
+BenchmarkRistrettoSetGet
+BenchmarkRistrettoSetGet-8    	58647771	       103.5 ns/op	      23 B/op	       1 allocs/op
+BenchmarkTheineSetGet
+BenchmarkTheineSetGet-8       	15404998	       381.8 ns/op	       2 B/op	       0 allocs/op
+BenchmarkOtterSetGet
+BenchmarkOtterSetGet-8        	70728278	        88.09 ns/op	       4 B/op	       0 allocs/op
+PASS
+ok  	command-line-arguments	117.662s
 ```
 
 ### GC scan
