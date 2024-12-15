@@ -62,7 +62,7 @@ A Performance result as below. Check github [benchmark][benchmark] action for mo
   <summary>go1.24 benchmark on keysize=16, itemsize=1000000, cachesize=50%, concurrency=8</summary>
 
 ```go
-// env writeratio=0.1 zipfian=false go test -v -cpu=8 -run=none -bench=. -benchtime=5s -benchmem bench_test.go
+// env writeratio=0.05 go test -v -cpu=8 -run=none -bench=. -benchtime=5s -benchmem bench_test.go
 package bench
 
 import (
@@ -88,7 +88,6 @@ import (
 	otter "github.com/maypok86/otter"
 	ecache "github.com/orca-zhang/ecache"
 	phuslu "github.com/phuslu/lru"
-	"github.com/aclements/go-perfevent/perfbench"
 )
 
 const (
@@ -97,7 +96,6 @@ const (
 )
 
 var writeratio, _ = strconv.ParseFloat(os.Getenv("writeratio"), 64)
-var zipfian, _ = strconv.ParseBool(os.Getenv("zipfian"))
 
 type CheapRand struct {
 	Seed uint64
@@ -135,14 +133,12 @@ var keys = func() (x []string) {
 }()
 
 func BenchmarkHashicorpSetGet(b *testing.B) {
-	c := perfbench.Open(b)
 	cache := hashicorp.NewLRU[string, int](cachesize, nil, time.Hour)
 	for i := range cachesize/2 {
 		cache.Add(keys[i], i)
 	}
 
 	b.ResetTimer()
-	c.Reset()
 	b.RunParallel(func(pb *testing.PB) {
 		threshold := uint32(float64(^uint32(0)) * writeratio)
 		cheaprand := &CheapRand{uint64(time.Now().UnixNano())}
@@ -151,17 +147,14 @@ func BenchmarkHashicorpSetGet(b *testing.B) {
 			if threshold > 0 && cheaprand.Uint32() <= threshold {
 				i := int(cheaprand.Uint32n(cachesize))
 				cache.Add(keys[i], i)
-			} else if zipfian {
-				cache.Get(keys[zipf.Uint64()])
 			} else {
-				cache.Get(keys[cheaprand.Uint32n(cachesize)])
+				cache.Get(keys[zipf.Uint64()])
 			}
 		}
 	})
 }
 
 func BenchmarkCloudflareSetGet(b *testing.B) {
-	c := perfbench.Open(b)
 	cache := cloudflare.NewMultiLRUCache(uint(shardcount), uint(cachesize/shardcount))
 	for i := range cachesize/2 {
 		cache.Set(keys[i], i, time.Now().Add(time.Hour))
@@ -169,7 +162,6 @@ func BenchmarkCloudflareSetGet(b *testing.B) {
 	expires := time.Now().Add(time.Hour)
 
 	b.ResetTimer()
-	c.Reset()
 	b.RunParallel(func(pb *testing.PB) {
 		threshold := uint32(float64(^uint32(0)) * writeratio)
 		cheaprand := &CheapRand{uint64(time.Now().UnixNano())}
@@ -178,24 +170,20 @@ func BenchmarkCloudflareSetGet(b *testing.B) {
 			if threshold > 0 && cheaprand.Uint32() <= threshold {
 				i := int(cheaprand.Uint32n(cachesize))
 				cache.Set(keys[i], i, expires)
-			} else if zipfian {
-				cache.Get(keys[zipf.Uint64()])
 			} else {
-				cache.Get(keys[cheaprand.Uint32n(cachesize)])
+				cache.Get(keys[zipf.Uint64()])
 			}
 		}
 	})
 }
 
 func BenchmarkEcacheSetGet(b *testing.B) {
-	c := perfbench.Open(b)
 	cache := ecache.NewLRUCache(uint16(shardcount), uint16(cachesize/shardcount), time.Hour)
 	for i := range cachesize/2 {
 		cache.Put(keys[i], i)
 	}
 
 	b.ResetTimer()
-	c.Reset()
 	b.RunParallel(func(pb *testing.PB) {
 		threshold := uint32(float64(^uint32(0)) * writeratio)
 		cheaprand := &CheapRand{uint64(time.Now().UnixNano())}
@@ -204,17 +192,14 @@ func BenchmarkEcacheSetGet(b *testing.B) {
 			if threshold > 0 && cheaprand.Uint32() <= threshold {
 				i := int(cheaprand.Uint32n(cachesize))
 				cache.Put(keys[i], i)
-			} else if zipfian {
-				cache.Get(keys[zipf.Uint64()])
 			} else {
-				cache.Get(keys[cheaprand.Uint32n(cachesize)])
+				cache.Get(keys[zipf.Uint64()])
 			}
 		}
 	})
 }
 
 func BenchmarkLxzanSetGet(b *testing.B) {
-	c := perfbench.Open(b)
 	cache := lxzan.New[string, int](
 		lxzan.WithBucketNum(shardcount),
 		lxzan.WithBucketSize(cachesize/shardcount, cachesize/shardcount),
@@ -225,7 +210,6 @@ func BenchmarkLxzanSetGet(b *testing.B) {
 	}
 
 	b.ResetTimer()
-	c.Reset()
 	b.RunParallel(func(pb *testing.PB) {
 		threshold := uint32(float64(^uint32(0)) * writeratio)
 		cheaprand := &CheapRand{uint64(time.Now().UnixNano())}
@@ -234,10 +218,8 @@ func BenchmarkLxzanSetGet(b *testing.B) {
 			if threshold > 0 && cheaprand.Uint32() <= threshold {
 				i := int(cheaprand.Uint32n(cachesize))
 				cache.Set(keys[i], i, time.Hour)
-			} else if zipfian {
-				cache.Get(keys[zipf.Uint64()])
 			} else {
-				cache.Get(keys[cheaprand.Uint32n(cachesize)])
+				cache.Get(keys[zipf.Uint64()])
 			}
 		}
 	})
@@ -248,14 +230,12 @@ func hashStringXXHASH(s string) uint32 {
 }
 
 func BenchmarkFreelruSetGet(b *testing.B) {
-	c := perfbench.Open(b)
 	cache, _ := freelru.NewSharded[string, int](cachesize, hashStringXXHASH)
 	for i := range cachesize/2 {
 		cache.AddWithLifetime(keys[i], i, time.Hour)
 	}
 
 	b.ResetTimer()
-	c.Reset()
 	b.RunParallel(func(pb *testing.PB) {
 		threshold := uint32(float64(^uint32(0)) * writeratio)
 		cheaprand := &CheapRand{uint64(time.Now().UnixNano())}
@@ -264,24 +244,20 @@ func BenchmarkFreelruSetGet(b *testing.B) {
 			if threshold > 0 && cheaprand.Uint32() <= threshold {
 				i := int(cheaprand.Uint32n(cachesize))
 				cache.AddWithLifetime(keys[i], i, time.Hour)
-			} else if zipfian {
-				cache.Get(keys[zipf.Uint64()])
 			} else {
-				cache.Get(keys[cheaprand.Uint32n(cachesize)])
+				cache.Get(keys[zipf.Uint64()])
 			}
 		}
 	})
 }
 
 func BenchmarkPhusluSetGet(b *testing.B) {
-	c := perfbench.Open(b)
 	cache := phuslu.NewTTLCache[string, int](cachesize, phuslu.WithShards[string, int](uint32(shardcount)))
 	for i := range cachesize/2 {
 		cache.Set(keys[i], i, time.Hour)
 	}
 
 	b.ResetTimer()
-	c.Reset()
 	b.RunParallel(func(pb *testing.PB) {
 		threshold := uint32(float64(^uint32(0)) * writeratio)
 		cheaprand := &CheapRand{uint64(time.Now().UnixNano())}
@@ -290,24 +266,20 @@ func BenchmarkPhusluSetGet(b *testing.B) {
 			if threshold > 0 && cheaprand.Uint32() <= threshold {
 				i := int(cheaprand.Uint32n(cachesize))
 				cache.Set(keys[i], i, time.Hour)
-			} else if zipfian {
-				cache.Get(keys[zipf.Uint64()])
 			} else {
-				cache.Get(keys[cheaprand.Uint32n(cachesize)])
+				cache.Get(keys[zipf.Uint64()])
 			}
 		}
 	})
 }
 
 func BenchmarkNoTTLSetGet(b *testing.B) {
-	c := perfbench.Open(b)
 	cache := phuslu.NewLRUCache[string, int](cachesize, phuslu.WithShards[string, int](uint32(shardcount)))
 	for i := range cachesize/2 {
 		cache.Set(keys[i], i)
 	}
 
 	b.ResetTimer()
-	c.Reset()
 	b.RunParallel(func(pb *testing.PB) {
 		threshold := uint32(float64(^uint32(0)) * writeratio)
 		cheaprand := &CheapRand{uint64(time.Now().UnixNano())}
@@ -316,24 +288,20 @@ func BenchmarkNoTTLSetGet(b *testing.B) {
 			if threshold > 0 && cheaprand.Uint32() <= threshold {
 				i := int(cheaprand.Uint32n(cachesize))
 				cache.Set(keys[i], i)
-			} else if zipfian {
-				cache.Get(keys[zipf.Uint64()])
 			} else {
-				cache.Get(keys[cheaprand.Uint32n(cachesize)])
+				cache.Get(keys[zipf.Uint64()])
 			}
 		}
 	})
 }
 
 func BenchmarkCcacheSetGet(b *testing.B) {
-	c := perfbench.Open(b)
 	cache := ccache.New(ccache.Configure[int]().MaxSize(cachesize).ItemsToPrune(100))
 	for i := range cachesize/2 {
 		cache.Set(keys[i], i, time.Hour)
 	}
 
 	b.ResetTimer()
-	c.Reset()
 	b.RunParallel(func(pb *testing.PB) {
 		threshold := uint32(float64(^uint32(0)) * writeratio)
 		cheaprand := &CheapRand{uint64(time.Now().UnixNano())}
@@ -342,17 +310,14 @@ func BenchmarkCcacheSetGet(b *testing.B) {
 			if threshold > 0 && cheaprand.Uint32() <= threshold {
 				i := int(cheaprand.Uint32n(cachesize))
 				cache.Set(keys[i], i, time.Hour)
-			} else if zipfian {
-				cache.Get(keys[zipf.Uint64()])
 			} else {
-				cache.Get(keys[cheaprand.Uint32n(cachesize)])
+				cache.Get(keys[zipf.Uint64()])
 			}
 		}
 	})
 }
 
 func BenchmarkRistrettoSetGet(b *testing.B) {
-	c := perfbench.Open(b)
 	cache, _ := ristretto.NewCache(&ristretto.Config[string, int]{
 		NumCounters: 10 * cachesize, // number of keys to track frequency of (10M).
 		MaxCost:     cachesize,      // maximum cost of cache (1M).
@@ -363,7 +328,6 @@ func BenchmarkRistrettoSetGet(b *testing.B) {
 	}
 
 	b.ResetTimer()
-	c.Reset()
 	b.RunParallel(func(pb *testing.PB) {
 		threshold := uint32(float64(^uint32(0)) * writeratio)
 		cheaprand := &CheapRand{uint64(time.Now().UnixNano())}
@@ -372,24 +336,20 @@ func BenchmarkRistrettoSetGet(b *testing.B) {
 			if threshold > 0 && cheaprand.Uint32() <= threshold {
 				i := int(cheaprand.Uint32n(cachesize))
 				cache.SetWithTTL(keys[i], i, 1, time.Hour)
-			} else if zipfian {
-				cache.Get(keys[zipf.Uint64()])
 			} else {
-				cache.Get(keys[cheaprand.Uint32n(cachesize)])
+				cache.Get(keys[zipf.Uint64()])
 			}
 		}
 	})
 }
 
 func BenchmarkTheineSetGet(b *testing.B) {
-	c := perfbench.Open(b)
 	cache, _ := theine.NewBuilder[string, int](cachesize).Build()
 	for i := range cachesize/2 {
 		cache.SetWithTTL(keys[i], i, 1, time.Hour)
 	}
 
 	b.ResetTimer()
-	c.Reset()
 	b.RunParallel(func(pb *testing.PB) {
 		threshold := uint32(float64(^uint32(0)) * writeratio)
 		cheaprand := &CheapRand{uint64(time.Now().UnixNano())}
@@ -398,24 +358,20 @@ func BenchmarkTheineSetGet(b *testing.B) {
 			if threshold > 0 && cheaprand.Uint32() <= threshold {
 				i := int(cheaprand.Uint32n(cachesize))
 				cache.SetWithTTL(keys[i], i, 1, time.Hour)
-			} else if zipfian {
-				cache.Get(keys[zipf.Uint64()])
 			} else {
-				cache.Get(keys[cheaprand.Uint32n(cachesize)])
+				cache.Get(keys[zipf.Uint64()])
 			}
 		}
 	})
 }
 
 func BenchmarkOtterSetGet(b *testing.B) {
-	c := perfbench.Open(b)
 	cache, _ := otter.MustBuilder[string, int](cachesize).WithVariableTTL().Build()
 	for i := range cachesize/2 {
 		cache.Set(keys[i], i, time.Hour)
 	}
 
 	b.ResetTimer()
-	c.Reset()
 	b.RunParallel(func(pb *testing.PB) {
 		threshold := uint32(float64(^uint32(0)) * writeratio)
 		cheaprand := &CheapRand{uint64(time.Now().UnixNano())}
@@ -424,10 +380,8 @@ func BenchmarkOtterSetGet(b *testing.B) {
 			if threshold > 0 && cheaprand.Uint32() <= threshold {
 				i := int(cheaprand.Uint32n(cachesize))
 				cache.Set(keys[i], i, time.Hour)
-			} else if zipfian {
-				cache.Get(keys[zipf.Uint64()])
 			} else {
-				cache.Get(keys[cheaprand.Uint32n(cachesize)])
+				cache.Get(keys[zipf.Uint64()])
 			}
 		}
 	})
@@ -918,9 +872,7 @@ func SetupHashicorp(cachesize int) {
 | cloudflare | 16 MB  | 33 MB  | 64 MB  | 183 MB  | 358 MB  | 716 MB  |
 | ccache     | 16 MB  | 32 MB  | 65 MB  | 182 MB  | 365 MB  | 730 MB  |
 | hashicorp  | 18 MB  | 37 MB  | 57 MB  | 241 MB  | 484 MB  | 967 MB  |
-- nottl saves 20% memory usage compared to phuslu by removing its ttl functionality, resulting in a slight increase in throughput.
-- ristretto employs a questionable usage pattern due to its rejection of items via a bloom filter, resulting in a lower hit ratio.
-- freelru overcommits the cache size to the next power of 2, leading to higher memory usage particularly at larger cache sizes.
+- nottl is the phuslu/lru version without ttl functionality, resulting in 20% memory saving and a slight increase in throughput.
 
 ### Hit ratio
 It is a classic sharded LRU implementation, so the hit ratio is comparable to or slightly lower than a regular LRU.
