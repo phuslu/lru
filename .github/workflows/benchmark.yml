@@ -31,5 +31,5 @@ jobs:
       - name: Throughput benchmarks
         working-directory: ./bench
         run: |
-          # env writeratio=0.05 zipfian=false go test -v -cpu=8 -run=none -bench=. -benchtime=5s -benchmem bench_test.go
-          env writeratio=0.05 zipfian=true  go test -v -cpu=8 -run=none -bench=. -benchtime=5s -benchmem bench_test.go
+          env writeratio=0.05 zipfian=true go test -v -cpu=8 -run=none -bench=. -benchtime=5s -benchmem bench_test.go
+          env writeratio=0.5 zipfian=true go test -v -cpu=8 -run=none -bench=. -benchtime=5s -benchmem bench_test.go
