@@ -85,7 +85,7 @@ import (
 	hashicorp "github.com/hashicorp/golang-lru/v2/expirable"
 	ccache "github.com/karlseguin/ccache/v3"
 	lxzan "github.com/lxzan/memorycache"
-	otter "github.com/maypok86/otter"
+	otter "github.com/maypok86/otter/v2"
 	ecache "github.com/orca-zhang/ecache"
 	phuslu "github.com/phuslu/lru"
 )
@@ -366,9 +366,10 @@ func BenchmarkTheineSetGet(b *testing.B) {
 }
 
 func BenchmarkOtterSetGet(b *testing.B) {
-	cache, _ := otter.MustBuilder[string, int](cachesize).WithVariableTTL().Build()
+	cache := otter.Must[string, int](&otter.Options[string, int]{MaximumSize: cachesize, InitialCapacity: cachesize})
 	for i := range cachesize/2 {
-		cache.Set(keys[i], i, time.Hour)
+		cache.Set(keys[i], i)
+		cache.SetExpiresAfter(keys[i], time.Hour)
 	}
 
 	b.ResetTimer()
@@ -379,9 +380,10 @@ func BenchmarkOtterSetGet(b *testing.B) {
 		for pb.Next() {
 			if threshold > 0 && cheaprand.Uint32() <= threshold {
 				i := int(cheaprand.Uint32n(cachesize))
-				cache.Set(keys[i], i, time.Hour)
+				cache.Set(keys[i], i)
+				// cache.SetExpiresAfter(keys[i], time.Hour)
 			} else {
-				cache.Get(keys[zipf.Uint64()])
+				cache.GetEntry(keys[zipf.Uint64()])
 			}
 		}
 	})
@@ -481,7 +483,7 @@ import (
 	hashicorp "github.com/hashicorp/golang-lru/v2/expirable"
 	ccache "github.com/karlseguin/ccache/v3"
 	lxzan "github.com/lxzan/memorycache"
-	otter "github.com/maypok86/otter"
+	otter "github.com/maypok86/otter/v2"
 	ecache "github.com/orca-zhang/ecache"
 	phuslu "github.com/phuslu/lru"
 )
@@ -553,11 +555,12 @@ func SetupFreelru(cachesize int) {
 
 func SetupOtter(cachesize int) {
 	defer debug.SetGCPercent(debug.SetGCPercent(-1))
-	cache, _ := otter.MustBuilder[string, int](cachesize).WithVariableTTL().Build()
+	cache := otter.Must[string, int](&otter.Options[string, int]{MaximumSize: cachesize, InitialCapacity: cachesize})
 	runtime.GC()
 	for range repeat {
 		for i := range cachesize {
-			cache.Set(keys[i], i, time.Hour)
+			cache.Set(keys[i], i)
+			cache.SetExpiresAfter(keys[i], time.Hour)
 		}
 		runtime.GC()
 	}
@@ -696,7 +699,7 @@ import (
 	hashicorp "github.com/hashicorp/golang-lru/v2/expirable"
 	ccache "github.com/karlseguin/ccache/v3"
 	lxzan "github.com/lxzan/memorycache"
-	otter "github.com/maypok86/otter"
+	otter "github.com/maypok86/otter/v2"
 	ecache "github.com/orca-zhang/ecache"
 	phuslu "github.com/phuslu/lru"
 )
@@ -765,9 +768,10 @@ func SetupFreelru(cachesize int) {
 }
 
 func SetupOtter(cachesize int) {
-	cache, _ := otter.MustBuilder[string, int](cachesize).WithVariableTTL().Build()
+	cache := otter.Must[string, int](&otter.Options[string, int]{MaximumSize: cachesize, InitialCapacity: cachesize})
 	for i := range cachesize {
-		cache.Set(keys[i], i, time.Hour)
+		cache.Set(keys[i], i)
+		cache.SetExpiresAfter(keys[i], time.Hour)
 	}
 }
 
