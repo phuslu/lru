@@ -296,7 +296,7 @@ func BenchmarkNoTTLSetGet(b *testing.B) {
 }
 
 func BenchmarkCcacheSetGet(b *testing.B) {
-	cache := ccache.New(ccache.Configure[int]().MaxSize(cachesize).ItemsToPrune(100))
+	cache := ccache.New(ccache.Configure[int]().MaxSize(cachesize).PercentToPrune(2))
 	for i := range cachesize/2 {
 		cache.Set(keys[i], i, time.Hour)
 	}
@@ -633,7 +633,7 @@ func SetupCloudflare(cachesize int) {
 
 func SetupCcache(cachesize int) {
 	defer debug.SetGCPercent(debug.SetGCPercent(-1))
-	cache := ccache.New(ccache.Configure[int]().MaxSize(int64(cachesize)).ItemsToPrune(100))
+	cache := ccache.New(ccache.Configure[int]().MaxSize(int64(cachesize)).PercentToPrune(2))
 	runtime.GC()
 	for range repeat {
 		for i := range cachesize {
@@ -815,7 +815,7 @@ func SetupCloudflare(cachesize int) {
 }
 
 func SetupCcache(cachesize int) {
-	cache := ccache.New(ccache.Configure[int]().MaxSize(int64(cachesize)).ItemsToPrune(100))
+	cache := ccache.New(ccache.Configure[int]().MaxSize(int64(cachesize)).PercentToPrune(2))
 	for i := range cachesize {
 		cache.Set(keys[i], i, time.Hour)
 	}
