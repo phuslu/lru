@@ -397,31 +397,31 @@ Run with 95% [zipf](https://ieeexplore.ieee.org/document/749260) reads and 5% ra
 ```
 goos: linux
 goarch: amd64
-cpu: Intel(R) Xeon(R) Platinum 8370C CPU @ 2.80GHz
+cpu: AMD EPYC 7763 64-Core Processor                
 BenchmarkHashicorpSetGet
-BenchmarkHashicorpSetGet-8    	14784658	       408.8 ns/op	       1 B/op	       0 allocs/op
+BenchmarkHashicorpSetGet-8    	15681344	       399.3 ns/op	       1 B/op	       0 allocs/op
 BenchmarkCloudflareSetGet
-BenchmarkCloudflareSetGet-8   	45193423	       147.9 ns/op	      16 B/op	       1 allocs/op
+BenchmarkCloudflareSetGet-8   	47933211	       148.0 ns/op	      16 B/op	       1 allocs/op
 BenchmarkEcacheSetGet
-BenchmarkEcacheSetGet-8       	53977297	       110.6 ns/op	       1 B/op	       0 allocs/op
+BenchmarkEcacheSetGet-8       	57997934	       116.5 ns/op	       1 B/op	       0 allocs/op
 BenchmarkLxzanSetGet
-BenchmarkLxzanSetGet-8        	54021969	       119.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkLxzanSetGet-8        	54299068	       119.1 ns/op	       0 B/op	       0 allocs/op
 BenchmarkFreelruSetGet
-BenchmarkFreelruSetGet-8      	49838839	       127.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkFreelruSetGet-8      	55203379	       125.1 ns/op	       0 B/op	       0 allocs/op
 BenchmarkPhusluSetGet
-BenchmarkPhusluSetGet-8       	65636838	        95.92 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPhusluSetGet-8       	80402804	        87.95 ns/op	       0 B/op	       0 allocs/op
 BenchmarkNoTTLSetGet
-BenchmarkNoTTLSetGet-8        	63718528	        94.74 ns/op	       0 B/op	       0 allocs/op
+BenchmarkNoTTLSetGet-8        	81338269	        84.30 ns/op	       0 B/op	       0 allocs/op
 BenchmarkCcacheSetGet
-BenchmarkCcacheSetGet-8       	16515969	       355.7 ns/op	      24 B/op	       2 allocs/op
+BenchmarkCcacheSetGet-8       	16862114	       380.9 ns/op	      25 B/op	       2 allocs/op
 BenchmarkRistrettoSetGet
-BenchmarkRistrettoSetGet-8    	45619378	       121.1 ns/op	       9 B/op	       0 allocs/op
+BenchmarkRistrettoSetGet-8    	56174217	       111.5 ns/op	       7 B/op	       0 allocs/op
 BenchmarkTheineSetGet
-BenchmarkTheineSetGet-8       	41601319	       154.1 ns/op	       2 B/op	       0 allocs/op
+BenchmarkTheineSetGet-8       	40886586	       155.6 ns/op	       2 B/op	       0 allocs/op
 BenchmarkOtterSetGet
-BenchmarkOtterSetGet-8        	53661380	       116.1 ns/op	       2 B/op	       0 allocs/op
+BenchmarkOtterSetGet-8        	59850220	       112.6 ns/op	       2 B/op	       0 allocs/op
 PASS
-ok  	command-line-arguments	104.003s
+ok  	command-line-arguments	98.578s
 ```
 
 Run with 50% [zipf](https://ieeexplore.ieee.org/document/749260) reads and 50% randomly writes.
@@ -430,31 +430,31 @@ Run with 50% [zipf](https://ieeexplore.ieee.org/document/749260) reads and 50% r
 ```
 goos: linux
 goarch: amd64
-cpu: Intel(R) Xeon(R) Platinum 8370C CPU @ 2.80GHz
+cpu: AMD EPYC 7763 64-Core Processor                
 BenchmarkHashicorpSetGet
-BenchmarkHashicorpSetGet-8    	10055010	       659.4 ns/op	      15 B/op	       0 allocs/op
+BenchmarkHashicorpSetGet-8    	 9043500	       697.7 ns/op	      16 B/op	       0 allocs/op
 BenchmarkCloudflareSetGet
-BenchmarkCloudflareSetGet-8   	29860940	       244.1 ns/op	      19 B/op	       1 allocs/op
+BenchmarkCloudflareSetGet-8   	28131974	       261.3 ns/op	      19 B/op	       1 allocs/op
 BenchmarkEcacheSetGet
-BenchmarkEcacheSetGet-8       	42450729	       152.9 ns/op	      12 B/op	       1 allocs/op
+BenchmarkEcacheSetGet-8       	42224235	       153.9 ns/op	      11 B/op	       0 allocs/op
 BenchmarkLxzanSetGet
-BenchmarkLxzanSetGet-8        	40703728	       154.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkLxzanSetGet-8        	39217646	       167.4 ns/op	       0 B/op	       0 allocs/op
 BenchmarkFreelruSetGet
-BenchmarkFreelruSetGet-8      	45791876	       144.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkFreelruSetGet-8      	48139408	       147.5 ns/op	       0 B/op	       0 allocs/op
 BenchmarkPhusluSetGet
-BenchmarkPhusluSetGet-8       	67341148	       101.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPhusluSetGet-8       	64223384	       108.1 ns/op	       0 B/op	       0 allocs/op
 BenchmarkNoTTLSetGet
-BenchmarkNoTTLSetGet-8        	65592075	        96.54 ns/op	       0 B/op	       0 allocs/op
+BenchmarkNoTTLSetGet-8        	68454303	       103.6 ns/op	       0 B/op	       0 allocs/op
 BenchmarkCcacheSetGet
-BenchmarkCcacheSetGet-8       	 9073083	       686.8 ns/op	      71 B/op	       3 allocs/op
+BenchmarkCcacheSetGet-8       	11340600	       579.3 ns/op	      78 B/op	       3 allocs/op
 BenchmarkRistrettoSetGet
-BenchmarkRistrettoSetGet-8    	35455358	       164.1 ns/op	      46 B/op	       0 allocs/op
+BenchmarkRistrettoSetGet-8    	40628869	       171.4 ns/op	      46 B/op	       0 allocs/op
 BenchmarkTheineSetGet
-BenchmarkTheineSetGet-8       	17042918	       344.7 ns/op	       6 B/op	       0 allocs/op
+BenchmarkTheineSetGet-8       	17249444	       356.3 ns/op	       6 B/op	       0 allocs/op
 BenchmarkOtterSetGet
-BenchmarkOtterSetGet-8        	18315037	       430.9 ns/op	      24 B/op	       0 allocs/op
+BenchmarkOtterSetGet-8        	23655249	       354.4 ns/op	      24 B/op	       0 allocs/op
 PASS
-ok  	command-line-arguments	115.130s
+ok  	command-line-arguments	104.668s
 ```
 
 ### GC scan
@@ -662,17 +662,17 @@ func SetupHashicorp(cachesize int) {
 
 | GCScan     | 100000 | 200000 | 400000 | 1000000 |
 | ---------- | ------ | ------ | ------ | ------- |
-| ristretto  | 2 ms   | 4 ms   | 7 ms   | 13 ms   |
-| nottl      | 2 ms   | 4 ms   | 9 ms   | 21 ms   |
-| phuslu     | 2 ms   | 5 ms   | 9 ms   | 19 ms   |
-| freelru    | 2 ms   | 5 ms   | 9 ms   | 17 ms   |
-| lxzan      | 3 ms   | 6 ms   | 12 ms  | 27 ms   |
-| otter      | 5 ms   | 10 ms  | 19 ms  | 44 ms   |
-| ccache     | 6 ms   | 13 ms  | 28 ms  | 59 ms   |
-| cloudflare | 7 ms   | 13 ms  | 25 ms  | 63 ms   |
-| theine     | 8 ms   | 14 ms  | 30 ms  | 66 ms   |
-| ecache     | 6 ms   | 11 ms  | 24 ms  | 74 ms   |
-| hashicorp  | 9 ms   | 18 ms  | 29 ms  | 80 ms   |
+| ristretto  | 1 ms   | 2 ms   | 3 ms   | 7 ms    |
+| nottl      | 1 ms   | 2 ms   | 4 ms   | 10 ms   |
+| phuslu     | 1 ms   | 2 ms   | 4 ms   | 10 ms   |
+| freelru    | 1 ms   | 2 ms   | 4 ms   | 13 ms   |
+| lxzan      | 1 ms   | 3 ms   | 6 ms   | 14 ms   |
+| otter      | 3 ms   | 6 ms   | 11 ms  | 31 ms   |
+| ecache     | 3 ms   | 6 ms   | 12 ms  | 34 ms   |
+| ccache     | 3 ms   | 7 ms   | 14 ms  | 38 ms   |
+| theine     | 4 ms   | 8 ms   | 16 ms  | 46 ms   |
+| cloudflare | 4 ms   | 9 ms   | 18 ms  | 49 ms   |
+| hashicorp  | 5 ms   | 11 ms  | 23 ms  | 65 ms   |
 
 ### Memory usage
 
@@ -836,17 +836,17 @@ func SetupHashicorp(cachesize int) {
 
 |            | 100000 | 200000 | 400000 | 1000000 | 2000000 | 4000000 |
 | ---------- | ------ | ------ | ------ | ------- | ------- | ------- |
-| nottl      | 3 MB   | 6 MB   | 13 MB  | 39 MB   | 77 MB   | 154 MB  |
+| nottl      | 3 MB   | 6 MB   | 13 MB  | 38 MB   | 77 MB   | 154 MB  |
 | phuslu     | 4 MB   | 8 MB   | 16 MB  | 46 MB   | 92 MB   | 185 MB  |
-| ristretto  | 13 MB  | 11 MB  | 21 MB  | 57 MB   | 142 MB  | 271 MB  |
-| otter      | 7 MB   | 14 MB  | 28 MB  | 79 MB   | 157 MB  | 315 MB  |
-| lxzan      | 8 MB   | 18 MB  | 35 MB  | 101 MB  | 202 MB  | 404 MB  |
+| ristretto  | 8 MB   | 12 MB  | 28 MB  | 79 MB   | 152 MB  | 292 MB  |
+| otter      | 7 MB   | 14 MB  | 28 MB  | 79 MB   | 158 MB  | 314 MB  |
+| lxzan      | 8 MB   | 17 MB  | 35 MB  | 101 MB  | 202 MB  | 403 MB  |
 | freelru    | 6 MB   | 13 MB  | 27 MB  | 112 MB  | 224 MB  | 448 MB  |
-| ecache     | 11 MB  | 22 MB  | 45 MB  | 128 MB  | 257 MB  | 505 MB  |
-| ccache     | 12 MB  | 24 MB  | 52 MB  | 140 MB  | 284 MB  | 567 MB  |
-| theine     | 14 MB  | 28 MB  | 57 MB  | 154 MB  | 305 MB  | 615 MB  |
-| cloudflare | 15 MB  | 31 MB  | 62 MB  | 180 MB  | 353 MB  | 706 MB  |
-| hashicorp  | 13 MB  | 33 MB  | 54 MB  | 220 MB  | 443 MB  | 907 MB  |
+| ecache     | 11 MB  | 22 MB  | 45 MB  | 128 MB  | 256 MB  | 505 MB  |
+| theine     | 14 MB  | 28 MB  | 58 MB  | 156 MB  | 314 MB  | 620 MB  |
+| ccache     | 14 MB  | 29 MB  | 59 MB  | 161 MB  | 329 MB  | 658 MB  |
+| cloudflare | 15 MB  | 31 MB  | 62 MB  | 180 MB  | 352 MB  | 705 MB  |
+| hashicorp  | 16 MB  | 27 MB  | 55 MB  | 228 MB  | 455 MB  | 910 MB  |
 - nottl is the phuslu/lru version without ttl functionality, resulting in 20% memory saving and a slight increase in throughput.
 
 ### Hit ratio
