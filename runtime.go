@@ -17,8 +17,8 @@
 // bumping of the go versions supported by adjusting the build tags below. The
 // way go version tags work the tag for goX.Y will be declared for every
 // subsequent release. So go1.18 will be defined for go1.21, go1.22, etc. The
-// build tag "go1.18 && !go1.23" defines the range [go1.18, go1.23) (inclusive
-// on go1.18, exclusive on go1.23).
+// build tag "go1.18 && !go1.27" defines the range [go1.18, go1.27) (inclusive
+// on go1.18, exclusive on go1.27).
 
 //go:build go1.18
 
