@@ -2,6 +2,28 @@
 
 [![godoc][godoc-img]][godoc] [![release][release-img]][release] [![goreport][goreport-img]][goreport] [![codecov][codecov-img]][codecov]
 
+### Overview
+
+This package is for Go services that want predictable LRU behavior without the
+cost of a traditional Go LRU implementation. LRU is still a practical policy
+for many hot-path caches; the common bottleneck is often the Go shape around it:
+a map plus linked list creates heap objects, pointer chasing, GC scan work, and
+extra indirection on every access.
+
+The cache behavior stays simple and synchronous. A hit updates recency
+immediately, and a set is visible immediately. There is no background admission
+queue, delayed write path, or hidden policy work behind the API.
+
+The implementation is built around Go's runtime costs: fixed-size shards,
+array-backed lists, compact hash tables, low pointer density, and no per-entry
+allocation. The goal is to keep classic LRU semantics while making the data
+layout cheap enough for foreground hot paths.
+
+`BytesCache` serves the same goal for byte-oriented servers. Many network paths
+already parse keys and values as `[]byte`; forcing those paths through `string`
+conversion can move the real cost outside the cache benchmark. The byte path is
+zero-copy and assumes cached slices are treated as immutable.
+
 ### Features
 
 * Simple
