@@ -82,6 +82,17 @@ func TestBytesCacheSetIfAbsent(t *testing.T) {
 	}
 }
 
+func TestBytesCacheSetPreservesNilKey(t *testing.T) {
+	cache := NewBytesCache(1, 128)
+
+	cache.Set(nil, []byte("nil"))
+	cache.Set([]byte("a"), []byte("a"))
+
+	if v, ok := cache.Get(nil); !ok || b2s(v) != "nil" {
+		t.Fatalf("nil key should remain cached: %q, %v", v, ok)
+	}
+}
+
 func TestBytesCacheEviction(t *testing.T) {
 	cache := NewBytesCache(128, 256)
 	if cache.mask+1 != uint32(cap(cache.shards)) {

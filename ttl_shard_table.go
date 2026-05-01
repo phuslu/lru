@@ -70,17 +70,20 @@ func (s *ttlshard[K, V]) tableGet(hash uint32, key K) (index uint32, ok bool) {
 	subhash := hash >> dibBitSize
 	mask := s.tableMask
 	i := subhash & mask
+	dib := uint32(1)
 	b0 := unsafe.Pointer(&s.tableBuckets[0])
 	l0 := unsafe.Pointer(&s.list[0])
 	for {
 		b := (*ttlbucket)(unsafe.Add(b0, uintptr(i)*8))
-		if b.hdib&maxDIB == 0 {
+		bdib := b.hdib & maxDIB
+		if bdib == 0 || bdib < dib {
 			return
 		}
 		if b.hdib>>dibBitSize == subhash && (*ttlnode[K, V])(unsafe.Add(l0, uintptr(b.index)*unsafe.Sizeof(s.list[0]))).key == key {
 			return b.index, true
 		}
 		i = (i + 1) & mask
+		dib++
 	}
 }
 
@@ -90,11 +93,13 @@ func (s *ttlshard[K, V]) tableDelete(hash uint32, key K) (v uint32, ok bool) {
 	subhash := hash >> dibBitSize
 	mask := s.tableMask
 	i := subhash & mask
+	dib := uint32(1)
 	b0 := unsafe.Pointer(&s.tableBuckets[0])
 	l0 := unsafe.Pointer(&s.list[0])
 	for {
 		b := (*ttlbucket)(unsafe.Add(b0, uintptr(i)*8))
-		if b.hdib&maxDIB == 0 {
+		bdib := b.hdib & maxDIB
+		if bdib == 0 || bdib < dib {
 			return
 		}
 		if b.hdib>>dibBitSize == subhash && (*ttlnode[K, V])(unsafe.Add(l0, uintptr(b.index)*unsafe.Sizeof(s.list[0]))).key == key {
@@ -103,6 +108,7 @@ func (s *ttlshard[K, V]) tableDelete(hash uint32, key K) (v uint32, ok bool) {
 			return old, true
 		}
 		i = (i + 1) & mask
+		dib++
 	}
 }
 

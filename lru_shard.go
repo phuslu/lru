@@ -96,7 +96,9 @@ func (s *lrushard[K, V]) SetIfAbsent(hash uint32, key K, value V) (prev V, repla
 	index := s.list[0].prev
 	node := (*lrunode[K, V])(unsafe.Add(unsafe.Pointer(&s.list[0]), uintptr(index)*unsafe.Sizeof(s.list[0])))
 	evictedValue := node.value
-	s.tableDelete(uint32(s.tableHasher(noescape(unsafe.Pointer(&node.key)), s.tableSeed)), node.key)
+	if uint32(len(s.list)-1) <= s.tableLength && key != node.key {
+		s.tableDelete(uint32(s.tableHasher(noescape(unsafe.Pointer(&node.key)), s.tableSeed)), node.key)
+	}
 
 	node.key = key
 	node.value = value

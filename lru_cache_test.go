@@ -108,6 +108,17 @@ func TestLRUCacheSetIfAbsent(t *testing.T) {
 	}
 }
 
+func TestLRUCacheSetIfAbsentPreservesZeroKey(t *testing.T) {
+	cache := NewLRUCache[string, int](128, WithShards[string, int](1))
+
+	cache.Set("", 1)
+	cache.SetIfAbsent("a", 2)
+
+	if v, ok := cache.Get(""); !ok || v != 1 {
+		t.Fatalf("zero key should remain cached: %v, %v", v, ok)
+	}
+}
+
 func TestLRUCacheEviction(t *testing.T) {
 	cache := NewLRUCache[int, *int](256, WithShards[int, *int](1024))
 	if cache.mask+1 != uint32(cap(cache.shards)) {

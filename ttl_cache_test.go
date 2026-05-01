@@ -160,6 +160,32 @@ func TestTTLCacheSetIfAbsent(t *testing.T) {
 	}
 }
 
+func TestTTLCacheSetClearsPreviousTTL(t *testing.T) {
+	cache := NewTTLCache[string, int](1, WithShards[string, int](1))
+
+	cache.Set("a", 1, time.Hour)
+	cache.Set("a", 2, 0)
+	if v, expires, ok := cache.Peek("a"); !ok || v != 2 || expires != 0 {
+		t.Fatalf("updated key should be permanent: value=%v expires=%v ok=%v", v, expires, ok)
+	}
+
+	cache.Set("b", 3, 0)
+	if v, expires, ok := cache.Peek("b"); !ok || v != 3 || expires != 0 {
+		t.Fatalf("reused node should be permanent: value=%v expires=%v ok=%v", v, expires, ok)
+	}
+}
+
+func TestTTLCacheSetIfAbsentPreservesZeroKey(t *testing.T) {
+	cache := NewTTLCache[string, int](128, WithShards[string, int](1))
+
+	cache.Set("", 1, time.Hour)
+	cache.SetIfAbsent("a", 2, time.Hour)
+
+	if v, ok := cache.Get(""); !ok || v != 1 {
+		t.Fatalf("zero key should remain cached: %v, %v", v, ok)
+	}
+}
+
 func TestTTLCacheEviction(t *testing.T) {
 	cache := NewTTLCache[int, *int](256, WithShards[int, *int](1024))
 	if cache.mask+1 != uint32(cap(cache.shards)) {
