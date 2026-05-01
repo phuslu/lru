@@ -246,7 +246,7 @@ func TestTTLCacheEviction(t *testing.T) {
 }
 
 func TestTTLCachePeek(t *testing.T) {
-	cache := NewTTLCache[int, int](64)
+	cache := NewTTLCache[int, int](64, WithShards[int, int](1))
 
 	cache.Set(10, 10, 0)
 	cache.Set(20, 20, time.Hour)

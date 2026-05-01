@@ -226,10 +226,11 @@ func TestBytesCacheStats(t *testing.T) {
 
 func BenchmarkBytesCacheRand(b *testing.B) {
 	cache := NewBytesCache(1, 8192)
+	keys, values := newBytesBenchmarkItems(32768)
 
-	trace := make([]int64, b.N*2)
+	trace := make([]uint32, b.N*2)
 	for i := 0; i < b.N*2; i++ {
-		trace[i] = rand.Int63() % 32768
+		trace[i] = uint32(rand.Intn(len(keys)))
 	}
 
 	b.ReportAllocs()
@@ -237,10 +238,11 @@ func BenchmarkBytesCacheRand(b *testing.B) {
 
 	var hit, miss int
 	for i := 0; i < 2*b.N; i++ {
+		index := trace[i]
 		if i%2 == 0 {
-			cache.Set([]byte(fmt.Sprint(trace[i])), []byte(fmt.Sprint(trace[i])))
+			cache.Set(keys[index], values[index])
 		} else {
-			if _, ok := cache.Get([]byte(fmt.Sprint(trace[i]))); ok {
+			if _, ok := cache.Get(keys[index]); ok {
 				hit++
 			} else {
 				miss++
@@ -252,13 +254,14 @@ func BenchmarkBytesCacheRand(b *testing.B) {
 
 func BenchmarkBytesCacheFreq(b *testing.B) {
 	cache := NewBytesCache(1, 8192)
+	keys, values := newBytesBenchmarkItems(32768)
 
-	trace := make([]int64, b.N*2)
+	trace := make([]uint32, b.N*2)
 	for i := 0; i < b.N*2; i++ {
 		if i%2 == 0 {
-			trace[i] = rand.Int63() % 16384
+			trace[i] = uint32(rand.Intn(len(keys) / 2))
 		} else {
-			trace[i] = rand.Int63() % 32768
+			trace[i] = uint32(rand.Intn(len(keys)))
 		}
 	}
 
@@ -266,15 +269,27 @@ func BenchmarkBytesCacheFreq(b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		cache.Set([]byte(fmt.Sprint(trace[i])), []byte(fmt.Sprint(trace[i])))
+		index := trace[i]
+		cache.Set(keys[index], values[index])
 	}
 	var hit, miss int
 	for i := 0; i < b.N; i++ {
-		if _, ok := cache.Get([]byte(fmt.Sprint(trace[i]))); ok {
+		if _, ok := cache.Get(keys[trace[i]]); ok {
 			hit++
 		} else {
 			miss++
 		}
 	}
 	b.Logf("hit: %d miss: %d ratio: %f", hit, miss, float64(hit)/float64(hit+miss))
+}
+
+func newBytesBenchmarkItems(n int) (keys [][]byte, values [][]byte) {
+	keys = make([][]byte, n)
+	values = make([][]byte, n)
+	for i := 0; i < n; i++ {
+		item := []byte(fmt.Sprint(i))
+		keys[i] = item
+		values[i] = item
+	}
+	return keys, values
 }

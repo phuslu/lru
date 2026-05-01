@@ -179,7 +179,7 @@ func TestLRUCacheEviction(t *testing.T) {
 }
 
 func TestLRUCachePeek(t *testing.T) {
-	cache := NewLRUCache[int, int](64)
+	cache := NewLRUCache[int, int](64, WithShards[int, int](1))
 
 	cache.Set(10, 10)
 	cache.Set(20, 20)
