@@ -38,8 +38,8 @@ func (s *ttlshard[K, V]) tableSet(hash uint32, key K, index uint32) (prev uint32
 	hdib := subhash<<dibBitSize | uint32(1)&maxDIB
 	mask := s.tableMask
 	i := subhash & mask
-	b0 := unsafe.Pointer(&s.tableBuckets[0])
-	l0 := unsafe.Pointer(&s.list[0])
+	b0 := unsafe.Pointer(unsafe.SliceData(s.tableBuckets))
+	l0 := unsafe.Pointer(unsafe.SliceData(s.list))
 	for {
 		b := (*ttlbucket)(unsafe.Add(b0, uintptr(i)*8))
 		if b.hdib&maxDIB == 0 {
@@ -71,8 +71,8 @@ func (s *ttlshard[K, V]) tableGet(hash uint32, key K) (index uint32, ok bool) {
 	mask := s.tableMask
 	i := subhash & mask
 	dib := uint32(1)
-	b0 := unsafe.Pointer(&s.tableBuckets[0])
-	l0 := unsafe.Pointer(&s.list[0])
+	b0 := unsafe.Pointer(unsafe.SliceData(s.tableBuckets))
+	l0 := unsafe.Pointer(unsafe.SliceData(s.list))
 	for {
 		b := (*ttlbucket)(unsafe.Add(b0, uintptr(i)*8))
 		bdib := b.hdib & maxDIB
@@ -94,8 +94,8 @@ func (s *ttlshard[K, V]) tableDelete(hash uint32, key K) (v uint32, ok bool) {
 	mask := s.tableMask
 	i := subhash & mask
 	dib := uint32(1)
-	b0 := unsafe.Pointer(&s.tableBuckets[0])
-	l0 := unsafe.Pointer(&s.list[0])
+	b0 := unsafe.Pointer(unsafe.SliceData(s.tableBuckets))
+	l0 := unsafe.Pointer(unsafe.SliceData(s.list))
 	for {
 		b := (*ttlbucket)(unsafe.Add(b0, uintptr(i)*8))
 		bdib := b.hdib & maxDIB
@@ -114,7 +114,7 @@ func (s *ttlshard[K, V]) tableDelete(hash uint32, key K) (v uint32, ok bool) {
 
 func (s *ttlshard[K, V]) tableDeleteByIndex(i uint32) {
 	mask := s.tableMask
-	b0 := unsafe.Pointer(&s.tableBuckets[0])
+	b0 := unsafe.Pointer(unsafe.SliceData(s.tableBuckets))
 	bi := (*ttlbucket)(unsafe.Add(b0, uintptr(i)*8))
 	bi.hdib = bi.hdib>>dibBitSize<<dibBitSize | uint32(0)&maxDIB
 	for {

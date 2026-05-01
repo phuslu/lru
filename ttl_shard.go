@@ -60,23 +60,21 @@ func (s *ttlshard[K, V]) Get(hash uint32, key K) (value V, ok bool) {
 	s.statsGetCalls++
 
 	if index, exists := s.tableGet(hash, key); exists {
-		if expires := s.list[index].expires; expires == 0 {
+		node := (*ttlnode[K, V])(unsafe.Add(unsafe.Pointer(unsafe.SliceData(s.list)), uintptr(index)*unsafe.Sizeof(ttlnode[K, V]{})))
+		if expires := node.expires; expires == 0 {
 			s.listMoveToFront(index)
-			// value = s.list[index].value
-			value = (*ttlnode[K, V])(unsafe.Add(unsafe.Pointer(&s.list[0]), uintptr(index)*unsafe.Sizeof(s.list[0]))).value
+			value = node.value
 			ok = true
 		} else if now := atomic.LoadUint32(&clock); now < expires {
 			if s.sliding {
-				s.list[index].expires = now + s.list[index].ttl
+				node.expires = now + node.ttl
 			}
 			s.listMoveToFront(index)
-			// value = s.list[index].value
-			value = (*ttlnode[K, V])(unsafe.Add(unsafe.Pointer(&s.list[0]), uintptr(index)*unsafe.Sizeof(s.list[0]))).value
+			value = node.value
 			ok = true
 		} else {
 			s.listMoveToBack(index)
-			// s.list[index].value = value
-			(*ttlnode[K, V])(unsafe.Add(unsafe.Pointer(&s.list[0]), uintptr(index)*unsafe.Sizeof(s.list[0]))).value = value
+			node.value = value
 			s.tableDelete(hash, key)
 			s.statsMisses++
 		}
