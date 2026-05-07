@@ -2,6 +2,7 @@ package lru_test
 
 import (
 	"context"
+	"fmt"
 	"time"
 	"unsafe"
 
@@ -20,7 +21,10 @@ func ExampleWithHasher() {
 	cache := lru.NewTTLCache[string, int](4096, lru.WithHasher[string, int](hasher))
 
 	cache.Set("foobar", 42, 3*time.Second)
-	println(cache.Get("foobar"))
+	fmt.Println(cache.Get("foobar"))
+
+	// Output:
+	// 42 true
 }
 
 func ExampleWithLoader() {
@@ -30,19 +34,30 @@ func ExampleWithLoader() {
 
 	cache := lru.NewTTLCache[string, int](4096, lru.WithLoader[string, int](loader))
 
-	println(cache.Get("a"))
-	println(cache.Get("b"))
-	println(cache.GetOrLoad(context.Background(), "a", nil))
-	println(cache.GetOrLoad(context.Background(), "b", func(context.Context, string) (int, time.Duration, error) { return 100, 0, nil }))
-	println(cache.Get("a"))
-	println(cache.Get("b"))
+	fmt.Println(cache.Get("a"))
+	fmt.Println(cache.Get("b"))
+	fmt.Println(cache.GetOrLoad(context.Background(), "a", nil))
+	fmt.Println(cache.GetOrLoad(context.Background(), "b", func(context.Context, string) (int, time.Duration, error) { return 100, 0, nil }))
+	fmt.Println(cache.Get("a"))
+	fmt.Println(cache.Get("b"))
+
+	// Output:
+	// 0 false
+	// 0 false
+	// 42 <nil> false
+	// 100 <nil> false
+	// 42 true
+	// 100 true
 }
 
 func ExampleWithShards() {
 	cache := lru.NewTTLCache[string, int](4096, lru.WithShards[string, int](1))
 
 	cache.Set("foobar", 42, 3*time.Second)
-	println(cache.Get("foobar"))
+	fmt.Println(cache.Get("foobar"))
+
+	// Output:
+	// 42 true
 }
 
 func ExampleWithSliding() {
@@ -51,11 +66,16 @@ func ExampleWithSliding() {
 	cache.Set("foobar", 42, 3*time.Second)
 
 	time.Sleep(2 * time.Second)
-	println(cache.Get("foobar"))
+	fmt.Println(cache.Get("foobar"))
 
 	time.Sleep(2 * time.Second)
-	println(cache.Get("foobar"))
+	fmt.Println(cache.Get("foobar"))
 
 	time.Sleep(2 * time.Second)
-	println(cache.Get("foobar"))
+	fmt.Println(cache.Get("foobar"))
+
+	// Output:
+	// 42 true
+	// 42 true
+	// 42 true
 }

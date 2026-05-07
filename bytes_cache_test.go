@@ -36,11 +36,11 @@ func TestBytesCacheGetSet(t *testing.T) {
 	}
 
 	if v, replaced := cache.Set([]byte("5"), []byte("9")); b2s(v) != "10" || !replaced {
-		t.Fatal("old value should be evicted")
+		t.Fatalf("set should return previous value 10 and replaced=true: value=%q replaced=%v", v, replaced)
 	}
 
 	if v, replaced := cache.Set([]byte("5"), []byte("9")); b2s(v) != "9" || !replaced {
-		t.Fatal("old value should be evicted")
+		t.Fatalf("set should return previous value 9 and replaced=true: value=%q replaced=%v", v, replaced)
 	}
 
 	if v, ok := cache.Get([]byte("5")); !ok || b2s(v) != "9" {
@@ -194,13 +194,13 @@ func TestBytesCacheEviction(t *testing.T) {
 	}
 
 	if got, want := cache.Len(), 128; got != want {
-		t.Fatalf("curent cache length %v should be %v", got, want)
+		t.Fatalf("current cache length %v should be %v", got, want)
 	}
 
 	cache.Set([]byte("400"), []byte("400"))
 
 	if got, want := len(cache.AppendKeys(nil)), 128; got != want {
-		t.Fatalf("curent cache keys length %v should be %v", got, want)
+		t.Fatalf("current cache keys length %v should be %v", got, want)
 	}
 }
 
@@ -225,10 +225,10 @@ func TestBytesCachePeek(t *testing.T) {
 		cache.Set([]byte(fmt.Sprint(k)), []byte(fmt.Sprint(k)))
 	}
 	if v, ok := cache.Peek([]byte("10")); ok || b2s(v) == "10" {
-		t.Errorf("%v should not have updated recent-ness of 10", v)
+		t.Errorf("peek should not update recency for key 10: value=%q ok=%v", v, ok)
 	}
 	if v, ok := cache.Peek([]byte("30")); ok || len(v) != 0 {
-		t.Errorf("%v should have updated recent-ness of 30", v)
+		t.Errorf("missing key 30 should remain absent: value=%q ok=%v", v, ok)
 	}
 }
 
