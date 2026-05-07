@@ -82,6 +82,36 @@ func TestBytesCacheSetIfAbsent(t *testing.T) {
 	}
 }
 
+func TestBytesCacheSetIfAbsentPreservesNilKey(t *testing.T) {
+	cache := NewBytesCache(1, 128)
+
+	cache.Set(nil, []byte("nil"))
+	cache.SetIfAbsent([]byte("a"), []byte("a"))
+
+	if v, ok := cache.Get(nil); !ok || b2s(v) != "nil" {
+		t.Fatalf("nil key should remain cached: %q, %v", v, ok)
+	}
+}
+
+func TestBytesCacheSetIfAbsentEvictsWhenFull(t *testing.T) {
+	cache := NewBytesCache(1, 1)
+
+	if prev, replaced := cache.Set([]byte("old"), []byte("1")); replaced || prev != nil {
+		t.Fatalf("initial insert should not replace: prev=%q replaced=%v", prev, replaced)
+	}
+
+	prev, replaced := cache.SetIfAbsent([]byte("new"), []byte("2"))
+	if replaced || b2s(prev) != "1" {
+		t.Fatalf("absent insert should evict old value without replacing same key: prev=%q replaced=%v", prev, replaced)
+	}
+	if v, ok := cache.Get([]byte("old")); ok || len(v) != 0 {
+		t.Fatalf("old key should be evicted: value=%q ok=%v", v, ok)
+	}
+	if v, ok := cache.Get([]byte("new")); !ok || b2s(v) != "2" {
+		t.Fatalf("new key should be cached: value=%q ok=%v", v, ok)
+	}
+}
+
 func TestBytesCacheSetPreservesNilKey(t *testing.T) {
 	cache := NewBytesCache(1, 128)
 
@@ -90,6 +120,28 @@ func TestBytesCacheSetPreservesNilKey(t *testing.T) {
 
 	if v, ok := cache.Get(nil); !ok || b2s(v) != "nil" {
 		t.Fatalf("nil key should remain cached: %q, %v", v, ok)
+	}
+}
+
+func TestBytesCacheLengthWithNilValue(t *testing.T) {
+	cache := NewBytesCache(1, 2)
+
+	cache.Set(nil, nil)
+	cache.Set([]byte("1"), nil)
+
+	if got, want := cache.Len(), 2; got != want {
+		t.Fatalf("cache length should count nil values: got=%d want=%d", got, want)
+	}
+	if v, ok := cache.Get(nil); !ok || v != nil {
+		t.Fatalf("nil key with nil value should be present: value=%q ok=%v", v, ok)
+	}
+	if v, ok := cache.Get([]byte("1")); !ok || v != nil {
+		t.Fatalf("non-nil key with nil value should be present: value=%q ok=%v", v, ok)
+	}
+
+	cache.Set([]byte("2"), []byte("2"))
+	if got, want := cache.Len(), 2; got != want {
+		t.Fatalf("cache length should stay at capacity: got=%d want=%d", got, want)
 	}
 }
 
