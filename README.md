@@ -4,25 +4,21 @@
 
 ### Overview
 
-This package is for Go services that want predictable LRU behavior without the
-cost of a traditional Go LRU implementation. LRU is still a practical policy
-for many hot-path caches; the common bottleneck is often the Go shape around it:
-a map plus linked list creates heap objects, pointer chasing, GC scan work, and
-extra indirection on every access.
+This package provides LRU and TTL cache implementations for Go services that
+need predictable cache behavior on hot paths. Cache operations stay simple and
+synchronous: hits update recency immediately, sets are visible immediately, and
+the API does not hide background admission queues or delayed write paths.
 
-The cache behavior stays simple and synchronous. A hit updates recency
-immediately, and a set is visible immediately. There is no background admission
-queue, delayed write path, or hidden policy work behind the API.
-
-The implementation is built around Go's runtime costs: fixed-size shards,
+The implementation is shaped around Go's runtime costs. Fixed-size shards,
 array-backed lists, compact hash tables, low pointer density, and no per-entry
-allocation. The goal is to keep classic LRU semantics while making the data
-layout cheap enough for foreground hot paths.
+allocation keep classic LRU semantics while reducing heap pressure, pointer
+chasing, and GC scan work. The tests keep statement coverage at 100% and assert
+observable cache behavior across eviction, replacement, loading, TTL expiry,
+and byte-key paths.
 
-`BytesCache` serves the same goal for byte-oriented servers. Many network paths
-already parse keys and values as `[]byte`; forcing those paths through `string`
-conversion can move the real cost outside the cache benchmark. The byte path is
-zero-copy and assumes cached slices are treated as immutable.
+`BytesCache` covers byte-oriented paths where keys and values are already
+available as `[]byte`. It avoids string conversion, keeps the byte path
+zero-copy, and assumes cached slices are treated as immutable.
 
 ### Features
 
@@ -77,7 +73,7 @@ func main() {
 
 ### Throughput benchmarks
 
-*Disclaimer: This have been testing on my 3 environments and the results may be very different from yours. see https://github.com/phuslu/lru/issues/14*
+*Disclaimer: This have been testing on github actions environments and the results may be very different from yours. see https://github.com/phuslu/lru/issues/14*
 
 A Performance result as below. Check github [benchmark][benchmark] action for more results and details.
 <details>
