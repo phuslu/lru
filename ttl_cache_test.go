@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
-	"runtime"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -14,9 +13,6 @@ import (
 )
 
 func TestTTLCacheCompactness(t *testing.T) {
-	if runtime.GOARCH != "amd64" {
-		return
-	}
 	compact := isamd64
 	defer func() {
 		isamd64 = compact
@@ -24,9 +20,19 @@ func TestTTLCacheCompactness(t *testing.T) {
 
 	for _, b := range []bool{true, false} {
 		isamd64 = b
-		cache := NewTTLCache[string, []byte](32 * 1024)
+		cache := NewTTLCache[string, []byte](32, WithShards[string, []byte](4))
 		if length := cache.Len(); length != 0 {
 			t.Fatalf("bad cache length: %v", length)
+		}
+		if got, want := cache.mask+1, uint32(4); got != want {
+			t.Fatalf("bad shard count: got=%d want=%d", got, want)
+		}
+		if got, want := len(cache.shards[0].list), 9; got != want {
+			t.Fatalf("bad shard list size for compact=%v: got=%d want=%d", b, got, want)
+		}
+		cache.Set("a", []byte("1"), time.Hour)
+		if v, ok := cache.Get("a"); !ok || string(v) != "1" {
+			t.Fatalf("cache should work with compact=%v: value=%q ok=%v", b, v, ok)
 		}
 	}
 }
@@ -157,6 +163,25 @@ func TestTTLCacheSetIfAbsent(t *testing.T) {
 
 	if v, ok := cache.Get(5); !ok || v != 10 {
 		t.Fatalf("bad returned value: %v = %v", v, 10)
+	}
+}
+
+func TestTTLCacheSetIfAbsentEvictsWhenFull(t *testing.T) {
+	cache := NewTTLCache[string, int](1, WithShards[string, int](1))
+
+	if prev, replaced := cache.Set("old", 1, time.Hour); replaced || prev != 0 {
+		t.Fatalf("initial insert should not replace: prev=%d replaced=%v", prev, replaced)
+	}
+
+	prev, replaced := cache.SetIfAbsent("new", 2, time.Hour)
+	if replaced || prev != 1 {
+		t.Fatalf("absent insert should evict old value without replacing same key: prev=%d replaced=%v", prev, replaced)
+	}
+	if v, ok := cache.Get("old"); ok || v != 0 {
+		t.Fatalf("old key should be evicted: value=%d ok=%v", v, ok)
+	}
+	if v, ok := cache.Get("new"); !ok || v != 2 {
+		t.Fatalf("new key should be cached: value=%d ok=%v", v, ok)
 	}
 }
 

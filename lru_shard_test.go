@@ -44,6 +44,28 @@ func TestLRUShardTableSet(t *testing.T) {
 	}
 }
 
+func TestLRUShardTableDeleteMissing(t *testing.T) {
+	var s lrushard[string, int]
+	s.Init(8, getRuntimeHasher[string](), 0)
+
+	key := "present"
+	hash := uint32(s.tableHasher(noescape(unsafe.Pointer(&key)), s.tableSeed))
+	s.Set(hash, key, 1)
+
+	missing := "missing"
+	missingHash := uint32(s.tableHasher(noescape(unsafe.Pointer(&missing)), s.tableSeed))
+	index, ok := s.tableDelete(missingHash, missing)
+	if ok || index != 0 {
+		t.Fatalf("missing key should not delete an index: index=%d ok=%v", index, ok)
+	}
+	if got, want := s.tableLength, uint32(1); got != want {
+		t.Fatalf("table length should be unchanged: got=%d want=%d", got, want)
+	}
+	if got, ok := s.Get(hash, key); !ok || got != 1 {
+		t.Fatalf("present key should remain cached: value=%d ok=%v", got, ok)
+	}
+}
+
 func TestLRUCacheLengthWithZeroValue(t *testing.T) {
 	cache := NewTTLCache[string, string](128, WithShards[string, string](1))
 
