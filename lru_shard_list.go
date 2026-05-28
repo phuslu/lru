@@ -22,12 +22,12 @@ func (s *lrushard[K, V]) listBack() uint32 {
 }
 
 func (s *lrushard[K, V]) listMoveToFront(i uint32) {
-	root := &s.list[0]
+	base := unsafe.Pointer(unsafe.SliceData(s.list))
+	root := (*lrunode[K, V])(base)
 	if root.next == i {
 		return
 	}
 
-	base := unsafe.Pointer(root)
 	nodei := (*lrunode[K, V])(unsafe.Add(base, uintptr(i)*unsafe.Sizeof(s.list[0])))
 
 	((*lrunode[K, V])(unsafe.Add(base, uintptr(nodei.prev)*unsafe.Sizeof(s.list[0])))).next = nodei.next
@@ -41,12 +41,12 @@ func (s *lrushard[K, V]) listMoveToFront(i uint32) {
 }
 
 func (s *lrushard[K, V]) listMoveToBack(i uint32) {
-	j := s.list[0].prev
+	base := unsafe.Pointer(unsafe.SliceData(s.list))
+	j := ((*lrunode[K, V])(base)).prev
 	if i == j {
 		return
 	}
 
-	base := unsafe.Pointer(&s.list[0])
 	nodei := (*lrunode[K, V])(unsafe.Add(base, uintptr(i)*unsafe.Sizeof(s.list[0])))
 	at := (*lrunode[K, V])(unsafe.Add(base, uintptr(j)*unsafe.Sizeof(s.list[0])))
 
