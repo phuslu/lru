@@ -116,5 +116,3 @@ func nextPowOf2(n uint32) uint32 {
 	}
 	return k
 }
-
-var isamd64 = runtime.GOARCH == "amd64"
