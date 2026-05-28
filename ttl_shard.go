@@ -110,7 +110,12 @@ func (s *ttlshard[K, V]) SetIfAbsent(hash uint32, key K, value V, ttl time.Durat
 		// node := &s.list[index]
 		node := (*ttlnode[K, V])(unsafe.Add(unsafe.Pointer(&s.list[0]), uintptr(index)*unsafe.Sizeof(s.list[0])))
 		prev = node.value
-		if node.expires == 0 || atomic.LoadUint32(&clock) < node.expires {
+		if node.expires == 0 {
+			s.mu.Unlock()
+			return
+		}
+		now := atomic.LoadUint32(&clock)
+		if now < node.expires {
 			s.mu.Unlock()
 			return
 		}
@@ -120,7 +125,7 @@ func (s *ttlshard[K, V]) SetIfAbsent(hash uint32, key K, value V, ttl time.Durat
 		node.value = value
 		if ttl > 0 {
 			node.ttl = uint32(ttl / time.Second)
-			node.expires = atomic.LoadUint32(&clock) + node.ttl
+			node.expires = now + node.ttl
 		} else {
 			node.ttl = 0
 			node.expires = 0
