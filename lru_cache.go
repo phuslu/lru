@@ -45,22 +45,15 @@ func NewLRUCache[K comparable, V any](size int, options ...Option[K, V]) *LRUCac
 		c.seed = uintptr(fastrand64())
 	}
 
-	if isamd64 {
-		// pre-alloc lists and tables for compactness
-		shardsize := (uint32(size) + c.mask) / (c.mask + 1)
-		shardlists := make([]lrunode[K, V], (shardsize+1)*(c.mask+1))
-		tablesize := lruNewTableSize(uint32(shardsize))
-		tablebuckets := make([]uint64, tablesize*(c.mask+1))
-		for i := uint32(0); i <= c.mask; i++ {
-			c.shards[i].list = shardlists[i*(shardsize+1) : (i+1)*(shardsize+1)]
-			c.shards[i].tableBuckets = tablebuckets[i*tablesize : (i+1)*tablesize]
-			c.shards[i].Init(shardsize, c.hasher, c.seed)
-		}
-	} else {
-		shardsize := (uint32(size) + c.mask) / (c.mask + 1)
-		for i := uint32(0); i <= c.mask; i++ {
-			c.shards[i].Init(shardsize, c.hasher, c.seed)
-		}
+	// pre-alloc lists and tables for compactness
+	shardsize := (uint32(size) + c.mask) / (c.mask + 1)
+	shardlists := make([]lrunode[K, V], (shardsize+1)*(c.mask+1))
+	tablesize := lruNewTableSize(uint32(shardsize))
+	tablebuckets := make([]uint64, tablesize*(c.mask+1))
+	for i := uint32(0); i <= c.mask; i++ {
+		c.shards[i].list = shardlists[i*(shardsize+1) : (i+1)*(shardsize+1)]
+		c.shards[i].tableBuckets = tablebuckets[i*tablesize : (i+1)*tablesize]
+		c.shards[i].Init(shardsize, c.hasher, c.seed)
 	}
 
 	return c

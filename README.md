@@ -417,29 +417,29 @@ goos: linux
 goarch: amd64
 cpu: AMD EPYC 7763 64-Core Processor                
 BenchmarkHashicorpSetGet
-BenchmarkHashicorpSetGet-8    	15681344	       399.3 ns/op	       1 B/op	       0 allocs/op
+BenchmarkHashicorpSetGet-8    	15886652	       391.4 ns/op	       1 B/op	       0 allocs/op
 BenchmarkCloudflareSetGet
-BenchmarkCloudflareSetGet-8   	47933211	       148.0 ns/op	      16 B/op	       1 allocs/op
+BenchmarkCloudflareSetGet-8   	48372015	       140.9 ns/op	      16 B/op	       1 allocs/op
 BenchmarkEcacheSetGet
-BenchmarkEcacheSetGet-8       	57997934	       116.5 ns/op	       1 B/op	       0 allocs/op
+BenchmarkEcacheSetGet-8       	58172556	       108.9 ns/op	       1 B/op	       0 allocs/op
 BenchmarkLxzanSetGet
-BenchmarkLxzanSetGet-8        	54299068	       119.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkLxzanSetGet-8        	57734886	       113.1 ns/op	       0 B/op	       0 allocs/op
 BenchmarkFreelruSetGet
-BenchmarkFreelruSetGet-8      	55203379	       125.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkFreelruSetGet-8      	54044312	       121.0 ns/op	       0 B/op	       0 allocs/op
 BenchmarkPhusluSetGet
-BenchmarkPhusluSetGet-8       	80402804	        87.95 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPhusluSetGet-8       	77098815	        85.36 ns/op	       0 B/op	       0 allocs/op
 BenchmarkNoTTLSetGet
-BenchmarkNoTTLSetGet-8        	81338269	        84.30 ns/op	       0 B/op	       0 allocs/op
+BenchmarkNoTTLSetGet-8        	80741126	        82.95 ns/op	       0 B/op	       0 allocs/op
 BenchmarkCcacheSetGet
-BenchmarkCcacheSetGet-8       	16862114	       380.9 ns/op	      25 B/op	       2 allocs/op
+BenchmarkCcacheSetGet-8       	17026908	       351.6 ns/op	      25 B/op	       2 allocs/op
 BenchmarkRistrettoSetGet
-BenchmarkRistrettoSetGet-8    	56174217	       111.5 ns/op	       7 B/op	       0 allocs/op
+BenchmarkRistrettoSetGet-8    	56332108	       111.8 ns/op	       9 B/op	       0 allocs/op
 BenchmarkTheineSetGet
-BenchmarkTheineSetGet-8       	40886586	       155.6 ns/op	       2 B/op	       0 allocs/op
+BenchmarkTheineSetGet-8       	40040037	       152.6 ns/op	       2 B/op	       0 allocs/op
 BenchmarkOtterSetGet
-BenchmarkOtterSetGet-8        	59850220	       112.6 ns/op	       2 B/op	       0 allocs/op
+BenchmarkOtterSetGet-8        	61186686	       109.6 ns/op	       2 B/op	       0 allocs/op
 PASS
-ok  	command-line-arguments	98.578s
+ok  	command-line-arguments	95.238s
 ```
 
 Run with 50% [zipf](https://ieeexplore.ieee.org/document/749260) reads and 50% randomly writes.
@@ -450,29 +450,29 @@ goos: linux
 goarch: amd64
 cpu: AMD EPYC 7763 64-Core Processor                
 BenchmarkHashicorpSetGet
-BenchmarkHashicorpSetGet-8    	 9043500	       697.7 ns/op	      16 B/op	       0 allocs/op
+BenchmarkHashicorpSetGet-8    	10190319	       680.9 ns/op	      14 B/op	       0 allocs/op
 BenchmarkCloudflareSetGet
-BenchmarkCloudflareSetGet-8   	28131974	       261.3 ns/op	      19 B/op	       1 allocs/op
+BenchmarkCloudflareSetGet-8   	28189474	       249.4 ns/op	      19 B/op	       1 allocs/op
 BenchmarkEcacheSetGet
-BenchmarkEcacheSetGet-8       	42224235	       153.9 ns/op	      11 B/op	       0 allocs/op
+BenchmarkEcacheSetGet-8       	45871437	       140.7 ns/op	      11 B/op	       0 allocs/op
 BenchmarkLxzanSetGet
-BenchmarkLxzanSetGet-8        	39217646	       167.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkLxzanSetGet-8        	41513110	       163.8 ns/op	       0 B/op	       0 allocs/op
 BenchmarkFreelruSetGet
-BenchmarkFreelruSetGet-8      	48139408	       147.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkFreelruSetGet-8      	47553171	       148.3 ns/op	       0 B/op	       0 allocs/op
 BenchmarkPhusluSetGet
-BenchmarkPhusluSetGet-8       	64223384	       108.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPhusluSetGet-8       	65308424	       111.1 ns/op	       0 B/op	       0 allocs/op
 BenchmarkNoTTLSetGet
-BenchmarkNoTTLSetGet-8        	68454303	       103.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkNoTTLSetGet-8        	56980874	       101.6 ns/op	       0 B/op	       0 allocs/op
 BenchmarkCcacheSetGet
-BenchmarkCcacheSetGet-8       	11340600	       579.3 ns/op	      78 B/op	       3 allocs/op
+BenchmarkCcacheSetGet-8       	11997385	       592.9 ns/op	      77 B/op	       3 allocs/op
 BenchmarkRistrettoSetGet
-BenchmarkRistrettoSetGet-8    	40628869	       171.4 ns/op	      46 B/op	       0 allocs/op
+BenchmarkRistrettoSetGet-8    	40388238	       170.4 ns/op	      47 B/op	       0 allocs/op
 BenchmarkTheineSetGet
-BenchmarkTheineSetGet-8       	17249444	       356.3 ns/op	       6 B/op	       0 allocs/op
+BenchmarkTheineSetGet-8       	17624187	       355.4 ns/op	       6 B/op	       0 allocs/op
 BenchmarkOtterSetGet
-BenchmarkOtterSetGet-8        	23655249	       354.4 ns/op	      24 B/op	       0 allocs/op
+BenchmarkOtterSetGet-8        	22933803	       349.3 ns/op	      24 B/op	       0 allocs/op
 PASS
-ok  	command-line-arguments	104.668s
+ok  	command-line-arguments	103.543s
 ```
 
 ### GC scan

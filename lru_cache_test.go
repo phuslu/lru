@@ -13,27 +13,19 @@ import (
 )
 
 func TestLRUCacheCompactness(t *testing.T) {
-	compact := isamd64
-	defer func() {
-		isamd64 = compact
-	}()
-
-	for _, b := range []bool{true, false} {
-		isamd64 = b
-		cache := NewLRUCache[string, []byte](32, WithShards[string, []byte](4))
-		if length := cache.Len(); length != 0 {
-			t.Fatalf("bad cache length: %v", length)
-		}
-		if got, want := cache.mask+1, uint32(4); got != want {
-			t.Fatalf("bad shard count: got=%d want=%d", got, want)
-		}
-		if got, want := len(cache.shards[0].list), 9; got != want {
-			t.Fatalf("bad shard list size for compact=%v: got=%d want=%d", b, got, want)
-		}
-		cache.Set("a", []byte("1"))
-		if v, ok := cache.Get("a"); !ok || string(v) != "1" {
-			t.Fatalf("cache should work with compact=%v: value=%q ok=%v", b, v, ok)
-		}
+	cache := NewLRUCache[string, []byte](32, WithShards[string, []byte](4))
+	if length := cache.Len(); length != 0 {
+		t.Fatalf("bad cache length: %v", length)
+	}
+	if got, want := cache.mask+1, uint32(4); got != want {
+		t.Fatalf("bad shard count: got=%d want=%d", got, want)
+	}
+	if got, want := len(cache.shards[0].list), 9; got != want {
+		t.Fatalf("bad shard list size: got=%d want=%d", got, want)
+	}
+	cache.Set("a", []byte("1"))
+	if v, ok := cache.Get("a"); !ok || string(v) != "1" {
+		t.Fatalf("cache should work: value=%q ok=%v", v, ok)
 	}
 }
 
