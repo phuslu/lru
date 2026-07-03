@@ -84,7 +84,7 @@ func (s *lrushard[K, V]) tableGet(hash uint32, key K) (index uint32, ok bool) {
 	for {
 		b := (*lrubucket)(unsafe.Add(b0, uintptr(i)*8))
 		bdib := b.hdib & maxDIB
-		if bdib == 0 || bdib < dib {
+		if bdib < dib {
 			return
 		}
 		if b.hdib>>dibBitSize == subhash && (*lrunode[K, V])(unsafe.Add(l0, uintptr(b.index)*unsafe.Sizeof(s.list[0]))).key == key {
@@ -107,7 +107,7 @@ func (s *lrushard[K, V]) tableDelete(hash uint32, key K) (index uint32, ok bool)
 	for {
 		b := (*lrubucket)(unsafe.Add(b0, uintptr(i)*8))
 		bdib := b.hdib & maxDIB
-		if bdib == 0 || bdib < dib {
+		if bdib < dib {
 			return
 		}
 		if b.hdib>>dibBitSize == subhash && (*lrunode[K, V])(unsafe.Add(l0, uintptr(b.index)*unsafe.Sizeof(s.list[0]))).key == key {
