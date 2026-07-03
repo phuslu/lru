@@ -345,3 +345,25 @@ func newBytesBenchmarkItems(n int) (keys [][]byte, values [][]byte) {
 	}
 	return keys, values
 }
+
+func BenchmarkBytesCacheDelete(b *testing.B) {
+	cache := NewBytesCache(1, 8192)
+	keys, values := newBytesBenchmarkItems(32768)
+
+	trace := make([]uint32, b.N*2)
+	for i := 0; i < b.N*2; i++ {
+		trace[i] = uint32(rand.Intn(len(keys)))
+	}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+
+	for i := 0; i < 2*b.N; i++ {
+		index := trace[i]
+		if i%2 == 0 {
+			cache.Set(keys[index], values[index])
+		} else {
+			cache.Delete(keys[index])
+		}
+	}
+}
