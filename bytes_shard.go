@@ -148,12 +148,11 @@ func (s *bytesshard) Set(hash uint32, key []byte, value []byte) (prev []byte, re
 func (s *bytesshard) Delete(hash uint32, key []byte) (v []byte) {
 	s.mu.Lock()
 
-	if index, exists := s.tableGet(hash, key); exists {
+	if index, exists := s.tableDelete(hash, key); exists {
 		node := &s.list[index]
 		value := node.value
 		s.listMoveToBack(index)
 		node.value = v
-		s.tableDelete(hash, key)
 		v = value
 	}
 

@@ -252,12 +252,11 @@ func (s *ttlshard[K, V]) Set(hash uint32, key K, value V, ttl time.Duration) (pr
 func (s *ttlshard[K, V]) Delete(hash uint32, key K) (v V) {
 	s.mu.Lock()
 
-	if index, exists := s.tableGet(hash, key); exists {
+	if index, exists := s.tableDelete(hash, key); exists {
 		node := &s.list[index]
 		value := node.value
 		s.listMoveToBack(index)
 		node.value = v
-		s.tableDelete(hash, key)
 		v = value
 	}
 

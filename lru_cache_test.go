@@ -431,3 +431,23 @@ func BenchmarkLRUCacheFreq(b *testing.B) {
 	}
 	b.Logf("hit: %d miss: %d ratio: %f", hit, miss, float64(hit)/float64(hit+miss))
 }
+
+func BenchmarkLRUCacheDelete(b *testing.B) {
+	cache := NewLRUCache[int64, int64](8192)
+
+	trace := make([]int64, b.N*2)
+	for i := 0; i < b.N*2; i++ {
+		trace[i] = rand.Int63() % 32768
+	}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+
+	for i := 0; i < 2*b.N; i++ {
+		if i%2 == 0 {
+			cache.Set(trace[i], trace[i])
+		} else {
+			cache.Delete(trace[i])
+		}
+	}
+}
