@@ -24,9 +24,11 @@ func NewTTLCache[K comparable, V any](size int, options ...Option[K, V]) *TTLCac
 	clocking()
 
 	j := -1
+	autoShards := true
 	for i, o := range options {
-		if _, ok := o.(*shardsOption[K, V]); ok {
+		if so, ok := o.(*shardsOption[K, V]); ok {
 			j = i
+			autoShards = so.count == 0
 		}
 	}
 	switch {
@@ -46,6 +48,19 @@ func NewTTLCache[K comparable, V any](size int, options ...Option[K, V]) *TTLCac
 	}
 	if c.seed == 0 {
 		c.seed = uintptr(fastrand64())
+	}
+
+	// When auto-calculating shard count, cap it so each shard has a
+	// meaningful minimum size. Without this, small caches on many-core
+	// machines would end up with 1-entry shards, making LRU eviction
+	// effectively useless.
+	const minShardSize = 16
+	if autoShards {
+		if maxShards := nextPowOf2(uint32((size + minShardSize - 1) / minShardSize)); maxShards < 1 {
+			c.mask = 0
+		} else if c.mask+1 > maxShards {
+			c.mask = maxShards - 1
+		}
 	}
 
 	// pre-alloc lists and tables for compactness
