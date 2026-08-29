@@ -1,0 +1,7 @@
+Merge upstream commit dce2de42f28d6e7100b8c0aeab36231944726f1a from phuslu/lru
+
+Latest upstream commit: "cap to minimal shardcount to 16"
+Date: 2026-08-04T14:10:05Z
+Author: phuslu
+
+This merge includes all upstream changes up to the latest commit.
