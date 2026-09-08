@@ -28,20 +28,18 @@ func TestBytesShardListSet(t *testing.T) {
 	}
 }
 
-func TestBytesShardTableSet(t *testing.T) {
+func TestBytesShardTableInsert(t *testing.T) {
 	var s bytesshard
-	s.Init(1024)
-
-	key := []byte("foobar")
-	value := []byte("42")
-	hash := uint32(wyhashHashbytes(key, 0))
-
-	s.Set(hash, key, value)
-
-	i, ok := s.tableSet(hash, key, 123)
-	if v := s.list[i].value; !ok || string(v) != string(value) {
-		t.Errorf("foobar should be set to %s: %v %v", value, i, ok)
+	s.Init(4)
+	keys := [5][]byte{nil, []byte("a"), []byte("b"), []byte("c"), []byte("d")}
+	for i := 1; i < len(keys); i++ {
+		s.list[i].key = keys[i]
 	}
+	testShardTableInsert(t, 8, s.tableInsert,
+		func(hash, index uint32) (uint32, bool) { return s.tableGet(hash, keys[index]) },
+		func(hash, index uint32) (uint32, bool) { return s.tableDelete(hash, keys[index]) },
+		func() uint32 { return s.tableLength },
+	)
 }
 
 func TestBytesShardTableDeleteMissing(t *testing.T) {

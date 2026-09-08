@@ -28,19 +28,15 @@ func TestLRUShardListSet(t *testing.T) {
 	}
 }
 
-func TestLRUShardTableSet(t *testing.T) {
-	var s lrushard[string, uint32]
-	s.Init(1024, getRuntimeHasher[string](), 0)
-
-	key := "foobar"
-	hash := uint32(s.tableHasher(noescape(unsafe.Pointer(&key)), s.tableSeed))
-
-	s.Set(hash, key, 42)
-
-	i, ok := s.tableSet(hash, key, 123)
-	if v := s.list[i].value; !ok || v != 42 {
-		t.Errorf("foobar should be set to 42: %v %v", i, ok)
+func TestLRUShardTableInsert(t *testing.T) {
+	var s lrushard[uint32, uint32]
+	s.Init(4, getRuntimeHasher[uint32](), 0)
+	for i := uint32(1); i < 5; i++ {
+		s.list[i].key = i
 	}
+	testShardTableInsert(t, 9, s.tableInsert, s.tableGet, s.tableDelete,
+		func() uint32 { return s.tableLength },
+	)
 }
 
 func TestLRUShardTableDeleteMissing(t *testing.T) {

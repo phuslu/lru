@@ -100,7 +100,7 @@ func (s *bytesshard) SetIfAbsent(hash uint32, key []byte, value []byte) (prev []
 
 	node.key = key
 	node.value = value
-	s.tableSet(hash, key, index)
+	s.tableInsert(hash, index)
 	s.listMoveToFront(index)
 	prev = evictedValue
 
@@ -137,7 +137,7 @@ func (s *bytesshard) Set(hash uint32, key []byte, value []byte) (prev []byte, re
 
 	node.key = key
 	node.value = value
-	s.tableSet(hash, key, index)
+	s.tableInsert(hash, index)
 	s.listMoveToFront(index)
 	prev = evictedValue
 
