@@ -37,8 +37,8 @@ func (s *ttlshard[K, V]) tableInsert(hash uint32, index uint32) {
 	subhash := hash >> dibBitSize
 	hdib := subhash<<dibBitSize | uint32(1)&maxDIB
 	mask := s.tableMask
-	// Skip the nine shard bits without discarding bits needed by large tables.
-	i := bits.RotateLeft32(hash, -9) & mask
+	// Skip the shard bits without discarding bits needed by large tables.
+	i := bits.RotateLeft32(hash, -shardBits) & mask
 	b0 := unsafe.Pointer(unsafe.SliceData(s.tableBuckets))
 	for {
 		b := (*ttlbucket)(unsafe.Add(b0, uintptr(i)*8))
@@ -62,7 +62,7 @@ func (s *ttlshard[K, V]) tableInsert(hash uint32, index uint32) {
 func (s *ttlshard[K, V]) tableGet(hash uint32, key K) (index uint32, ok bool) {
 	subhash := hash >> dibBitSize
 	mask := s.tableMask
-	i := bits.RotateLeft32(hash, -9) & mask
+	i := bits.RotateLeft32(hash, -shardBits) & mask
 	dib := uint32(1)
 	b0 := unsafe.Pointer(unsafe.SliceData(s.tableBuckets))
 	l0 := unsafe.Pointer(unsafe.SliceData(s.list))
@@ -85,7 +85,7 @@ func (s *ttlshard[K, V]) tableGet(hash uint32, key K) (index uint32, ok bool) {
 func (s *ttlshard[K, V]) tableDelete(hash uint32, key K) (v uint32, ok bool) {
 	subhash := hash >> dibBitSize
 	mask := s.tableMask
-	i := bits.RotateLeft32(hash, -9) & mask
+	i := bits.RotateLeft32(hash, -shardBits) & mask
 	dib := uint32(1)
 	b0 := unsafe.Pointer(unsafe.SliceData(s.tableBuckets))
 	l0 := unsafe.Pointer(unsafe.SliceData(s.list))

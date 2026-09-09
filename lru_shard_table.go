@@ -11,6 +11,13 @@ import (
 )
 
 const (
+	// shardBits and shardCount describe the cache-level shard geometry.
+	// LRUCache/TTLCache embed shards [shardCount]..., and sharded table
+	// probing rotates the hash left by -shardBits so that table indexes stay
+	// independent of the low hash bits that select the shard.
+	shardBits  = 9
+	shardCount = 1 << shardBits
+
 	loadFactor  = 0.85                      // must be above 50%
 	dibBitSize  = 8                         // 0xFF
 	hashBitSize = 32 - dibBitSize           // 0xFFFFFF
@@ -45,8 +52,8 @@ func (s *lrushard[K, V]) tableInsert(hash uint32, index uint32) {
 	subhash := hash >> dibBitSize
 	hdib := subhash<<dibBitSize | uint32(1)&maxDIB
 	mask := s.tableMask
-	// Skip the nine shard bits without discarding bits needed by large tables.
-	i := bits.RotateLeft32(hash, -9) & mask
+	// Skip the shard bits without discarding bits needed by large tables.
+	i := bits.RotateLeft32(hash, -shardBits) & mask
 	b0 := unsafe.Pointer(unsafe.SliceData(s.tableBuckets))
 	for {
 		b := (*lrubucket)(unsafe.Add(b0, uintptr(i)*8))
@@ -70,7 +77,7 @@ func (s *lrushard[K, V]) tableInsert(hash uint32, index uint32) {
 func (s *lrushard[K, V]) tableGet(hash uint32, key K) (index uint32, ok bool) {
 	subhash := hash >> dibBitSize
 	mask := s.tableMask
-	i := bits.RotateLeft32(hash, -9) & mask
+	i := bits.RotateLeft32(hash, -shardBits) & mask
 	dib := uint32(1)
 	b0 := unsafe.Pointer(unsafe.SliceData(s.tableBuckets))
 	l0 := unsafe.Pointer(unsafe.SliceData(s.list))
@@ -93,7 +100,7 @@ func (s *lrushard[K, V]) tableGet(hash uint32, key K) (index uint32, ok bool) {
 func (s *lrushard[K, V]) tableDelete(hash uint32, key K) (index uint32, ok bool) {
 	subhash := hash >> dibBitSize
 	mask := s.tableMask
-	i := bits.RotateLeft32(hash, -9) & mask
+	i := bits.RotateLeft32(hash, -shardBits) & mask
 	dib := uint32(1)
 	b0 := unsafe.Pointer(unsafe.SliceData(s.tableBuckets))
 	l0 := unsafe.Pointer(unsafe.SliceData(s.list))

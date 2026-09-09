@@ -11,7 +11,7 @@ import (
 
 // TTLCache implements LRU Cache with TTL functionality.
 type TTLCache[K comparable, V any] struct {
-	shards [512]ttlshard[K, V]
+	shards [shardCount]ttlshard[K, V]
 	mask   uint32
 	hasher func(key unsafe.Pointer, seed uintptr) uintptr
 	seed   uintptr

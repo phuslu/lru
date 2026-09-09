@@ -6,8 +6,8 @@ import (
 )
 
 func TestLRUCacheShardHashBits(t *testing.T) {
-	c := NewLRUCache[uint32, uint32](512*16,
-		WithShards[uint32, uint32](512),
+	c := NewLRUCache[uint32, uint32]((1<<shardBits)*16,
+		WithShards[uint32, uint32](1<<shardBits),
 		WithHasher[uint32, uint32](func(key unsafe.Pointer, seed uintptr) uintptr {
 			return uintptr(*(*uint32)(key))
 		}),
@@ -19,8 +19,8 @@ func TestLRUCacheShardHashBits(t *testing.T) {
 }
 
 func TestTTLCacheShardHashBits(t *testing.T) {
-	c := NewTTLCache[uint32, uint32](512*16,
-		WithShards[uint32, uint32](512),
+	c := NewTTLCache[uint32, uint32]((1<<shardBits)*16,
+		WithShards[uint32, uint32](1<<shardBits),
 		WithHasher[uint32, uint32](func(key unsafe.Pointer, seed uintptr) uintptr {
 			return uintptr(*(*uint32)(key))
 		}),
@@ -33,13 +33,15 @@ func TestTTLCacheShardHashBits(t *testing.T) {
 
 func testShardHashBits(t *testing.T, set func(uint32, uint32), get func(uint32) (uint32, bool), del func(uint32) uint32, buckets func(uint32) []uint64) {
 	t.Helper()
-	for _, shard := range []uint32{0, 256, 511} {
+	maxShards := uint32(1 << shardBits)
+	for _, shard := range []uint32{0, maxShards / 2, maxShards - 1} {
 		var keys [16]uint32
 		for i := range keys {
-			// Alternate between both halves of the table. Reusing hash bit 8
-			// for the bucket origin makes each pair collide in this shard.
+			// Alternate between both halves of the table. Before shard and
+			// table bits were separated, the top shard bit (bit shardBits-1)
+			// also fed the bucket origin, making each pair collide.
 			home := uint32(i/2 + i%2*16)
-			keys[i] = home<<9 | shard
+			keys[i] = home<<shardBits | shard
 			set(keys[i], keys[i]+1)
 		}
 		var entries int

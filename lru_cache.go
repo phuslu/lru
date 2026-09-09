@@ -10,7 +10,7 @@ import (
 
 // LRUCache implements LRU Cache with least recent used eviction policy.
 type LRUCache[K comparable, V any] struct {
-	shards [512]lrushard[K, V]
+	shards [shardCount]lrushard[K, V]
 	mask   uint32
 	hasher func(key unsafe.Pointer, seed uintptr) uintptr
 	seed   uintptr
