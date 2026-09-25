@@ -14,6 +14,7 @@ type LRUCache[K comparable, V any] struct {
 	mask   uint32
 	hasher func(key unsafe.Pointer, seed uintptr) uintptr
 	seed   uintptr
+	_      [128]byte // keep fields read by every call off the line written by group.mu
 	loader func(ctx context.Context, key K) (value V, err error)
 	group  singleflightGroup[K, V]
 }
