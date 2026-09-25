@@ -75,7 +75,7 @@ func (s *ttlshard[K, V]) Get(hash uint32, key K) (value V, ok bool) {
 		} else {
 			s.listMoveToBack(index)
 			node.value = value
-			s.tableDelete(hash, key)
+			s.tableDeleteIndex(hash, index)
 			s.statsMisses++
 		}
 	} else {
@@ -144,7 +144,7 @@ func (s *ttlshard[K, V]) SetIfAbsent(hash uint32, key K, value V, ttl time.Durat
 	node := (*ttlnode[K, V])(unsafe.Add(unsafe.Pointer(&s.list[0]), uintptr(index)*unsafe.Sizeof(s.list[0])))
 	evictedValue := node.value
 	if uint32(len(s.list)-1) <= s.tableLength {
-		s.tableDelete(uint32(s.tableHasher(noescape(unsafe.Pointer(&node.key)), s.tableSeed)), node.key)
+		s.tableDeleteIndex(uint32(s.tableHasher(noescape(unsafe.Pointer(&node.key)), s.tableSeed)), index)
 	}
 
 	node.key = key
@@ -197,7 +197,7 @@ func (s *ttlshard[K, V]) Set(hash uint32, key K, value V, ttl time.Duration) (pr
 
 	// delete the old key if the list is full, note that the list length is size+1
 	if len(s.list)-1 < int(s.tableLength+1) {
-		s.tableDelete(uint32(s.tableHasher(noescape(unsafe.Pointer(&node.key)), s.tableSeed)), node.key)
+		s.tableDeleteIndex(uint32(s.tableHasher(noescape(unsafe.Pointer(&node.key)), s.tableSeed)), index)
 	}
 
 	node.key = key

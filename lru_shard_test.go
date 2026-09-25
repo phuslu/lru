@@ -39,6 +39,23 @@ func TestLRUShardTableInsert(t *testing.T) {
 	)
 }
 
+func TestLRUShardTableDeleteIndex(t *testing.T) {
+	var s lrushard[uint32, uint32]
+	s.Init(4, getRuntimeHasher[uint32](), 0)
+	for i := uint32(1); i < 5; i++ {
+		s.list[i].key = i
+	}
+	length := func() uint32 { return s.tableLength }
+	testShardTableInsert(t, 9, s.tableInsert, s.tableGet, byIndex(s.tableDeleteIndex, length), length)
+
+	// deleting an absent index is a no-op
+	s.tableInsert(6<<9, 1)
+	s.tableDeleteIndex(6<<9, 2)
+	if index, ok := s.tableGet(6<<9, 1); !ok || index != 1 || s.tableLength != 1 {
+		t.Fatalf("tableDeleteIndex of absent index changed table: index=%d ok=%v len=%d", index, ok, s.tableLength)
+	}
+}
+
 func TestLRUShardTableDeleteMissing(t *testing.T) {
 	var s lrushard[string, int]
 	s.Init(8, getRuntimeHasher[string](), 0)

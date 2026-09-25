@@ -95,7 +95,7 @@ func (s *bytesshard) SetIfAbsent(hash uint32, key []byte, value []byte) (prev []
 	node := (*bytesnode)(unsafe.Add(unsafe.Pointer(&s.list[0]), uintptr(index)*unsafe.Sizeof(s.list[0])))
 	evictedValue := node.value
 	if uint32(len(s.list)-1) <= s.tableLength {
-		s.tableDelete(uint32(wyhashHashbytes(node.key, 0)), node.key)
+		s.tableDeleteIndex(uint32(wyhashHashbytes(node.key, 0)), index)
 	}
 
 	node.key = key
@@ -132,7 +132,7 @@ func (s *bytesshard) Set(hash uint32, key []byte, value []byte) (prev []byte, re
 	node := (*bytesnode)(unsafe.Add(unsafe.Pointer(&s.list[0]), uintptr(index)*unsafe.Sizeof(s.list[0])))
 	evictedValue := node.value
 	if uint32(len(s.list)-1) <= s.tableLength {
-		s.tableDelete(uint32(wyhashHashbytes(node.key, 0)), node.key)
+		s.tableDeleteIndex(uint32(wyhashHashbytes(node.key, 0)), index)
 	}
 
 	node.key = key

@@ -42,6 +42,27 @@ func TestBytesShardTableInsert(t *testing.T) {
 	)
 }
 
+func TestBytesShardTableDeleteIndex(t *testing.T) {
+	var s bytesshard
+	s.Init(4)
+	keys := [5][]byte{nil, []byte("a"), []byte("b"), []byte("c"), []byte("d")}
+	for i := 1; i < len(keys); i++ {
+		s.list[i].key = keys[i]
+	}
+	length := func() uint32 { return s.tableLength }
+	testShardTableInsert(t, 8, s.tableInsert,
+		func(hash, index uint32) (uint32, bool) { return s.tableGet(hash, keys[index]) },
+		byIndex(s.tableDeleteIndex, length), length,
+	)
+
+	// deleting an absent index is a no-op
+	s.tableInsert(6<<8, 1)
+	s.tableDeleteIndex(6<<8, 2)
+	if index, ok := s.tableGet(6<<8, keys[1]); !ok || index != 1 || s.tableLength != 1 {
+		t.Fatalf("tableDeleteIndex of absent index changed table: index=%d ok=%v len=%d", index, ok, s.tableLength)
+	}
+}
+
 func TestBytesShardTableDeleteMissing(t *testing.T) {
 	var s bytesshard
 	s.Init(8)

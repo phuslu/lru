@@ -97,6 +97,25 @@ func (s *bytesshard) tableDelete(hash uint32, key []byte) (index uint32, ok bool
 	}
 }
 
+// tableDeleteIndex deletes the bucket assigned to a node index whose key hashes to hash.
+// Node indexes are unique in the table, so no key comparison is needed.
+func (s *bytesshard) tableDeleteIndex(hash uint32, index uint32) {
+	mask := s.tableMask
+	i := hash >> dibBitSize & mask
+	b0 := unsafe.Pointer(unsafe.SliceData(s.tableBuckets))
+	for {
+		b := (*bytesbucket)(unsafe.Add(b0, uintptr(i)*8))
+		if b.index == index {
+			s.tableDeleteByIndex(i)
+			return
+		}
+		if b.hdib&maxDIB == 0 {
+			return
+		}
+		i = (i + 1) & mask
+	}
+}
+
 func (s *bytesshard) tableDeleteByIndex(i uint32) {
 	mask := s.tableMask
 	b0 := unsafe.Pointer(unsafe.SliceData(s.tableBuckets))

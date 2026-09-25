@@ -48,3 +48,12 @@ func testShardTableInsert(t *testing.T, shift uint, insert func(uint32, uint32),
 	remove(2)
 	check()
 }
+
+// byIndex adapts tableDeleteIndex to the delete signature of testShardTableInsert.
+func byIndex(del func(uint32, uint32), length func() uint32) func(uint32, uint32) (uint32, bool) {
+	return func(hash, index uint32) (uint32, bool) {
+		n := length()
+		del(hash, index)
+		return index, length() == n-1
+	}
+}

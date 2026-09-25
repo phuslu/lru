@@ -116,6 +116,25 @@ func (s *lrushard[K, V]) tableDelete(hash uint32, key K) (index uint32, ok bool)
 	}
 }
 
+// tableDeleteIndex deletes the bucket assigned to a node index whose key hashes to hash.
+// Node indexes are unique in the table, so no key comparison is needed.
+func (s *lrushard[K, V]) tableDeleteIndex(hash uint32, index uint32) {
+	mask := s.tableMask
+	i := bits.RotateLeft32(hash, -shardBits) & mask
+	b0 := unsafe.Pointer(unsafe.SliceData(s.tableBuckets))
+	for {
+		b := (*lrubucket)(unsafe.Add(b0, uintptr(i)*8))
+		if b.index == index {
+			s.tableDeleteByIndex(i)
+			return
+		}
+		if b.hdib&maxDIB == 0 {
+			return
+		}
+		i = (i + 1) & mask
+	}
+}
+
 func (s *lrushard[K, V]) tableDeleteByIndex(i uint32) {
 	mask := s.tableMask
 	b0 := unsafe.Pointer(unsafe.SliceData(s.tableBuckets))
