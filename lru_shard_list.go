@@ -11,10 +11,13 @@ func (s *lrushard[K, V]) listInit(size uint32) {
 	if len(s.list) == 0 {
 		s.list = make([]lrunode[K, V], size)
 	}
-	for i := uint32(0); i < size; i++ {
-		s.list[i].next = (i + 1) % size
-		s.list[i].prev = (i + size - 1) % size
+	list := s.list[:size]
+	for i := range list {
+		list[i].next = uint32(i) + 1
+		list[i].prev = uint32(i) - 1
 	}
+	list[0].prev = size - 1
+	list[size-1].next = 0
 }
 
 func (s *lrushard[K, V]) listBack() uint32 {
