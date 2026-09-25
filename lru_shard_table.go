@@ -75,48 +75,44 @@ func (s *lrushard[K, V]) tableInsert(hash uint32, index uint32) {
 // tableGet returns an index for a key.
 // Returns false when no index has been assign for key.
 func (s *lrushard[K, V]) tableGet(hash uint32, key K) (index uint32, ok bool) {
-	subhash := hash >> dibBitSize
-	mask := s.tableMask
-	i := bits.RotateLeft32(hash, -shardBits) & mask
-	dib := uint32(1)
-	b0 := unsafe.Pointer(unsafe.SliceData(s.tableBuckets))
-	l0 := unsafe.Pointer(unsafe.SliceData(s.list))
+	// The bucket of key at probe distance dib holds exactly subhash|dib, so one
+	// comparison checks both. hdib is 64-bit so that it never wraps around to
+	// match an empty bucket; kept small enough to be inlined into callers.
+	hdib := uint64(hash>>dibBitSize<<dibBitSize | 1)
+	i := bits.RotateLeft32(hash, -shardBits)
 	for {
-		b := (*lrubucket)(unsafe.Add(b0, uintptr(i)*8))
-		bdib := b.hdib & maxDIB
-		if bdib < dib {
-			return
-		}
-		if b.hdib>>dibBitSize == subhash && (*lrunode[K, V])(unsafe.Add(l0, uintptr(b.index)*unsafe.Sizeof(s.list[0]))).key == key {
+		b := (*lrubucket)(unsafe.Add(unsafe.Pointer(unsafe.SliceData(s.tableBuckets)), uintptr(i&s.tableMask)*8))
+		if uint64(b.hdib) == hdib && (*lrunode[K, V])(unsafe.Add(unsafe.Pointer(unsafe.SliceData(s.list)), uintptr(b.index)*unsafe.Sizeof(s.list[0]))).key == key {
 			return b.index, true
 		}
-		i = (i + 1) & mask
-		dib++
+		if b.hdib&maxDIB < uint32(hdib)&maxDIB {
+			return
+		}
+		i++
+		hdib++
 	}
 }
 
 // tableDelete deletes an index for a key.
 // Returns the deleted index, or false when no index was assigned.
 func (s *lrushard[K, V]) tableDelete(hash uint32, key K) (index uint32, ok bool) {
-	subhash := hash >> dibBitSize
+	hdib := uint64(hash>>dibBitSize<<dibBitSize | 1)
 	mask := s.tableMask
 	i := bits.RotateLeft32(hash, -shardBits) & mask
-	dib := uint32(1)
 	b0 := unsafe.Pointer(unsafe.SliceData(s.tableBuckets))
 	l0 := unsafe.Pointer(unsafe.SliceData(s.list))
 	for {
 		b := (*lrubucket)(unsafe.Add(b0, uintptr(i)*8))
-		bdib := b.hdib & maxDIB
-		if bdib < dib {
-			return
-		}
-		if b.hdib>>dibBitSize == subhash && (*lrunode[K, V])(unsafe.Add(l0, uintptr(b.index)*unsafe.Sizeof(s.list[0]))).key == key {
+		if uint64(b.hdib) == hdib && (*lrunode[K, V])(unsafe.Add(l0, uintptr(b.index)*unsafe.Sizeof(s.list[0]))).key == key {
 			old := b.index
 			s.tableDeleteByIndex(i)
 			return old, true
 		}
+		if b.hdib&maxDIB < uint32(hdib)&maxDIB {
+			return
+		}
 		i = (i + 1) & mask
-		dib++
+		hdib++
 	}
 }
 
