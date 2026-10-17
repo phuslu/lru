@@ -34,7 +34,15 @@ func TestLRUShardTableInsert(t *testing.T) {
 	for i := uint32(1); i < 5; i++ {
 		s.list[i].key = i
 	}
-	testShardTableInsert(t, 9, s.tableInsert, s.tableGet, s.tableDelete,
+	testShardTableInsert(t, 9, s.tableInsert,
+		func(hash, index uint32) (uint32, bool) {
+			index, _, ok := s.tableGet(hash, index)
+			return index, ok
+		},
+		func(hash, index uint32) (uint32, bool) {
+			index, _, ok := s.tableDelete(hash, index)
+			return index, ok
+		},
 		func() uint32 { return s.tableLength },
 	)
 }
@@ -46,12 +54,18 @@ func TestLRUShardTableDeleteIndex(t *testing.T) {
 		s.list[i].key = i
 	}
 	length := func() uint32 { return s.tableLength }
-	testShardTableInsert(t, 9, s.tableInsert, s.tableGet, byIndex(s.tableDeleteIndex, length), length)
+	testShardTableInsert(t, 9, s.tableInsert,
+		func(hash, index uint32) (uint32, bool) {
+			index, _, ok := s.tableGet(hash, index)
+			return index, ok
+		},
+		byIndex(s.tableDeleteIndex, length), length,
+	)
 
 	// deleting an absent index is a no-op
 	s.tableInsert(6<<9, 1)
 	s.tableDeleteIndex(6<<9, 2)
-	if index, ok := s.tableGet(6<<9, 1); !ok || index != 1 || s.tableLength != 1 {
+	if index, _, ok := s.tableGet(6<<9, 1); !ok || index != 1 || s.tableLength != 1 {
 		t.Fatalf("tableDeleteIndex of absent index changed table: index=%d ok=%v len=%d", index, ok, s.tableLength)
 	}
 }
@@ -66,7 +80,7 @@ func TestLRUShardTableDeleteMissing(t *testing.T) {
 
 	missing := "missing"
 	missingHash := uint32(s.tableHasher(noescape(unsafe.Pointer(&missing)), s.tableSeed))
-	index, ok := s.tableDelete(missingHash, missing)
+	index, _, ok := s.tableDelete(missingHash, missing)
 	if ok || index != 0 {
 		t.Fatalf("missing key should not delete an index: index=%d ok=%v", index, ok)
 	}

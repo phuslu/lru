@@ -24,14 +24,12 @@ func (s *ttlshard[K, V]) listBack() uint32 {
 	return s.list[0].prev
 }
 
-func (s *ttlshard[K, V]) listMoveToFront(i uint32) {
+func (s *ttlshard[K, V]) listMoveToFront(i uint32, nodei *ttlnode[K, V]) {
 	base := unsafe.Pointer(unsafe.SliceData(s.list))
 	root := (*ttlnode[K, V])(base)
 	if root.next == i {
 		return
 	}
-
-	nodei := (*ttlnode[K, V])(unsafe.Add(base, uintptr(i)*unsafe.Sizeof(s.list[0])))
 
 	((*ttlnode[K, V])(unsafe.Add(base, uintptr(nodei.prev)*unsafe.Sizeof(s.list[0])))).next = nodei.next
 	((*ttlnode[K, V])(unsafe.Add(base, uintptr(nodei.next)*unsafe.Sizeof(s.list[0])))).prev = nodei.prev
@@ -43,14 +41,13 @@ func (s *ttlshard[K, V]) listMoveToFront(i uint32) {
 	((*ttlnode[K, V])(unsafe.Add(base, uintptr(nodei.next)*unsafe.Sizeof(s.list[0])))).prev = i
 }
 
-func (s *ttlshard[K, V]) listMoveToBack(i uint32) {
+func (s *ttlshard[K, V]) listMoveToBack(i uint32, nodei *ttlnode[K, V]) {
 	base := unsafe.Pointer(unsafe.SliceData(s.list))
 	j := ((*ttlnode[K, V])(base)).prev
 	if i == j {
 		return
 	}
 
-	nodei := (*ttlnode[K, V])(unsafe.Add(base, uintptr(i)*unsafe.Sizeof(s.list[0])))
 	at := (*ttlnode[K, V])(unsafe.Add(base, uintptr(j)*unsafe.Sizeof(s.list[0])))
 
 	((*ttlnode[K, V])(unsafe.Add(base, uintptr(nodei.prev)*unsafe.Sizeof(s.list[0])))).next = nodei.next

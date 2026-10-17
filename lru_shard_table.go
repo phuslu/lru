@@ -72,9 +72,9 @@ func (s *lrushard[K, V]) tableInsert(hash uint32, index uint32) {
 	}
 }
 
-// tableGet returns an index for a key.
-// Returns false when no index has been assign for key.
-func (s *lrushard[K, V]) tableGet(hash uint32, key K) (index uint32, ok bool) {
+// tableGet returns the index and node for a key.
+// Returns false when no node has been assigned for key.
+func (s *lrushard[K, V]) tableGet(hash uint32, key K) (index uint32, node *lrunode[K, V], ok bool) {
 	// The bucket of key at probe distance dib holds exactly subhash|dib, so one
 	// comparison checks both. hdib is 64-bit so that it never wraps around to
 	// match an empty bucket; kept small enough to be inlined into callers.
@@ -82,8 +82,11 @@ func (s *lrushard[K, V]) tableGet(hash uint32, key K) (index uint32, ok bool) {
 	i := bits.RotateLeft32(hash, -shardBits)
 	for {
 		b := (*lrubucket)(unsafe.Add(unsafe.Pointer(unsafe.SliceData(s.tableBuckets)), uintptr(i&s.tableMask)*8))
-		if uint64(b.hdib) == hdib && (*lrunode[K, V])(unsafe.Add(unsafe.Pointer(unsafe.SliceData(s.list)), uintptr(b.index)*unsafe.Sizeof(s.list[0]))).key == key {
-			return b.index, true
+		if uint64(b.hdib) == hdib {
+			node = (*lrunode[K, V])(unsafe.Add(unsafe.Pointer(unsafe.SliceData(s.list)), uintptr(b.index)*unsafe.Sizeof(s.list[0])))
+			if node.key == key {
+				return b.index, node, true
+			}
 		}
 		if b.hdib&maxDIB < uint32(hdib)&maxDIB {
 			return
@@ -93,9 +96,9 @@ func (s *lrushard[K, V]) tableGet(hash uint32, key K) (index uint32, ok bool) {
 	}
 }
 
-// tableDelete deletes an index for a key.
-// Returns the deleted index, or false when no index was assigned.
-func (s *lrushard[K, V]) tableDelete(hash uint32, key K) (index uint32, ok bool) {
+// tableDelete deletes a key and returns its index and node.
+// Returns false when no node was assigned.
+func (s *lrushard[K, V]) tableDelete(hash uint32, key K) (index uint32, node *lrunode[K, V], ok bool) {
 	hdib := uint64(hash>>dibBitSize<<dibBitSize | 1)
 	mask := s.tableMask
 	i := bits.RotateLeft32(hash, -shardBits) & mask
@@ -103,10 +106,13 @@ func (s *lrushard[K, V]) tableDelete(hash uint32, key K) (index uint32, ok bool)
 	l0 := unsafe.Pointer(unsafe.SliceData(s.list))
 	for {
 		b := (*lrubucket)(unsafe.Add(b0, uintptr(i)*8))
-		if uint64(b.hdib) == hdib && (*lrunode[K, V])(unsafe.Add(l0, uintptr(b.index)*unsafe.Sizeof(s.list[0]))).key == key {
-			old := b.index
-			s.tableDeleteByIndex(i)
-			return old, true
+		if uint64(b.hdib) == hdib {
+			candidate := b.index
+			node = (*lrunode[K, V])(unsafe.Add(l0, uintptr(b.index)*unsafe.Sizeof(s.list[0])))
+			if node.key == key {
+				s.tableDeleteByIndex(i)
+				return candidate, node, true
+			}
 		}
 		if b.hdib&maxDIB < uint32(hdib)&maxDIB {
 			return
