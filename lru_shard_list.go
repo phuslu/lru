@@ -27,7 +27,8 @@ func (s *lrushard[K, V]) listBack() uint32 {
 func (s *lrushard[K, V]) listMoveToFront(i uint32, nodei *lrunode[K, V]) {
 	base := unsafe.Pointer(unsafe.SliceData(s.list))
 	root := (*lrunode[K, V])(base)
-	if root.next == i {
+	rootNext := root.next
+	if rootNext == i {
 		return
 	}
 
@@ -35,10 +36,10 @@ func (s *lrushard[K, V]) listMoveToFront(i uint32, nodei *lrunode[K, V]) {
 	((*lrunode[K, V])(unsafe.Add(base, uintptr(nodei.next)*unsafe.Sizeof(s.list[0])))).prev = nodei.prev
 
 	nodei.prev = 0
-	nodei.next = root.next
+	nodei.next = rootNext
 
 	root.next = i
-	((*lrunode[K, V])(unsafe.Add(base, uintptr(nodei.next)*unsafe.Sizeof(s.list[0])))).prev = i
+	((*lrunode[K, V])(unsafe.Add(base, uintptr(rootNext)*unsafe.Sizeof(s.list[0])))).prev = i
 }
 
 func (s *lrushard[K, V]) listMoveToBack(i uint32, nodei *lrunode[K, V]) {
@@ -49,13 +50,14 @@ func (s *lrushard[K, V]) listMoveToBack(i uint32, nodei *lrunode[K, V]) {
 	}
 
 	at := (*lrunode[K, V])(unsafe.Add(base, uintptr(j)*unsafe.Sizeof(s.list[0])))
+	atNext := at.next
 
 	((*lrunode[K, V])(unsafe.Add(base, uintptr(nodei.prev)*unsafe.Sizeof(s.list[0])))).next = nodei.next
 	((*lrunode[K, V])(unsafe.Add(base, uintptr(nodei.next)*unsafe.Sizeof(s.list[0])))).prev = nodei.prev
 
 	nodei.prev = j
-	nodei.next = at.next
+	nodei.next = atNext
 
 	((*lrunode[K, V])(unsafe.Add(base, uintptr(j)*unsafe.Sizeof(s.list[0])))).next = i
-	((*lrunode[K, V])(unsafe.Add(base, uintptr(nodei.next)*unsafe.Sizeof(s.list[0])))).prev = i
+	((*lrunode[K, V])(unsafe.Add(base, uintptr(atNext)*unsafe.Sizeof(s.list[0])))).prev = i
 }
